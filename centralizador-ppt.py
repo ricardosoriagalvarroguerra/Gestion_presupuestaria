@@ -63,8 +63,17 @@ if "page_authenticated" not in st.session_state:
 def mostrar_subpagina(sheet_name, misiones_PRE=0, misiones_VPO=0, misiones_VPD=0, misiones_VPF=0, download_filename='', mostrar_boxes=True):
     data = load_data(excel_file, sheet_name)
     if data is not None:
-        tabla_nombre = sheet_name.split('_')[-1].replace('_', ' ').title()
-        st.subheader(f"Tabla de {tabla_nombre}")
+        # Ajustar el subheader según la hoja en PRE
+        if sheet_name == "PRE_Misiones_personal":
+            subheader_text = "Tabla Misiones Personal"
+        elif sheet_name == "PRE_Misiones_consultores":
+            subheader_text = "Tabla Misiones Consultores"
+        else:
+            # Para otros casos, lógica original
+            tabla_nombre = sheet_name.split('_')[-1].replace('_', ' ').title()
+            subheader_text = f"Tabla de {tabla_nombre}"
+
+        st.subheader(subheader_text)
 
         if "total" in data.columns:
             if pd.api.types.is_numeric_dtype(data["total"]):
@@ -335,11 +344,11 @@ def main():
 
         if selected_page == "Principal":
             st.title("Página Principal")
-            st.write("Bienvenido a la página principal de la gestión presupuestaria.")
+            st.write("Bienvenido a la página principal de la app.")
             st.write("**Instrucciones para el uso de la aplicación:**")
-            st.write("- En la barra lateral izquierda, selecciona una página para acceder a su vicepresidencia.")
-            st.write("- Introduzca la contraseña especifica para la VPs")
-            st.write("- En las páginas de DPP 2025 (Misiones y Consultores) puedes editar los datos directamente en las tablas. Los cambios se reflejarán en la página de Actualización.")
+            st.write("- En la barra lateral izquierda, selecciona una página para navegar entre las distintas secciones.")
+            st.write("- Algunas páginas requieren contraseña, introdúcela cuando se te solicite.")
+            st.write("- En las páginas de DPP 2025 (Misiones y Consultores de VPD) puedes editar los datos directamente en las tablas. Los cambios se reflejarán en la página de Actualización.")
             st.write("- En la página de Consolidado puedes ver un resumen general y el total del presupuesto con diferentes colores y estilos para resaltar filas especiales.")
             st.write("- Usa los botones de descarga en las tablas para obtener los datos en formato CSV si lo deseas.")
         else:
@@ -473,4 +482,4 @@ if st.sidebar.button("Cerrar sesión"):
     st.rerun()
 
 st.sidebar.markdown("---")
-st.sidebar.image("estrellafon_transparent.png", width=150)
+st.sidebar.image("estrellafon_transparent.png", width=100)
