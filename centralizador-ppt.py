@@ -49,21 +49,51 @@ def load_data(filepath, sheet_name):
     try:
         df = pd.read_excel(filepath, sheet_name=sheet_name, engine='openpyxl')
         return df
-    except:
+    except Exception as e:
+        st.error(f"Error al cargar la hoja {sheet_name}: {e}")
         return None
 
+# Ruta al archivo Excel
 excel_file = "main_bdd.xlsx"
 
+# Inicializar el estado de autenticación si no existe
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
+# Inicializar el estado de autenticación por página si no existe
 if "page_authenticated" not in st.session_state:
     st.session_state.page_authenticated = {page: False for page in page_passwords if page_passwords[page]}
 
+def get_vpd_consultores_data():
+    """
+    Devuelve un DataFrame con los datos codificados para VPD_Consultores.
+    """
+    data = {
+        "cargo": [
+            "Consultores Nivel Analistas",
+            "Consultores Nivel Analista",
+            "Consultores Nivel Analista"
+        ],
+        "vpd_area": [
+            "EEE",
+            "EED",
+            "AIE"
+        ],
+        "cantidad_funcionarios": [2, 2, 1],
+        "monto_mensual": [4500, 4500, 4500],
+        "cantidad_meses": [10, 10, 10]
+    }
+    df = pd.DataFrame(data)
+    df['total'] = df['cantidad_funcionarios'] * df['monto_mensual'] * df['cantidad_meses']
+    return df
+
 def mostrar_subpagina(sheet_name, misiones_PRE=0, misiones_VPO=0, misiones_VPD=0, misiones_VPF=0, download_filename='', mostrar_boxes=True):
+    """
+    Muestra una subpágina con una tabla específica cargada desde Excel.
+    """
     data = load_data(excel_file, sheet_name)
     if data is not None:
-        # Ajustar el subheader según la hoja en PRE
+        # Ajustar el subheader según la hoja
         if sheet_name == "PRE_Misiones_personal":
             subheader_text = "Tabla Misiones Personal"
         elif sheet_name == "PRE_Misiones_consultores":
@@ -75,6 +105,7 @@ def mostrar_subpagina(sheet_name, misiones_PRE=0, misiones_VPO=0, misiones_VPD=0
 
         st.subheader(subheader_text)
 
+        # Mostrar métrica total si existe la columna 'total'
         if "total" in data.columns:
             if pd.api.types.is_numeric_dtype(data["total"]):
                 total_sum = data["total"].sum()
@@ -84,8 +115,10 @@ def mostrar_subpagina(sheet_name, misiones_PRE=0, misiones_VPO=0, misiones_VPD=0
         else:
             st.warning("No existe la columna 'total' en la hoja.")
 
+        # Mostrar la tabla de datos
         st.dataframe(data)
 
+        # Mostrar métricas adicionales si `mostrar_boxes` es True
         if mostrar_boxes:
             st.markdown("### Resumen de Misiones de Servicio")
             total_sum = data["total"].sum() if ("total" in data.columns and pd.api.types.is_numeric_dtype(data["total"])) else 0
@@ -102,6 +135,7 @@ def mostrar_subpagina(sheet_name, misiones_PRE=0, misiones_VPO=0, misiones_VPD=0
 
             st.metric("Total + Montos cargados a otras VPs", f"${total_plus_montos:,.2f}")
 
+        # Botón de descarga si se especifica un nombre de archivo
         if download_filename:
             csv = data.to_csv(index=False).encode('utf-8')
             st.download_button(
@@ -114,6 +148,9 @@ def mostrar_subpagina(sheet_name, misiones_PRE=0, misiones_VPO=0, misiones_VPD=0
         st.warning("No se pudo cargar la tabla especificada.")
 
 def mostrar_dpp_2025():
+    """
+    Muestra la página DPP 2025 - Misiones con una tabla editable.
+    """
     st.header("DPP 2025 - Misiones")
     st.write("Edite los valores en la tabla a continuación:")
 
@@ -146,7 +183,10 @@ def mostrar_dpp_2025():
             }
         )
 
+        # Actualizar el estado con los datos editados
         st.session_state.dpp_2025_data = edited_data
+
+        # Recalcular la columna 'total'
         st.session_state.dpp_2025_data['total'] = (
             st.session_state.dpp_2025_data['cant_funcionarios'] * st.session_state.dpp_2025_data['costo_pasaje'] +
             st.session_state.dpp_2025_data['cant_funcionarios'] * st.session_state.dpp_2025_data['dias'] * st.session_state.dpp_2025_data['alojamiento'] +
@@ -154,6 +194,7 @@ def mostrar_dpp_2025():
             st.session_state.dpp_2025_data['cant_funcionarios'] * st.session_state.dpp_2025_data['movilidad']
         )
 
+        # Cálculo de métricas adicionales
         total_sum = st.session_state.dpp_2025_data['total'].sum()
         monto_deseado = 168000
         diferencia = monto_deseado - total_sum
@@ -172,65 +213,69 @@ def mostrar_dpp_2025():
         st.warning("No se pudo cargar la tabla VPD_Misiones para DPP 2025.")
 
 def mostrar_dpp_2025_consultores():
+    """
+    Muestra la página DPP 2025 - Consultores con una tabla editable utilizando datos codificados.
+    """
     st.header("DPP 2025 - Consultores")
     st.write("Edite los valores en la tabla a continuación:")
 
-    data = load_data(excel_file, "VPD_Consultores")
-    if data is not None:
-        required_columns = ['cargo', 'vpd_area', 'cantidad_funcionarios', 'monto_mensual', 'cantidad_meses', 'total']
-        if not all(col in data.columns for col in required_columns):
-            st.error(f"Faltan columnas en VPD_Consultores. Se requieren: {required_columns}")
-            return
+    # Utilizar datos codificados en lugar de cargar desde Excel
+    if "dpp_2025_consultores_data" not in st.session_state:
+        st.session_state.dpp_2025_consultores_data = get_vpd_consultores_data()
 
-        if 'dpp_2025_consultores_data' not in st.session_state:
-            st.session_state.dpp_2025_consultores_data = data.copy()
+    edited_data = st.data_editor(
+        st.session_state.dpp_2025_consultores_data,
+        num_rows="dynamic",
+        use_container_width=True,
+        key="dpp_2025_consultores_table",
+        column_config={
+            "cargo": st.column_config.TextColumn("Cargo"),
+            "vpd_area": st.column_config.TextColumn("VPD Área"),
+            "cantidad_funcionarios": st.column_config.NumberColumn(
+                "Cantidad de Funcionarios", step=1, format="%d"
+            ),
+            "monto_mensual": st.column_config.NumberColumn(
+                "Monto Mensual", step=100.0, format="$%.2f"
+            ),
+            "cantidad_meses": st.column_config.NumberColumn(
+                "Cantidad de Meses", step=1, format="%d"
+            ),
+            "total": st.column_config.NumberColumn(
+                "Total", disabled=True, format="$%.2f"
+            )
+        }
+    )
 
-        edited_data = st.data_editor(
-            st.session_state.dpp_2025_consultores_data,
-            num_rows="dynamic",
-            use_container_width=True,
-            key="dpp_2025_consultores_table",
-            column_config={
-                "cargo": st.column_config.TextColumn("Cargo"),
-                "vpd_area": st.column_config.TextColumn("VPD Área"),
-                "cantidad_funcionarios": st.column_config.NumberColumn("Cantidad de Funcionarios", step=1, format="%d"),
-                "monto_mensual": st.column_config.NumberColumn("Monto Mensual", step=100.0, format="$%.2f"),
-                "cantidad_meses": st.column_config.NumberColumn("Cantidad de Meses", step=1, format="%d"),
-                "total": st.column_config.NumberColumn("Total", disabled=True, format="$%.2f")
-            }
-        )
+    # Actualizar el estado con los datos editados
+    st.session_state.dpp_2025_consultores_data = edited_data
 
-        st.session_state.dpp_2025_consultores_data = edited_data
-        st.session_state.dpp_2025_consultores_data['total'] = (
-            st.session_state.dpp_2025_consultores_data['cantidad_funcionarios'] *
-            st.session_state.dpp_2025_consultores_data['monto_mensual'] *
-            st.session_state.dpp_2025_consultores_data['cantidad_meses']
-        )
+    # Recalcular la columna 'total'
+    st.session_state.dpp_2025_consultores_data['total'] = (
+        st.session_state.dpp_2025_consultores_data['cantidad_funcionarios'] *
+        st.session_state.dpp_2025_consultores_data['monto_mensual'] *
+        st.session_state.dpp_2025_consultores_data['cantidad_meses']
+    )
 
-        total_sum = st.session_state.dpp_2025_consultores_data['total'].sum()
-        monto_deseado = 130000
-        diferencia = monto_deseado - total_sum
-        diff_sign = "+" if diferencia >= 0 else "-"
-        diff_value = f"{diff_sign}${abs(diferencia):,.2f}"
+    # Cálculo de métricas adicionales
+    total_sum = st.session_state.dpp_2025_consultores_data['total'].sum()
+    monto_deseado = 130000
+    diferencia = monto_deseado - total_sum
+    diff_sign = "+" if diferencia >= 0 else "-"
+    diff_value = f"{diff_sign}${abs(diferencia):,.2f}"
 
-        st.markdown("### Resultados")
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("Total 💰", f"${total_sum:,.2f}")
-        with col2:
-            st.metric("Monto Deseado 🎯", f"${monto_deseado:,.2f}")
-        with col3:
-            st.metric("Diferencia ➖", diff_value)
-    else:
-        st.warning("No se pudo cargar la tabla VPD_Consultores para DPP 2025.")
-
-def get_requerimiento(sheet_name):
-    data = load_data(excel_file, sheet_name)
-    if data is not None and "total" in data.columns and pd.api.types.is_numeric_dtype(data["total"]):
-        return data["total"].sum()
-    return 0
+    st.markdown("### Resultados")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Total 💰", f"${total_sum:,.2f}")
+    with col2:
+        st.metric("Monto Deseado 🎯", f"${monto_deseado:,.2f}")
+    with col3:
+        st.metric("Diferencia ➖", diff_value)
 
 def pagina_actualizacion():
+    """
+    Muestra la página de Actualización con comparaciones entre requerimientos y DPP 2025.
+    """
     st.title("Actualización")
 
     uos = ["VPE", "VPD", "VPO", "VPF"]
@@ -282,6 +327,9 @@ def pagina_actualizacion():
     st.dataframe(consultores_styled, use_container_width=True)
 
 def pagina_consolidado():
+    """
+    Muestra la página de Consolidado con resúmenes generales y totales presupuestarios.
+    """
     st.write("**Resumen General**")
 
     data_consolidado = load_data(excel_file, "consolidado_general")
@@ -304,8 +352,7 @@ def pagina_consolidado():
 
     data_total = load_data(excel_file, "consolidado_total")
     if data_total is not None:
-        # Filas grises: 0, 6, 14, 20, 28, 36 → #adb5bd, texto negro, borde
-        # Filas rojas: 4, 13, 19, 27, 35, 41, 42 → #c1121f, texto blanco, borde
+        # Filas específicas para resaltar
         grey_rows = [0, 6, 14, 20, 28, 36]
         red_rows = [4, 13, 19, 27, 35, 41, 42]
 
@@ -325,8 +372,21 @@ def pagina_consolidado():
     else:
         st.warning("No se pudo cargar la hoja 'consolidado_total'.")
 
+def get_requerimiento(sheet_name):
+    """
+    Obtiene el requerimiento total desde una hoja específica.
+    """
+    data = load_data(excel_file, sheet_name)
+    if data is not None and "total" in data.columns and pd.api.types.is_numeric_dtype(data["total"]):
+        return data["total"].sum()
+    return 0
+
 def main():
+    """
+    Función principal que maneja la autenticación y la navegación entre páginas.
+    """
     if not st.session_state.authenticated:
+        # Pantalla de inicio de sesión
         st.title("Gestión Presupuestaria")
         username_input = st.text_input("Usuario", key="login_username")
         password_input = st.text_input("Contraseña", type="password", key="login_password")
@@ -335,14 +395,16 @@ def main():
         if login_button:
             if username_input == app_credentials["username"] and password_input == app_credentials["password"]:
                 st.session_state.authenticated = True
-                st.rerun()
+                st.experimental_rerun()
             else:
                 st.error("Usuario o contraseña incorrectos.")
     else:
+        # Navegación de páginas
         pages = list(page_passwords.keys())
         selected_page = st.sidebar.selectbox("Selecciona una página", pages)
 
         if selected_page == "Principal":
+            # Contenido de la página principal
             st.title("Página Principal")
             st.write("Bienvenido a la página principal de la app.")
             st.write("**Instrucciones para el uso de la aplicación:**")
@@ -352,6 +414,7 @@ def main():
             st.write("- En la página de Consolidado puedes ver un resumen general y el total del presupuesto con diferentes colores y estilos para resaltar filas especiales.")
             st.write("- Usa los botones de descarga en las tablas para obtener los datos en formato CSV si lo deseas.")
         else:
+            # Autenticación por página si es necesario
             if not st.session_state.page_authenticated[selected_page]:
                 st.sidebar.markdown("---")
                 st.sidebar.write("**Autenticación por página**")
@@ -361,10 +424,11 @@ def main():
                 if verify_button:
                     if password_input == page_passwords[selected_page]:
                         st.session_state.page_authenticated[selected_page] = True
-                        st.rerun()
+                        st.experimental_rerun()
                     else:
                         st.sidebar.error("Contraseña incorrecta.")
             else:
+                # Mostrar contenido de la página seleccionada
                 if selected_page in subpages:
                     if selected_page not in ["Consolidado", "Actualización"]:
                         st.title(selected_page)
@@ -377,6 +441,7 @@ def main():
                     elif selected_page == "Consolidado":
                         pagina_consolidado()
                     elif selected_page == "PRE":
+                        # Manejo de subpáginas de PRE
                         with st.sidebar.expander(f"Subpáginas de {selected_page}"):
                             selected_subpage = st.selectbox("Selecciona una subpágina", current_subpages, key=f"{selected_page}_subpage")
 
@@ -429,6 +494,7 @@ def main():
                             )
 
                     elif selected_page == "VPD":
+                        # Manejo de subpáginas de VPD
                         with st.sidebar.expander(f"Subpáginas de {selected_page}"):
                             selected_subpage = st.selectbox("Selecciona una subpágina", current_subpages, key=f"{selected_page}_subpage")
 
@@ -473,13 +539,15 @@ def main():
                     st.title(f"Página de {selected_page}")
                     st.write(f"Contenido relacionado con {selected_page}")
 
-if __name__ == "__main__":
-    main()
+    if __name__ == "__main__":
+        main()
 
-if st.sidebar.button("Cerrar sesión"):
-    st.session_state.authenticated = False
-    st.session_state.page_authenticated = {page: False for page in page_passwords if page_passwords[page]}
-    st.rerun()
+    # Botón de Cerrar Sesión en la barra lateral
+    if st.sidebar.button("Cerrar sesión"):
+        st.session_state.authenticated = False
+        st.session_state.page_authenticated = {page: False for page in page_passwords if page_passwords[page]}
+        st.experimental_rerun()
 
-st.sidebar.markdown("---")
-st.sidebar.image("estrellafon_transparent.png", width=100)
+    # Elementos adicionales en la barra lateral
+    st.sidebar.markdown("---")
+    st.sidebar.image("estrellafon_transparent.png", width=100)
