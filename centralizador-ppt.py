@@ -25,28 +25,7 @@ page_passwords = {
     "VPF": "vpf131",
     "Actualización": "update2023",
     "Consolidado": "consolidado321",
-    "Requerimiento Personal": "reqpersonal456",
     "Tablero": "tablero654"
-}
-
-# Subpáginas por página principal
-subpages = {
-    "PRE": [
-        "Misiones Personal",
-        "Misiones Consultores",
-        "Servicios Profesionales",
-        "Gastos Centralizados"
-    ],
-    "VPD": [
-        "Misiones - Requerimiento de Área",
-        "Misiones - DPP 2025",
-        "Consultores - Requerimiento de Área",
-        "Consultores - DPP 2025"
-    ],
-    "Requerimiento Personal": [
-        "Misiones Personal",
-        "Consultores Personal"
-    ]
 }
 
 @st.cache_data
@@ -66,24 +45,6 @@ if "authenticated" not in st.session_state:
 
 if "page_authenticated" not in st.session_state:
     st.session_state.page_authenticated = {page: False for page in page_passwords if page_passwords[page]}
-
-def mostrar_requerimiento_personal(sheet_name):
-    """Muestra y edita datos del Requerimiento de Personal."""
-    st.header(f"Requerimiento de Personal - {sheet_name}")
-    st.write("Revise los datos en la hoja de cálculo a continuación:")
-
-    data = load_data(excel_file, sheet_name)
-    if data is not None:
-        edited_data, code = spreadsheet(data)
-        st.session_state[f"{sheet_name}_data"] = edited_data
-
-        if "total" in edited_data.columns and pd.api.types.is_numeric_dtype(edited_data["total"]):
-            total_sum = edited_data["total"].sum()
-            st.metric("Total Requerido", f"${total_sum:,.2f}")
-        else:
-            st.warning("No se encontró una columna 'total' válida en los datos.")
-    else:
-        st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
 
 def mostrar_requerimiento_area(sheet_name):
     """Muestra datos de Requerimiento de Área sin editar."""
@@ -114,37 +75,6 @@ def mostrar_dpp_2025_mito(sheet_name):
     else:
         st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
 
-def mostrar_dpp_2025():
-    """Muestra y edita datos de DPP 2025 - Misiones."""
-    st.header("DPP 2025 - Misiones")
-    st.write("Edite los valores en la hoja de cálculo a continuación:")
-
-    data = load_data(excel_file, "VPD_Misiones")
-    if data is not None:
-        edited_data, code = spreadsheet(data)
-        st.session_state.dpp_2025_data = edited_data
-        st.session_state.dpp_2025_data['total'] = (
-            st.session_state.dpp_2025_data['cant_funcionarios'] * st.session_state.dpp_2025_data['costo_pasaje'] +
-            st.session_state.dpp_2025_data['cant_funcionarios'] * st.session_state.dpp_2025_data['dias'] * st.session_state.dpp_2025_data['alojamiento'] +
-            st.session_state.dpp_2025_data['cant_funcionarios'] * st.session_state.dpp_2025_data['dias'] * st.session_state.dpp_2025_data['perdiem_otros'] +
-            st.session_state.dpp_2025_data['cant_funcionarios'] * st.session_state.dpp_2025_data['movilidad']
-        )
-
-        total_sum = st.session_state.dpp_2025_data['total'].sum()
-        monto_deseado = 168000
-        diferencia = monto_deseado - total_sum
-
-        st.markdown("### Resultados")
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("Total 💰", f"${total_sum:,.2f}")
-        with col2:
-            st.metric("Monto Deseado 🎯", f"${monto_deseado:,.2f}")
-        with col3:
-            st.metric("Diferencia ➖", f"${diferencia:,.2f}")
-    else:
-        st.warning("No se pudo cargar la tabla VPD_Misiones para DPP 2025.")
-
 def main():
     """Estructura principal de la aplicación."""
     if not st.session_state.authenticated:
@@ -168,22 +98,28 @@ def main():
             st.write("Bienvenido a la página principal de la app.")
         elif selected_page == "VPD":
             st.title("VPD")
-            subpage_options = [
-                "Misiones - Requerimiento de Área",
-                "Misiones - DPP 2025",
-                "Consultores - Requerimiento de Área",
-                "Consultores - DPP 2025"
-            ]
+            subpage_options = ["Misiones", "Consultorías"]
             selected_subpage = st.sidebar.selectbox("Selecciona una subpágina", subpage_options)
 
-            if selected_subpage == "Misiones - Requerimiento de Área":
-                mostrar_requerimiento_area("VPD_Misiones")
-            elif selected_subpage == "Misiones - DPP 2025":
-                mostrar_dpp_2025_mito("VPD_Misiones")
-            elif selected_subpage == "Consultores - Requerimiento de Área":
-                mostrar_requerimiento_area("VPD_Consultores")
-            elif selected_subpage == "Consultores - DPP 2025":
-                mostrar_dpp_2025_mito("VPD_Consultores")
+            if selected_subpage == "Misiones":
+                st.subheader("Misiones")
+                subsubpage_options = ["Requerimiento de Área", "DPP 2025"]
+                selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Misiones", subsubpage_options)
+
+                if selected_subsubpage == "Requerimiento de Área":
+                    mostrar_requerimiento_area("VPD_Misiones")
+                elif selected_subsubpage == "DPP 2025":
+                    mostrar_dpp_2025_mito("VPD_Misiones")
+
+            elif selected_subpage == "Consultorías":
+                st.subheader("Consultorías")
+                subsubpage_options = ["Requerimiento de Área", "DPP 2025"]
+                selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Consultorías", subsubpage_options)
+
+                if selected_subsubpage == "Requerimiento de Área":
+                    mostrar_requerimiento_area("VPD_Consultores")
+                elif selected_subsubpage == "DPP 2025":
+                    mostrar_dpp_2025_mito("VPD_Consultores")
         else:
             if not st.session_state.page_authenticated[selected_page]:
                 st.sidebar.markdown("---")
