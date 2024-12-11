@@ -1,3 +1,4 @@
-streamlit
-pandas
-openpyxl
+streamlit=1.31
+mitoinstaller
+pandas=1.0
+openpyxl=3.0
