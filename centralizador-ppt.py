@@ -47,6 +47,7 @@ subpages = {
 
 @st.cache_data
 def load_data(filepath, sheet_name):
+    """Carga datos de una hoja de Excel."""
     try:
         df = pd.read_excel(filepath, sheet_name=sheet_name, engine='openpyxl')
         return df
@@ -62,25 +63,8 @@ if "authenticated" not in st.session_state:
 if "page_authenticated" not in st.session_state:
     st.session_state.page_authenticated = {page: False for page in page_passwords if page_passwords[page]}
 
-def mostrar_requerimiento_personal(sheet_name):
-    st.header(f"Requerimiento de Personal - {sheet_name}")
-    st.write("Revise los datos en la hoja de cálculo a continuación:")
-
-    data = load_data(excel_file, sheet_name)
-    if data is not None:
-        edited_data, code = spreadsheet(data)
-        st.session_state[f"{sheet_name}_data"] = edited_data
-
-        # Resultados básicos
-        if "total" in edited_data.columns and pd.api.types.is_numeric_dtype(edited_data["total"]):
-            total_sum = edited_data["total"].sum()
-            st.metric("Total Requerido", f"${total_sum:,.2f}")
-        else:
-            st.warning("No se encontró una columna 'total' válida en los datos.")
-    else:
-        st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
-
 def mostrar_subpagina(sheet_name, download_filename='', mostrar_boxes=False):
+    """Muestra una subpágina con datos cargados de Excel."""
     data = load_data(excel_file, sheet_name)
     if data is not None:
         st.subheader(f"Tabla de {sheet_name}")
@@ -107,7 +91,27 @@ def mostrar_subpagina(sheet_name, download_filename='', mostrar_boxes=False):
     else:
         st.warning("No se pudo cargar la tabla especificada.")
 
+def mostrar_requerimiento_personal(sheet_name):
+    """Muestra y edita datos del Requerimiento de Personal."""
+    st.header(f"Requerimiento de Personal - {sheet_name}")
+    st.write("Revise los datos en la hoja de cálculo a continuación:")
+
+    data = load_data(excel_file, sheet_name)
+    if data is not None:
+        edited_data, code = spreadsheet(data)
+        st.session_state[f"{sheet_name}_data"] = edited_data
+
+        # Resultados básicos
+        if "total" in edited_data.columns and pd.api.types.is_numeric_dtype(edited_data["total"]):
+            total_sum = edited_data["total"].sum()
+            st.metric("Total Requerido", f"${total_sum:,.2f}")
+        else:
+            st.warning("No se encontró una columna 'total' válida en los datos.")
+    else:
+        st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
+
 def mostrar_dpp_2025():
+    """Muestra y edita datos de DPP 2025 - Misiones."""
     st.header("DPP 2025 - Misiones")
     st.write("Edite los valores en la hoja de cálculo a continuación:")
 
@@ -138,6 +142,7 @@ def mostrar_dpp_2025():
         st.warning("No se pudo cargar la tabla VPD_Misiones para DPP 2025.")
 
 def mostrar_dpp_2025_consultores():
+    """Muestra y edita datos de DPP 2025 - Consultores."""
     st.header("DPP 2025 - Consultores")
     st.write("Edite los valores en la hoja de cálculo a continuación:")
 
@@ -167,6 +172,7 @@ def mostrar_dpp_2025_consultores():
         st.warning("No se pudo cargar la tabla VPD_Consultores para DPP 2025.")
 
 def main():
+    """Estructura principal de la aplicación."""
     if not st.session_state.authenticated:
         st.title("Gestión Presupuestaria")
         username_input = st.text_input("Usuario", key="login_username")
