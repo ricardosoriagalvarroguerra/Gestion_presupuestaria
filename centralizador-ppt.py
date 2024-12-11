@@ -50,7 +50,8 @@ def load_data(filepath, sheet_name):
     try:
         df = pd.read_excel(filepath, sheet_name=sheet_name, engine='openpyxl')
         return df
-    except:
+    except Exception as e:
+        st.error(f"Error cargando los datos: {e}")
         return None
 
 excel_file = "main_bdd.xlsx"
@@ -94,13 +95,8 @@ def mostrar_dpp_2025():
 
     data = load_data(excel_file, "VPD_Misiones")
     if data is not None:
-        # Muestra la hoja de cálculo de Mito
         edited_data, code = spreadsheet(data)
-
-        # Actualiza el estado con los datos editados
         st.session_state.dpp_2025_data = edited_data
-
-        # Recalcula el total
         st.session_state.dpp_2025_data['total'] = (
             st.session_state.dpp_2025_data['cant_funcionarios'] * st.session_state.dpp_2025_data['costo_pasaje'] +
             st.session_state.dpp_2025_data['cant_funcionarios'] * st.session_state.dpp_2025_data['dias'] * st.session_state.dpp_2025_data['alojamiento'] +
@@ -129,13 +125,8 @@ def mostrar_dpp_2025_consultores():
 
     data = load_data(excel_file, "VPD_Consultores")
     if data is not None:
-        # Muestra la hoja de cálculo de Mito
         edited_data, code = spreadsheet(data)
-
-        # Actualiza el estado con los datos editados
         st.session_state.dpp_2025_consultores_data = edited_data
-
-        # Recalcula el total
         st.session_state.dpp_2025_consultores_data['total'] = (
             st.session_state.dpp_2025_consultores_data['cantidad_funcionarios'] *
             st.session_state.dpp_2025_consultores_data['monto_mensual'] *
