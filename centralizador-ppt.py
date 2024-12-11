@@ -38,7 +38,7 @@ def load_data(filepath, sheet_name):
         st.error(f"Error cargando los datos: {e}")
         return None
 
-excel_file = "main_bdd.xlsx"
+excel_file = "/mnt/data/main_bdd.xlsx"
 
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
@@ -58,7 +58,7 @@ def convertir_a_dataframe(edited_data):
         return None
 
 def mostrar_dpp_2025_mito(sheet_name, monto_dpp):
-    """Muestra y edita datos de DPP 2025 usando MITO, con Value Boxes para suma de 'total' y monto DPP 2025."""
+    """Muestra y edita datos de DPP 2025 usando MITO, con Value Boxes para suma de 'total', monto DPP 2025 y diferencia."""
     st.header(f"DPP 2025 - {sheet_name}")
 
     data = load_data(excel_file, sheet_name)
@@ -80,17 +80,17 @@ def mostrar_dpp_2025_mito(sheet_name, monto_dpp):
                 try:
                     edited_df["total"] = pd.to_numeric(edited_df["total"], errors="coerce")
                     total_sum = edited_df["total"].sum()
+                    diferencia = total_sum - monto_dpp
 
-                    # Mostrar Value Boxes arriba de la tabla
-                    col1, col2, col3 = st.columns([1, 2, 1])  # Alinear los Value Boxes en el centro
+                    # Mostrar Value Boxes
+                    col1, col2, col3 = st.columns(3)  # Alinear los Value Boxes
                     with col1:
                         st.metric(label="Monto DPP 2025", value=f"${monto_dpp:,.2f}")
-                    with col3:
+                    with col2:
                         st.metric(label="Suma de Total", value=f"${total_sum:,.2f}")
+                    with col3:
+                        st.metric(label="Diferencia", value=f"${diferencia:,.2f}")
 
-                    # Mostrar la tabla editada
-                    st.write("Edite los datos en la tabla a continuación:")
-                    st.dataframe(edited_df)
                 except Exception as e:
                     st.warning(f"No se pudo convertir la columna 'total' a un formato numérico: {e}")
             else:
