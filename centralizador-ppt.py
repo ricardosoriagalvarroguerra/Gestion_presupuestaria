@@ -1,9 +1,10 @@
 import streamlit as st
 import pandas as pd
+from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 
 # Configuración de la aplicación
 st.set_page_config(
-    page_title="Gestión Presupuestaria",
+    page_title="Gestión Presupuestaria con AgGrid",
     page_icon="📊",
     layout="wide"
 )
@@ -82,167 +83,47 @@ def get_vpd_consultores_data():
     df['total'] = df['cantidad_funcionarios'] * df['monto_mensual'] * df['cantidad_meses']
     return df
 
-def mostrar_subpagina(sheet_name, misiones_PRE=0, misiones_VPO=0, misiones_VPD=0, misiones_VPF=0, download_filename='', mostrar_boxes=True):
+def mostrar_dpp_2025_consultores_aggrid():
     """
-    Muestra una subpágina con una tabla específica cargada desde Excel.
+    Muestra la página DPP 2025 - Consultores con una tabla editable utilizando streamlit-aggrid.
     """
-    data = load_data(excel_file, sheet_name)
-    if data is not None:
-        # Ajustar el subheader según la hoja
-        if sheet_name == "PRE_Misiones_personal":
-            subheader_text = "Tabla Misiones Personal"
-        elif sheet_name == "PRE_Misiones_consultores":
-            subheader_text = "Tabla Misiones Consultores"
-        else:
-            # Para otros casos, lógica original
-            tabla_nombre = sheet_name.split('_')[-1].replace('_', ' ').title()
-            subheader_text = f"Tabla de {tabla_nombre}"
-
-        st.subheader(subheader_text)
-
-        # Mostrar métrica total si existe la columna 'total'
-        if "total" in data.columns:
-            if pd.api.types.is_numeric_dtype(data["total"]):
-                total_sum = data["total"].sum()
-                st.metric(label="Total", value=f"${total_sum:,.2f}")
-            else:
-                st.warning("La columna 'total' no es numérica.")
-        else:
-            st.warning("No existe la columna 'total' en la hoja.")
-
-        # Mostrar la tabla de datos
-        st.dataframe(data)
-
-        # Mostrar métricas adicionales si `mostrar_boxes` es True
-        if mostrar_boxes:
-            st.markdown("### Resumen de Misiones de Servicio")
-            total_sum = data["total"].sum() if ("total" in data.columns and pd.api.types.is_numeric_dtype(data["total"])) else 0
-            total_misiones = misiones_PRE + misiones_VPO + misiones_VPD + misiones_VPF
-            total_plus_montos = total_sum + total_misiones
-
-            col1, col2 = st.columns(2)
-            with col1:
-                st.metric("Misiones de Servicio cargadas a PRE", f"${misiones_PRE:,.0f}")
-                st.metric("Misiones de Servicio cargadas a VPF", f"${misiones_VPF:,.0f}")
-            with col2:
-                st.metric("Misiones de Servicio cargadas a VPD", f"${misiones_VPD:,.0f}")
-                st.metric("Misiones de Servicio cargadas a VPO", f"${misiones_VPO:,.0f}")
-
-            st.metric("Total + Montos cargados a otras VPs", f"${total_plus_montos:,.2f}")
-
-        # Botón de descarga si se especifica un nombre de archivo
-        if download_filename:
-            csv = data.to_csv(index=False).encode('utf-8')
-            st.download_button(
-                label="Descargar datos como CSV",
-                data=csv,
-                file_name=download_filename,
-                mime='text/csv',
-            )
-    else:
-        st.warning("No se pudo cargar la tabla especificada.")
-
-def mostrar_dpp_2025():
-    """
-    Muestra la página DPP 2025 - Misiones con una tabla editable.
-    """
-    st.header("DPP 2025 - Misiones")
-    st.write("Edite los valores en la tabla a continuación:")
-
-    data = load_data(excel_file, "VPD_Misiones")
-    if data is not None:
-        required_columns = ['pais', 'operacion', 'vpd_area', 'cant_funcionarios', 'dias', 'costo_pasaje', 'alojamiento', 'perdiem_otros', 'movilidad', 'total']
-        if not all(col in data.columns for col in required_columns):
-            st.error(f"Faltan columnas en VPD_Misiones. Se requieren: {required_columns}")
-            return
-
-        if 'dpp_2025_data' not in st.session_state:
-            st.session_state.dpp_2025_data = data.copy()
-
-        edited_data = st.data_editor(
-            st.session_state.dpp_2025_data,
-            num_rows="dynamic",
-            use_container_width=True,
-            key="dpp_2025_table_misiones",
-            column_config={
-                "pais": st.column_config.TextColumn("País"),
-                "operacion": st.column_config.TextColumn("Operación"),
-                "vpd_area": st.column_config.TextColumn("VPD Área"),
-                "cant_funcionarios": st.column_config.NumberColumn("Cantidad de Funcionarios", step=1, format="%d"),
-                "dias": st.column_config.NumberColumn("Días", step=1, format="%d"),
-                "costo_pasaje": st.column_config.NumberColumn("Costo Pasaje por Funcionario", step=100.0, format="$%.2f"),
-                "alojamiento": st.column_config.NumberColumn("Alojamiento por Día por Funcionario", step=50.0, format="$%.2f"),
-                "perdiem_otros": st.column_config.NumberColumn("Perdiem Otros por Día por Funcionario", step=20.0, format="$%.2f"),
-                "movilidad": st.column_config.NumberColumn("Costo de Movilidad por Funcionario", step=30.0, format="$%.2f"),
-                "total": st.column_config.NumberColumn("Total", disabled=True, format="$%.2f")
-            }
-        )
-
-        # Actualizar el estado con los datos editados
-        st.session_state.dpp_2025_data = edited_data
-
-        # Recalcular la columna 'total'
-        st.session_state.dpp_2025_data['total'] = (
-            st.session_state.dpp_2025_data['cant_funcionarios'] * st.session_state.dpp_2025_data['costo_pasaje'] +
-            st.session_state.dpp_2025_data['cant_funcionarios'] * st.session_state.dpp_2025_data['dias'] * st.session_state.dpp_2025_data['alojamiento'] +
-            st.session_state.dpp_2025_data['cant_funcionarios'] * st.session_state.dpp_2025_data['dias'] * st.session_state.dpp_2025_data['perdiem_otros'] +
-            st.session_state.dpp_2025_data['cant_funcionarios'] * st.session_state.dpp_2025_data['movilidad']
-        )
-
-        # Cálculo de métricas adicionales
-        total_sum = st.session_state.dpp_2025_data['total'].sum()
-        monto_deseado = 168000
-        diferencia = monto_deseado - total_sum
-        diff_sign = "+" if diferencia >= 0 else "-"
-        diff_value = f"{diff_sign}${abs(diferencia):,.2f}"
-
-        st.markdown("### Resultados")
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("Total 💰", f"${total_sum:,.2f}")
-        with col2:
-            st.metric("Monto Deseado 🎯", f"${monto_deseado:,.2f}")
-        with col3:
-            st.metric("Diferencia ➖", diff_value)
-    else:
-        st.warning("No se pudo cargar la tabla VPD_Misiones para DPP 2025.")
-
-def mostrar_dpp_2025_consultores():
-    st.header("DPP 2025 - Consultores")
+    st.header("DPP 2025 - Consultores (AgGrid)")
     st.write("Edite los valores en la tabla a continuación:")
 
     # Cargar datos sólo si no existen en session_state
     if "dpp_2025_consultores_data" not in st.session_state:
         st.session_state.dpp_2025_consultores_data = get_vpd_consultores_data()
 
-    # Mostrar la tabla editable
-    edited_data = st.data_editor(
+    # Configurar opciones de AgGrid
+    gb = GridOptionsBuilder.from_dataframe(st.session_state.dpp_2025_consultores_data)
+    gb.configure_default_column(editable=True, groupable=True)
+    gb.configure_column("total", editable=False)
+    grid_options = gb.build()
+
+    # Mostrar AgGrid
+    grid_response = AgGrid(
         st.session_state.dpp_2025_consultores_data,
-        num_rows="dynamic",
-        use_container_width=True,
-        key="dpp_2025_consultores_table",
-        column_config={
-            "cargo": st.column_config.TextColumn("Cargo"),
-            "vpd_area": st.column_config.TextColumn("VPD Área"),
-            "cantidad_funcionarios": st.column_config.NumberColumn("Cantidad de Funcionarios", step=1, format="%d"),
-            "monto_mensual": st.column_config.NumberColumn("Monto Mensual", step=100.0, format="$%.2f"),
-            "cantidad_meses": st.column_config.NumberColumn("Cantidad de Meses", step=1, format="%d"),
-            "total": st.column_config.NumberColumn("Total", disabled=True, format="$%.2f")
-        }
+        gridOptions=grid_options,
+        update_mode=GridUpdateMode.MODEL_CHANGED,
+        allow_unsafe_jscode=True,  # Permitir JavaScript personalizado si es necesario
+        theme='streamlit'  # Puedes cambiar el tema a 'light', 'dark', etc.
+    )
+
+    # Obtener datos editados
+    edited_df = pd.DataFrame(grid_response['data'])
+
+    # Recalcular la columna 'total'
+    edited_df['total'] = (
+        edited_df['cantidad_funcionarios'] *
+        edited_df['monto_mensual'] *
+        edited_df['cantidad_meses']
     )
 
     # Actualizar session_state con los datos editados
-    st.session_state.dpp_2025_consultores_data = edited_data
-
-    # Recalcular la columna 'total'
-    st.session_state.dpp_2025_consultores_data['total'] = (
-        st.session_state.dpp_2025_consultores_data['cantidad_funcionarios'] *
-        st.session_state.dpp_2025_consultores_data['monto_mensual'] *
-        st.session_state.dpp_2025_consultores_data['cantidad_meses']
-    )
+    st.session_state.dpp_2025_consultores_data = edited_df
 
     # Cálculo de métricas adicionales
-    total_sum = st.session_state.dpp_2025_consultores_data['total'].sum()
+    total_sum = edited_df['total'].sum()
     monto_deseado = 130000
     diferencia = monto_deseado - total_sum
     diff_sign = "+" if diferencia >= 0 else "-"
@@ -256,6 +137,7 @@ def mostrar_dpp_2025_consultores():
         st.metric("Monto Deseado 🎯", f"${monto_deseado:,.2f}")
     with col3:
         st.metric("Diferencia ➖", diff_value)
+
 def pagina_actualizacion():
     """
     Muestra la página de Actualización con comparaciones entre requerimientos y DPP 2025.
@@ -294,7 +176,10 @@ def pagina_actualizacion():
     def color_diff(val):
         if val == 0:
             return 'background-color: green; color: white;'
-        return ''
+        elif val > 0:
+            return 'background-color: red; color: white;'
+        else:
+            return 'background-color: orange; color: white;'
 
     st.subheader("Actualización - Misiones")
     misiones_df = pd.DataFrame(misiones_rows, columns=["Unidad Organizacional", "Requerimiento", "DPP 2025", "Diff"])
@@ -365,25 +250,81 @@ def get_requerimiento(sheet_name):
         return data["total"].sum()
     return 0
 
-def main():
-    # Inicializar variables de estado si no existen
-    if "authenticated" not in st.session_state:
-        st.session_state.authenticated = False
+def mostrar_subpagina(sheet_name, misiones_PRE=0, misiones_VPO=0, misiones_VPD=0, misiones_VPF=0, download_filename='', mostrar_boxes=True):
+    """
+    Muestra una subpágina con una tabla específica cargada desde Excel.
+    """
+    data = load_data(excel_file, sheet_name)
+    if data is not None:
+        # Ajustar el subheader según la hoja
+        if sheet_name == "PRE_Misiones_personal":
+            subheader_text = "Tabla Misiones Personal"
+        elif sheet_name == "PRE_Misiones_consultores":
+            subheader_text = "Tabla Misiones Consultores"
+        else:
+            # Para otros casos, lógica original
+            tabla_nombre = sheet_name.split('_')[-1].replace('_', ' ').title()
+            subheader_text = f"Tabla de {tabla_nombre}"
 
-    if "page_authenticated" not in st.session_state:
-        st.session_state.page_authenticated = {page: False for page in page_passwords if page_passwords[page]}
+        st.subheader(subheader_text)
 
+        # Mostrar métrica total si existe la columna 'total'
+        if "total" in data.columns:
+            if pd.api.types.is_numeric_dtype(data["total"]):
+                total_sum = data["total"].sum()
+                st.metric(label="Total", value=f"${total_sum:,.2f}")
+            else:
+                st.warning("La columna 'total' no es numérica.")
+        else:
+            st.warning("No existe la columna 'total' en la hoja.")
+
+        # Mostrar la tabla de datos
+        st.dataframe(data)
+
+        # Mostrar métricas adicionales si `mostrar_boxes` es True
+        if mostrar_boxes:
+            st.markdown("### Resumen de Misiones de Servicio")
+            total_sum = data["total"].sum() if ("total" in data.columns and pd.api.types.is_numeric_dtype(data["total"])) else 0
+            total_misiones = misiones_PRE + misiones_VPO + misiones_VPD + misiones_VPF
+            total_plus_montos = total_sum + total_misiones
+
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric("Misiones de Servicio cargadas a PRE", f"${misiones_PRE:,.0f}")
+                st.metric("Misiones de Servicio cargadas a VPF", f"${misiones_VPF:,.0f}")
+            with col2:
+                st.metric("Misiones de Servicio cargadas a VPD", f"${misiones_VPD:,.0f}")
+                st.metric("Misiones de Servicio cargadas a VPO", f"${misiones_VPO:,.0f}")
+
+            st.metric("Total + Montos cargados a otras VPs", f"${total_plus_montos:,.2f}")
+
+        # Botón de descarga si se especifica un nombre de archivo
+        if download_filename:
+            csv = data.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="Descargar datos como CSV",
+                data=csv,
+                file_name=download_filename,
+                mime='text/csv',
+            )
+    else:
+        st.warning("No se pudo cargar la tabla especificada.")
+
+def main_aggrid():
+    """
+    Función principal que maneja la autenticación y la navegación entre páginas con AgGrid.
+    """
     if not st.session_state.authenticated:
         # Pantalla de inicio de sesión
-        st.title("Gestión Presupuestaria")
-        username_input = st.text_input("Usuario", key="login_username")
-        password_input = st.text_input("Contraseña", type="password", key="login_password")
-        login_button = st.button("Ingresar", key="login_button")
+        st.title("Gestión Presupuestaria con AgGrid")
+        username_input = st.text_input("Usuario", key="login_username_aggrid")
+        password_input = st.text_input("Contraseña", type="password", key="login_password_aggrid")
+        login_button = st.button("Ingresar", key="login_button_aggrid")
 
         if login_button:
             if username_input == app_credentials["username"] and password_input == app_credentials["password"]:
                 st.session_state.authenticated = True
-                st.rerun()
+                st.rerun()  # Usar st.rerun() para recargar la app después de la autenticación
             else:
                 st.error("Usuario o contraseña incorrectos.")
     else:
@@ -406,13 +347,13 @@ def main():
             if page_passwords[selected_page] is not None and not st.session_state.page_authenticated[selected_page]:
                 st.sidebar.markdown("---")
                 st.sidebar.write("**Autenticación por página**")
-                password_input = st.sidebar.text_input("Ingresa la contraseña", type="password", key=f"page_password_{selected_page}")
-                verify_button = st.sidebar.button("Verificar", key=f"verify_{selected_page}")
+                password_input = st.sidebar.text_input("Ingresa la contraseña", type="password", key=f"page_password_{selected_page}_aggrid")
+                verify_button = st.sidebar.button("Verificar", key=f"verify_{selected_page}_aggrid")
 
                 if verify_button:
                     if password_input == page_passwords[selected_page]:
                         st.session_state.page_authenticated[selected_page] = True
-                        st.rerun()
+                        st.rerun()  # Recargar la app después de la autenticación por página
                     else:
                         st.sidebar.error("Contraseña incorrecta.")
             else:
@@ -431,7 +372,7 @@ def main():
                     elif selected_page == "PRE":
                         # Manejo de subpáginas de PRE
                         with st.sidebar.expander(f"Subpáginas de {selected_page}"):
-                            selected_subpage = st.selectbox("Selecciona una subpágina", current_subpages, key=f"{selected_page}_subpage")
+                            selected_subpage = st.selectbox("Selecciona una subpágina", current_subpages, key=f"{selected_page}_subpage_aggrid")
 
                         if selected_subpage == "Misiones Personal":
                             mostrar_subpagina(
@@ -481,61 +422,73 @@ def main():
                                 mostrar_boxes=False
                             )
 
-                    elif selected_page == "VPD":
-                        # Manejo de subpáginas de VPD
-                        with st.sidebar.expander(f"Subpáginas de {selected_page}"):
-                            selected_subpage = st.selectbox("Selecciona una subpágina", current_subpages, key=f"{selected_page}_subpage")
+                elif selected_page == "VPD":
+                    # Manejo de subpáginas de VPD
+                    with st.sidebar.expander(f"Subpáginas de {selected_page}"):
+                        selected_subpage = st.selectbox("Selecciona una subpágina", ["Misiones", "Consultores", "Gastos Centralizados"], key="vpd_subpage_aggrid")
 
-                        if selected_subpage == "Misiones":
-                            misiones_options = ["Requerimiento del Área", "DPP 2025"]
-                            selected_misiones_option = st.selectbox("Selecciona opción para Misiones", misiones_options, key="vpd_misiones_option")
+                    if selected_subpage == "Misiones":
+                        # Opciones dentro de Misiones
+                        misiones_options = ["Requerimiento del Área", "DPP 2025"]
+                        selected_misiones_option = st.selectbox("Selecciona opción para Misiones", misiones_options, key="vpd_misiones_option_aggrid")
 
-                            if selected_misiones_option == "Requerimiento del Área":
-                                mostrar_subpagina(
-                                    sheet_name="VPD_Misiones",
-                                    download_filename='VPD_Misiones.csv',
-                                    mostrar_boxes=False
-                                )
-                            elif selected_misiones_option == "DPP 2025":
-                                mostrar_dpp_2025()
+                        if selected_misiones_option == "Requerimiento del Área":
+                            # Aquí podrías cargar y mostrar datos de Misiones desde Excel u otra fuente
+                            st.subheader("Requerimiento del Área - Misiones")
+                            data = load_data(excel_file, "VPD_Misiones")
+                            if data is not None:
+                                st.dataframe(data)
+                                csv = data.to_csv(index=False).encode('utf-8')
+                                st.download_button("Descargar datos como CSV", csv, 'VPD_Misiones.csv', 'text/csv')
+                            else:
+                                st.warning("No se pudo cargar la tabla VPD_Misiones.")
+                        elif selected_misiones_option == "DPP 2025":
+                            # Mostrar la tabla editable usando AgGrid
+                            mostrar_dpp_2025_consultores_aggrid()
 
-                        elif selected_subpage == "Consultores":
-                            consultores_options = ["Requerimiento del Área", "DPP 2025"]
-                            selected_consultores_option = st.selectbox("Selecciona opción para Consultores", consultores_options, key="vpd_consultores_option")
+                    elif selected_subpage == "Consultores":
+                        # Opciones dentro de Consultores
+                        consultores_options = ["Requerimiento del Área", "DPP 2025"]
+                        selected_consultores_option = st.selectbox("Selecciona opción para Consultores", consultores_options, key="vpd_consultores_option_aggrid")
 
-                            if selected_consultores_option == "Requerimiento del Área":
-                                mostrar_subpagina(
-                                    sheet_name="VPD_Consultores",
-                                    download_filename='VPD_Consultores.csv',
-                                    mostrar_boxes=False
-                                )
-                            elif selected_consultores_option == "DPP 2025":
-                                mostrar_dpp_2025_consultores()
+                        if selected_consultores_option == "Requerimiento del Área":
+                            # Aquí podrías cargar y mostrar datos de Consultores desde Excel u otra fuente
+                            st.subheader("Requerimiento del Área - Consultores")
+                            data = load_data(excel_file, "VPD_Consultores")
+                            if data is not None:
+                                st.dataframe(data)
+                                csv = data.to_csv(index=False).encode('utf-8')
+                                st.download_button("Descargar datos como CSV", csv, 'VPD_Consultores.csv', 'text/csv')
+                            else:
+                                st.warning("No se pudo cargar la tabla VPD_Consultores.")
+                        elif selected_consultores_option == "DPP 2025":
+                            # Mostrar la tabla editable usando AgGrid
+                            mostrar_dpp_2025_consultores_aggrid()
 
-                        elif selected_subpage == "Gastos Centralizados":
-                            mostrar_subpagina(
-                                sheet_name="VPD_Gastos_Centralizados",
-                                download_filename='VPD_Gastos_Centralizados.csv',
-                                mostrar_boxes=False
-                            )
-                        else:
-                            st.warning("Subpágina no reconocida.")
+                    elif selected_subpage == "Gastos Centralizados":
+                        mostrar_subpagina(
+                            sheet_name="VPD_Gastos_Centralizados",
+                            download_filename='VPD_Gastos_Centralizados.csv',
+                            mostrar_boxes=False
+                        )
                     else:
-                        # Otras páginas no modificadas
-                        pass
+                        st.warning("Subpágina no reconocida.")
                 else:
                     st.title(f"Página de {selected_page}")
-                    st.write(f"Contenido relacionado con {selected_page}")
+                    st.write(f"Contenido relacionado con {selected_page}.")
 
         # Botón de Cerrar Sesión en la barra lateral
         if st.sidebar.button("Cerrar sesión"):
             st.session_state.authenticated = False
             st.session_state.page_authenticated = {page: False for page in page_passwords if page_passwords[page]}
-            st.rerun()
+            st.rerun()  # Recargar la app después de cerrar sesión
 
         # Elementos adicionales en la barra lateral
         st.sidebar.markdown("---")
-        st.sidebar.image("estrellafon_transparent.png", width=100)
+        try:
+            st.sidebar.image("estrellafon_transparent.png", width=100)
+        except:
+            st.sidebar.write("Imagen no encontrada.")
 
 if __name__ == "__main__":
-    main()
+    main_aggrid()
