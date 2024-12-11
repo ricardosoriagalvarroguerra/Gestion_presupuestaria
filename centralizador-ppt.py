@@ -38,9 +38,10 @@ subpages = {
         "Gastos Centralizados"
     ],
     "VPD": [
-        "Misiones",
-        "Consultores",
-        "Gastos Centralizados"
+        "Misiones - Requerimiento de Área",
+        "Misiones - DPP 2025",
+        "Consultores - Requerimiento de Área",
+        "Consultores - DPP 2025"
     ],
     "Requerimiento Personal": [
         "Misiones Personal",
@@ -76,10 +77,38 @@ def mostrar_requerimiento_personal(sheet_name):
         edited_data, code = spreadsheet(data)
         st.session_state[f"{sheet_name}_data"] = edited_data
 
-        # Cálculo de totales y métricas
         if "total" in edited_data.columns and pd.api.types.is_numeric_dtype(edited_data["total"]):
             total_sum = edited_data["total"].sum()
             st.metric("Total Requerido", f"${total_sum:,.2f}")
+        else:
+            st.warning("No se encontró una columna 'total' válida en los datos.")
+    else:
+        st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
+
+def mostrar_requerimiento_area(sheet_name):
+    """Muestra datos de Requerimiento de Área sin editar."""
+    st.header(f"Requerimiento de Área - {sheet_name}")
+    st.write("Vista de datos de Requerimiento de Área (solo lectura).")
+
+    data = load_data(excel_file, sheet_name)
+    if data is not None:
+        st.dataframe(data)
+    else:
+        st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
+
+def mostrar_dpp_2025_mito(sheet_name):
+    """Muestra y edita datos de DPP 2025 usando MITO."""
+    st.header(f"DPP 2025 - {sheet_name}")
+    st.write("Edite los valores en la hoja de cálculo a continuación:")
+
+    data = load_data(excel_file, sheet_name)
+    if data is not None:
+        edited_data, code = spreadsheet(data)
+        st.session_state[f"dpp_2025_{sheet_name}_data"] = edited_data
+
+        if "total" in edited_data.columns and pd.api.types.is_numeric_dtype(edited_data["total"]):
+            total_sum = edited_data["total"].sum()
+            st.metric("Total Calculado", f"${total_sum:,.2f}")
         else:
             st.warning("No se encontró una columna 'total' válida en los datos.")
     else:
@@ -116,36 +145,6 @@ def mostrar_dpp_2025():
     else:
         st.warning("No se pudo cargar la tabla VPD_Misiones para DPP 2025.")
 
-def mostrar_dpp_2025_consultores():
-    """Muestra y edita datos de DPP 2025 - Consultores."""
-    st.header("DPP 2025 - Consultores")
-    st.write("Edite los valores en la hoja de cálculo a continuación:")
-
-    data = load_data(excel_file, "VPD_Consultores")
-    if data is not None:
-        edited_data, code = spreadsheet(data)
-        st.session_state.dpp_2025_consultores_data = edited_data
-        st.session_state.dpp_2025_consultores_data['total'] = (
-            st.session_state.dpp_2025_consultores_data['cantidad_funcionarios'] *
-            st.session_state.dpp_2025_consultores_data['monto_mensual'] *
-            st.session_state.dpp_2025_consultores_data['cantidad_meses']
-        )
-
-        total_sum = st.session_state.dpp_2025_consultores_data['total'].sum()
-        monto_deseado = 130000
-        diferencia = monto_deseado - total_sum
-
-        st.markdown("### Resultados")
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("Total 💰", f"${total_sum:,.2f}")
-        with col2:
-            st.metric("Monto Deseado 🎯", f"${monto_deseado:,.2f}")
-        with col3:
-            st.metric("Diferencia ➖", f"${diferencia:,.2f}")
-    else:
-        st.warning("No se pudo cargar la tabla VPD_Consultores para DPP 2025.")
-
 def main():
     """Estructura principal de la aplicación."""
     if not st.session_state.authenticated:
@@ -167,11 +166,24 @@ def main():
         if selected_page == "Principal":
             st.title("Página Principal")
             st.write("Bienvenido a la página principal de la app.")
-        elif selected_page == "Requerimiento Personal":
-            st.title("Requerimiento de Personal")
-            subpage_options = subpages[selected_page]
+        elif selected_page == "VPD":
+            st.title("VPD")
+            subpage_options = [
+                "Misiones - Requerimiento de Área",
+                "Misiones - DPP 2025",
+                "Consultores - Requerimiento de Área",
+                "Consultores - DPP 2025"
+            ]
             selected_subpage = st.sidebar.selectbox("Selecciona una subpágina", subpage_options)
-            mostrar_requerimiento_personal(selected_subpage)
+
+            if selected_subpage == "Misiones - Requerimiento de Área":
+                mostrar_requerimiento_area("VPD_Misiones")
+            elif selected_subpage == "Misiones - DPP 2025":
+                mostrar_dpp_2025_mito("VPD_Misiones")
+            elif selected_subpage == "Consultores - Requerimiento de Área":
+                mostrar_requerimiento_area("VPD_Consultores")
+            elif selected_subpage == "Consultores - DPP 2025":
+                mostrar_dpp_2025_mito("VPD_Consultores")
         else:
             if not st.session_state.page_authenticated[selected_page]:
                 st.sidebar.markdown("---")
@@ -185,22 +197,8 @@ def main():
                     else:
                         st.sidebar.error("Contraseña incorrecta.")
             else:
-                if selected_page == "VPD":
-                    st.title("VPD")
-                    subpage_options = subpages[selected_page]
-                    selected_subpage = st.sidebar.selectbox("Selecciona una subpágina", subpage_options)
-                    if selected_subpage == "Misiones":
-                        mostrar_dpp_2025()
-                    elif selected_subpage == "Consultores":
-                        mostrar_dpp_2025_consultores()
-                elif selected_page == "PRE":
-                    st.title("PRE")
-                    subpage_options = subpages[selected_page]
-                    selected_subpage = st.sidebar.selectbox("Selecciona una subpágina", subpage_options)
-                    mostrar_requerimiento_personal(selected_subpage)
-                else:
-                    st.title(f"Página {selected_page}")
-                    st.write("Contenido aún no implementado.")
+                st.title(f"Página {selected_page}")
+                st.write("Contenido aún no implementado.")
 
 if __name__ == "__main__":
     main()
