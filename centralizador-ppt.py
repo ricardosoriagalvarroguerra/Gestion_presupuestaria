@@ -59,14 +59,6 @@ def load_data(filepath, sheet_name):
 # Ruta al archivo Excel
 excel_file = "main_bdd.xlsx"
 
-# Inicializar el estado de autenticación global si no existe
-if "authenticated" not in st.session_state:
-    st.session_state.authenticated = False
-
-# Inicializar el estado de autenticación por página si no existe
-if "page_authenticated" not in st.session_state:
-    st.session_state.page_authenticated = {page: False for page in page_passwords if page_passwords[page]}
-
 def get_vpd_consultores_data():
     """
     Devuelve un DataFrame con los datos codificados para VPD_Consultores.
@@ -398,7 +390,7 @@ def main():
         if login_button:
             if username_input == app_credentials["username"] and password_input == app_credentials["password"]:
                 st.session_state.authenticated = True
-                st.experimental_rerun()
+                st.rerun()  # Usar st.rerun() en lugar de st.experimental_rerun()
             else:
                 st.error("Usuario o contraseña incorrectos.")
     else:
@@ -427,7 +419,7 @@ def main():
                 if verify_button:
                     if password_input == page_passwords[selected_page]:
                         st.session_state.page_authenticated[selected_page] = True
-                        st.experimental_rerun()
+                        st.rerun()  # Usar st.rerun() en lugar de st.experimental_rerun()
                     else:
                         st.sidebar.error("Contraseña incorrecta.")
             else:
@@ -542,15 +534,15 @@ def main():
                     st.title(f"Página de {selected_page}")
                     st.write(f"Contenido relacionado con {selected_page}")
 
-# Ejecutar la función principal
-main()
+        # Botón de Cerrar Sesión en la barra lateral
+        if st.sidebar.button("Cerrar sesión"):
+            st.session_state.authenticated = False
+            st.session_state.page_authenticated = {page: False for page in page_passwords if page_passwords[page]}
+            st.rerun()  # Usar st.rerun() en lugar de st.experimental_rerun()
 
-# Botón de Cerrar Sesión en la barra lateral
-if st.sidebar.button("Cerrar sesión"):
-    st.session_state.authenticated = False
-    st.session_state.page_authenticated = {page: False for page in page_passwords if page_passwords[page]}
-    st.experimental_rerun()
+        # Elementos adicionales en la barra lateral
+        st.sidebar.markdown("---")
+        st.sidebar.image("estrellafon_transparent.png", width=100)
 
-# Elementos adicionales en la barra lateral
-st.sidebar.markdown("---")
-st.sidebar.image("estrellafon_transparent.png", width=100)
+if __name__ == "__main__":
+    main()
