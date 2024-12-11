@@ -46,17 +46,20 @@ subpages = {
 
 @st.cache_data
 def load_data(filepath, sheet_name):
+    """
+    Carga datos desde un archivo Excel.
+    """
     try:
         df = pd.read_excel(filepath, sheet_name=sheet_name, engine='openpyxl')
         return df
     except Exception as e:
-        st.error(f"Error al cargar la hoja {sheet_name}: {e}")
+        st.error(f"Error al cargar la hoja '{sheet_name}': {e}")
         return None
 
 # Ruta al archivo Excel
 excel_file = "main_bdd.xlsx"
 
-# Inicializar el estado de autenticación si no existe
+# Inicializar el estado de autenticación global si no existe
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
@@ -539,15 +542,15 @@ def main():
                     st.title(f"Página de {selected_page}")
                     st.write(f"Contenido relacionado con {selected_page}")
 
-    if __name__ == "__main__":
-        main()
+# Ejecutar la función principal
+main()
 
-    # Botón de Cerrar Sesión en la barra lateral
-    if st.sidebar.button("Cerrar sesión"):
-        st.session_state.authenticated = False
-        st.session_state.page_authenticated = {page: False for page in page_passwords if page_passwords[page]}
-        st.experimental_rerun()
+# Botón de Cerrar Sesión en la barra lateral
+if st.sidebar.button("Cerrar sesión"):
+    st.session_state.authenticated = False
+    st.session_state.page_authenticated = {page: False for page in page_passwords if page_passwords[page]}
+    st.experimental_rerun()
 
-    # Elementos adicionales en la barra lateral
-    st.sidebar.markdown("---")
-    st.sidebar.image("estrellafon_transparent.png", width=100)
+# Elementos adicionales en la barra lateral
+st.sidebar.markdown("---")
+st.sidebar.image("estrellafon_transparent.png", width=100)
