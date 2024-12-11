@@ -208,16 +208,14 @@ def mostrar_dpp_2025():
         st.warning("No se pudo cargar la tabla VPD_Misiones para DPP 2025.")
 
 def mostrar_dpp_2025_consultores():
-    """
-    Muestra la página DPP 2025 - Consultores con una tabla editable utilizando datos codificados.
-    """
     st.header("DPP 2025 - Consultores")
     st.write("Edite los valores en la tabla a continuación:")
 
-    # Utilizar datos codificados en lugar de cargar desde Excel
+    # Cargar datos sólo si no existen en session_state
     if "dpp_2025_consultores_data" not in st.session_state:
         st.session_state.dpp_2025_consultores_data = get_vpd_consultores_data()
 
+    # Mostrar la tabla editable
     edited_data = st.data_editor(
         st.session_state.dpp_2025_consultores_data,
         num_rows="dynamic",
@@ -226,22 +224,14 @@ def mostrar_dpp_2025_consultores():
         column_config={
             "cargo": st.column_config.TextColumn("Cargo"),
             "vpd_area": st.column_config.TextColumn("VPD Área"),
-            "cantidad_funcionarios": st.column_config.NumberColumn(
-                "Cantidad de Funcionarios", step=1, format="%d"
-            ),
-            "monto_mensual": st.column_config.NumberColumn(
-                "Monto Mensual", step=100.0, format="$%.2f"
-            ),
-            "cantidad_meses": st.column_config.NumberColumn(
-                "Cantidad de Meses", step=1, format="%d"
-            ),
-            "total": st.column_config.NumberColumn(
-                "Total", disabled=True, format="$%.2f"
-            )
+            "cantidad_funcionarios": st.column_config.NumberColumn("Cantidad de Funcionarios", step=1, format="%d"),
+            "monto_mensual": st.column_config.NumberColumn("Monto Mensual", step=100.0, format="$%.2f"),
+            "cantidad_meses": st.column_config.NumberColumn("Cantidad de Meses", step=1, format="%d"),
+            "total": st.column_config.NumberColumn("Total", disabled=True, format="$%.2f")
         }
     )
 
-    # Actualizar el estado con los datos editados
+    # Actualizar session_state con los datos editados
     st.session_state.dpp_2025_consultores_data = edited_data
 
     # Recalcular la columna 'total'
@@ -266,7 +256,6 @@ def mostrar_dpp_2025_consultores():
         st.metric("Monto Deseado 🎯", f"${monto_deseado:,.2f}")
     with col3:
         st.metric("Diferencia ➖", diff_value)
-
 def pagina_actualizacion():
     """
     Muestra la página de Actualización con comparaciones entre requerimientos y DPP 2025.
