@@ -114,71 +114,63 @@ def mostrar_subpagina(sheet_name, misiones_PRE=0, misiones_VPO=0, misiones_VPD=0
     else:
         st.warning("No se pudo cargar la tabla especificada.")
 
-def mostrar_dpp_2025():
+def mostrar_dpp_2025_misiones():
     st.header("DPP 2025 - Misiones")
     st.write("Edite los valores en la tabla a continuación:")
 
+    # Cargar datos desde el archivo Excel
     data = load_data(excel_file, "VPD_Misiones")
-    if data is not None:
-        required_columns = ['pais', 'operacion', 'vpd_area', 'cant_funcionarios', 'dias', 'costo_pasaje', 'alojamiento', 'perdiem_otros', 'movilidad', 'total']
-        if not all(col in data.columns for col in required_columns):
-            st.error(f"Faltan columnas en VPD_Misiones. Se requieren: {required_columns}")
-            return
 
-        # Inicializar datos en session_state si no están presentes
-        if 'dpp_2025_data' not in st.session_state:
-            st.session_state.dpp_2025_data = data.copy()
+    if data is None:
+        st.warning("No se pudo cargar la hoja VPD_Misiones.")
+        return
 
-        # Editar los datos
-        edited_data = st.data_editor(
-            st.session_state.dpp_2025_data,
-            num_rows="dynamic",
-            use_container_width=True,
-            key="dpp_2025_table_misiones",  # Clave única
-            column_config={
-                "pais": st.column_config.TextColumn("País"),
-                "operacion": st.column_config.TextColumn("Operación"),
-                "vpd_area": st.column_config.TextColumn("VPD Área"),
-                "cant_funcionarios": st.column_config.NumberColumn("Cantidad de Funcionarios", step=1, format="%d"),
-                "dias": st.column_config.NumberColumn("Días", step=1, format="%d"),
-                "costo_pasaje": st.column_config.NumberColumn("Costo Pasaje por Funcionario", step=100.0, format="$%.2f"),
-                "alojamiento": st.column_config.NumberColumn("Alojamiento por Día por Funcionario", step=50.0, format="$%.2f"),
-                "perdiem_otros": st.column_config.NumberColumn("Perdiem Otros por Día por Funcionario", step=20.0, format="$%.2f"),
-                "movilidad": st.column_config.NumberColumn("Costo de Movilidad por Funcionario", step=30.0, format="$%.2f"),
-                "total": st.column_config.NumberColumn("Total", disabled=True, format="$%.2f")
-            }
-        )
+    # Verificar columnas requeridas
+    required_columns = ['pais', 'operacion', 'vpd_area', 'cant_funcionarios', 'dias', 'costo_pasaje', 'alojamiento', 'perdiem_otros', 'movilidad', 'total']
+    missing_columns = [col for col in required_columns if col not in data.columns]
+    if missing_columns:
+        st.error(f"Faltan columnas: {missing_columns}")
+        return
 
-        # Actualizar session_state con los datos editados
-        st.session_state.dpp_2025_data = edited_data
-        st.session_state.dpp_2025_data['total'] = (
-            st.session_state.dpp_2025_data['cant_funcionarios'] * st.session_state.dpp_2025_data['costo_pasaje'] +
-            st.session_state.dpp_2025_data['cant_funcionarios'] * st.session_state.dpp_2025_data['dias'] * st.session_state.dpp_2025_data['alojamiento'] +
-            st.session_state.dpp_2025_data['cant_funcionarios'] * st.session_state.dpp_2025_data['dias'] * st.session_state.dpp_2025_data['perdiem_otros'] +
-            st.session_state.dpp_2025_data['cant_funcionarios'] * st.session_state.dpp_2025_data['movilidad']
-        )
+    # Inicializar datos en session_state
+    if "dpp_2025_misiones_data" not in st.session_state:
+        st.session_state.dpp_2025_misiones_data = data.copy()
 
-        # Mostrar métricas
-        total_sum = st.session_state.dpp_2025_data['total'].sum()
-        monto_deseado = 168000
-        diferencia = monto_deseado - total_sum
-        diff_sign = "+" if diferencia >= 0 else "-"
-        diff_value = f"{diff_sign}${abs(diferencia):,.2f}"
+    # Usar st.data_editor para editar datos
+    edited_data = st.data_editor(
+        st.session_state.dpp_2025_misiones_data,
+        num_rows="dynamic",
+        use_container_width=True,
+        column_order=required_columns,
+        column_config={
+            "pais": st.column_config.TextColumn("País"),
+            "operacion": st.column_config.TextColumn("Operación"),
+            "vpd_area": st.column_config.TextColumn("Área"),
+            "cant_funcionarios": st.column_config.NumberColumn("Cantidad de Funcionarios", step=1, format="%d"),
+            "dias": st.column_config.NumberColumn("Días", step=1, format="%d"),
+            "costo_pasaje": st.column_config.NumberColumn("Costo Pasaje", step=100.0, format="$%.2f"),
+            "alojamiento": st.column_config.NumberColumn("Alojamiento por Día", step=50.0, format="$%.2f"),
+            "perdiem_otros": st.column_config.NumberColumn("Per-diem Otros", step=20.0, format="$%.2f"),
+            "movilidad": st.column_config.NumberColumn("Movilidad", step=30.0, format="$%.2f"),
+            "total": st.column_config.NumberColumn("Total", disabled=True, format="$%.2f")
+        }
+    )
 
-        st.markdown("### Resultados")
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("Total 💰", f"${total_sum:,.2f}")
-        with col2:
-            st.metric("Monto Deseado 🎯", f"${monto_deseado:,.2f}")
-        with col3:
-            st.metric("Diferencia ➖", diff_value)
+    # Recalcular columna 'total' en tiempo real
+    edited_data['total'] = (
+        edited_data['cant_funcionarios'] * edited_data['costo_pasaje'] +
+        edited_data['cant_funcionarios'] * edited_data['dias'] * edited_data['alojamiento'] +
+        edited_data['cant_funcionarios'] * edited_data['dias'] * edited_data['perdiem_otros'] +
+        edited_data['cant_funcionarios'] * edited_data['movilidad']
+    )
 
-        # (Opcional) Depuración: Mostrar el estado actual de los datos
-        st.write("**Datos Editados Misiones DPP 2025:**", st.session_state.dpp_2025_data)
-    else:
-        st.warning("No se pudo cargar la tabla VPD_Misiones para DPP 2025.")
+    # Sincronizar con session_state
+    st.session_state.dpp_2025_misiones_data = edited_data
 
+    # Mostrar métricas
+    total_sum = edited_data['total'].sum()
+    st.metric(label="Total General", value=f"${total_sum:,.2f}")
+    
 def mostrar_dpp_2025_consultores():
     st.header("DPP 2025 - Consultores")
     st.write("Edite los valores en la tabla a continuación:")
