@@ -1,5 +1,5 @@
-streamlit==1.31
+streamlit
 mitoinstaller
-pandas==1.3.5
-openpyxl==3.0.10
-numpy==1.19.5
+pandas
+openpyxl
+numpy
