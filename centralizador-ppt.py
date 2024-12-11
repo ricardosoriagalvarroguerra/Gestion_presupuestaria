@@ -89,8 +89,14 @@ def mostrar_dpp_2025_mito(sheet_name):
         edited_df = convertir_a_dataframe(edited_data)
 
         if edited_df is not None:
+            # Mostrar los nombres de las columnas originales para depuración
+            st.write("Nombres de columnas originales después de Mito:", edited_df.columns.tolist())
+
             # Normalizar nombres de columnas
             edited_df.columns = edited_df.columns.str.strip().str.lower()
+
+            # Mostrar los nombres de las columnas después de normalización
+            st.write("Nombres de columnas después de la normalización:", edited_df.columns.tolist())
 
             # Guardar datos en el estado de sesión
             st.session_state[f"dpp_2025_{sheet_name}_data"] = edited_df
@@ -106,7 +112,7 @@ def mostrar_dpp_2025_mito(sheet_name):
                 except Exception as e:
                     st.warning(f"No se pudo convertir la columna 'total' a un formato numérico: {e}")
             else:
-                st.warning("No se encontró una columna 'total' en los datos después de la normalización.")
+                st.error("No se encontró una columna llamada 'total' en los datos después de la normalización.")
         else:
             st.warning("No se pudo convertir los datos a un formato válido.")
     else:
