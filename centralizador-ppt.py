@@ -38,7 +38,7 @@ def load_data(filepath, sheet_name):
         st.error(f"Error cargando los datos: {e}")
         return None
 
-excel_file = "main_bdd.xlsx"
+excel_file = "/mnt/data/main_bdd.xlsx"
 
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
@@ -61,37 +61,22 @@ def mostrar_requerimiento_area(sheet_name):
     else:
         st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
 
-def convertir_a_dataframe(edited_data):
-    """Convierte los datos editados por Mito a un pandas DataFrame de manera robusta."""
-    if isinstance(edited_data, pd.DataFrame):
-        return edited_data
-    elif isinstance(edited_data, dict):
-        if all(isinstance(v, list) for v in edited_data.values()):
-            return pd.DataFrame(edited_data)
-        else:
-            return pd.DataFrame([edited_data])
-    elif isinstance(edited_data, list):
-        return pd.DataFrame.from_records(edited_data)
-    else:
-        st.error("El formato de los datos editados no es compatible.")
-        return None
+def gastos_centralizados():
+    """Permite subir y editar una base de datos para Gastos Centralizados."""
+    st.header("Gastos Centralizados")
 
-def mostrar_dpp_2025_mito(sheet_name):
-    """Muestra y edita datos de DPP 2025 usando MITO."""
-    st.header(f"DPP 2025 - {sheet_name}")
-    st.write("Edite los valores en la hoja de cálculo a continuación:")
-
-    data = load_data(excel_file, sheet_name)
-    if data is not None:
-        edited_data, code = spreadsheet(data)
-        edited_df = convertir_a_dataframe(edited_data)
-        
-        if edited_df is not None:
-            st.session_state[f"dpp_2025_{sheet_name}_data"] = edited_df
-        else:
-            st.warning("No se pudo convertir los datos a un formato válido.")
+    uploaded_file = st.file_uploader("Sube un archivo Excel para Gastos Centralizados", type=["xlsx", "xls"])
+    if uploaded_file:
+        try:
+            data = pd.read_excel(uploaded_file, engine="openpyxl")
+            st.write("Datos cargados exitosamente. Puedes editarlos a continuación:")
+            edited_data, code = spreadsheet(data)
+            st.write("Datos Editados:")
+            st.dataframe(edited_data)
+        except Exception as e:
+            st.error(f"Error cargando el archivo: {e}")
     else:
-        st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
+        st.write("Por favor, sube un archivo para editarlo.")
 
 def main():
     """Estructura principal de la aplicación."""
@@ -114,6 +99,19 @@ def main():
         if selected_page == "Principal":
             st.title("Página Principal")
             st.write("Bienvenido a la página principal de la app.")
+        elif selected_page == "PRE":
+            st.title("PRE")
+            subpage_options = ["Misiones Personal", "Misiones Consultores", "Servicios Profesionales", "Gastos Centralizados"]
+            selected_subpage = st.sidebar.selectbox("Selecciona una subpágina", subpage_options)
+
+            if selected_subpage == "Misiones Personal":
+                mostrar_requerimiento_area("PRE_Misiones_personal")
+            elif selected_subpage == "Misiones Consultores":
+                mostrar_requerimiento_area("PRE_Misiones_consultores")
+            elif selected_subpage == "Servicios Profesionales":
+                mostrar_requerimiento_area("PRE_servicios_profesionales")
+            elif selected_subpage == "Gastos Centralizados":
+                gastos_centralizados()
         elif selected_page in ["VPD", "VPF", "VPO", "VPE"]:
             st.title(selected_page)
             subpage_options = ["Misiones", "Consultorías"]
