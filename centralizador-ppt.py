@@ -38,7 +38,7 @@ def load_data(filepath, sheet_name):
         st.error(f"Error cargando los datos: {e}")
         return None
 
-excel_file = "main_bdd.xlsx"
+excel_file = "/mnt/data/main_bdd.xlsx"
 
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
@@ -58,6 +58,38 @@ def mostrar_requerimiento_area(sheet_name):
         else:
             st.warning("No se encontró una columna 'total' válida en los datos.")
         st.dataframe(data)
+    else:
+        st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
+
+def convertir_a_dataframe(edited_data):
+    """Convierte los datos editados por Mito a un pandas DataFrame de manera robusta."""
+    if isinstance(edited_data, pd.DataFrame):
+        return edited_data
+    elif isinstance(edited_data, dict):
+        if all(isinstance(v, list) for v in edited_data.values()):
+            return pd.DataFrame(edited_data)
+        else:
+            return pd.DataFrame([edited_data])
+    elif isinstance(edited_data, list):
+        return pd.DataFrame.from_records(edited_data)
+    else:
+        st.error("El formato de los datos editados no es compatible.")
+        return None
+
+def mostrar_dpp_2025_mito(sheet_name):
+    """Muestra y edita datos de DPP 2025 usando MITO."""
+    st.header(f"DPP 2025 - {sheet_name}")
+    st.write("Edite los valores en la hoja de cálculo a continuación:")
+
+    data = load_data(excel_file, sheet_name)
+    if data is not None:
+        edited_data, code = spreadsheet(data)
+        edited_df = convertir_a_dataframe(edited_data)
+        
+        if edited_df is not None:
+            st.session_state[f"dpp_2025_{sheet_name}_data"] = edited_df
+        else:
+            st.warning("No se pudo convertir los datos a un formato válido.")
     else:
         st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
 
