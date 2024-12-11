@@ -38,28 +38,13 @@ def load_data(filepath, sheet_name):
         st.error(f"Error cargando los datos: {e}")
         return None
 
-excel_file = "main_bdd.xlsx"
+excel_file = "/mnt/data/main_bdd.xlsx"
 
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
 if "page_authenticated" not in st.session_state:
     st.session_state.page_authenticated = {page: False for page in page_passwords if page_passwords[page]}
-
-def mostrar_requerimiento_area(sheet_name):
-    """Muestra datos de Requerimiento de Área sin editar, con suma del total."""
-    st.header(f"Requerimiento de Área - {sheet_name}")
-
-    data = load_data(excel_file, sheet_name)
-    if data is not None:
-        if "total" in data.columns and pd.api.types.is_numeric_dtype(data["total"]):
-            total_sum = data["total"].sum()
-            st.metric("Total Requerido", f"${total_sum:,.2f}")
-        else:
-            st.warning("No se encontró una columna 'total' válida en los datos.")
-        st.dataframe(data)
-    else:
-        st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
 
 def convertir_a_dataframe(edited_data):
     """Convierte los datos editados por Mito a un pandas DataFrame de manera robusta."""
@@ -81,7 +66,7 @@ def mostrar_dpp_2025_mito(sheet_name):
     st.header(f"DPP 2025 - {sheet_name}")
     st.write("Edite los valores en la hoja de cálculo a continuación:")
 
-    data = load_data(file_path, sheet_name)
+    data = load_data(excel_file, sheet_name)
     if data is not None:
         edited_data, code = spreadsheet(data)
 
@@ -120,23 +105,6 @@ def mostrar_dpp_2025_mito(sheet_name):
             st.warning("No se encontró una columna 'total' en los datos después de la normalización.")
     else:
         st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
-        
-def gastos_centralizados():
-    """Permite subir y editar una base de datos para Gastos Centralizados."""
-    st.header("Gastos Centralizados")
-
-    uploaded_file = st.file_uploader("Sube un archivo Excel para Gastos Centralizados", type=["xlsx", "xls"])
-    if uploaded_file:
-        try:
-            data = pd.read_excel(uploaded_file, engine="openpyxl")
-            st.write("Datos cargados exitosamente. Puedes editarlos a continuación:")
-            edited_data, code = spreadsheet(data)
-            st.write("Datos Editados:")
-            st.dataframe(edited_data)
-        except Exception as e:
-            st.error(f"Error cargando el archivo: {e}")
-    else:
-        st.write("Por favor, sube un archivo para editarlo.")
 
 def main():
     """Estructura principal de la aplicación."""
@@ -159,19 +127,6 @@ def main():
         if selected_page == "Principal":
             st.title("Página Principal")
             st.write("Bienvenido a la página principal de la app.")
-        elif selected_page == "PRE":
-            st.title("PRE")
-            subpage_options = ["Misiones Personal", "Misiones Consultores", "Servicios Profesionales", "Gastos Centralizados"]
-            selected_subpage = st.sidebar.selectbox("Selecciona una subpágina", subpage_options)
-
-            if selected_subpage == "Misiones Personal":
-                mostrar_requerimiento_area("PRE_Misiones_personal")
-            elif selected_subpage == "Misiones Consultores":
-                mostrar_requerimiento_area("PRE_Misiones_consultores")
-            elif selected_subpage == "Servicios Profesionales":
-                mostrar_requerimiento_area("PRE_servicios_profesionales")
-            elif selected_subpage == "Gastos Centralizados":
-                gastos_centralizados()
         elif selected_page in ["VPD", "VPF", "VPO", "VPE"]:
             st.title(selected_page)
             subpage_options = ["Misiones", "Consultorías"]
