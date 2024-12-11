@@ -77,7 +77,7 @@ def convertir_a_dataframe(edited_data):
         return None
 
 def mostrar_dpp_2025_mito(sheet_name):
-    """Muestra y edita datos de DPP 2025 usando MITO."""
+    """Muestra y edita datos de DPP 2025 usando MITO, con Value Boxes dinámicos."""
     st.header(f"DPP 2025 - {sheet_name}")
     st.write("Edite los valores en la hoja de cálculo a continuación:")
 
@@ -88,11 +88,19 @@ def mostrar_dpp_2025_mito(sheet_name):
         
         if edited_df is not None:
             st.session_state[f"dpp_2025_{sheet_name}_data"] = edited_df
+
+            # Calcular la suma de la columna "total"
+            if "total" in edited_df.columns and pd.api.types.is_numeric_dtype(edited_df["total"]):
+                total_sum = edited_df["total"].sum()
+                st.markdown("### Métricas")
+                st.metric("Suma de Total", f"${total_sum:,.2f}")
+            else:
+                st.warning("No se encontró una columna 'total' válida o no es numérica.")
         else:
             st.warning("No se pudo convertir los datos a un formato válido.")
     else:
         st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
-
+        
 def gastos_centralizados():
     """Permite subir y editar una base de datos para Gastos Centralizados."""
     st.header("Gastos Centralizados")
