@@ -89,13 +89,18 @@ def mostrar_dpp_2025_mito(sheet_name):
         if edited_df is not None:
             st.session_state[f"dpp_2025_{sheet_name}_data"] = edited_df
 
-            # Calcular la suma de la columna "total"
-            if "total" in edited_df.columns and pd.api.types.is_numeric_dtype(edited_df["total"]):
-                total_sum = edited_df["total"].sum()
-                st.markdown("### Métricas")
-                st.metric("Suma de Total", f"${total_sum:,.2f}")
+            # Intentar convertir la columna 'total' a numérica
+            if "total" in edited_df.columns:
+                try:
+                    edited_df["total"] = pd.to_numeric(edited_df["total"], errors="coerce")
+                    total_sum = edited_df["total"].sum()
+                    
+                    st.markdown("### Métricas")
+                    st.metric("Suma de Total", f"${total_sum:,.2f}")
+                except Exception as e:
+                    st.warning(f"No se pudo convertir la columna 'total' a un formato numérico: {e}")
             else:
-                st.warning("No se encontró una columna 'total' válida o no es numérica.")
+                st.warning("No se encontró una columna 'total' en los datos.")
         else:
             st.warning("No se pudo convertir los datos a un formato válido.")
     else:
