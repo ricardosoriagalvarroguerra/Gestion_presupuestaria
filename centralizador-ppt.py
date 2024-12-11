@@ -183,31 +183,35 @@ def mostrar_dpp_2025_consultores():
     st.header("DPP 2025 - Consultores")
     st.write("Edite los valores en la tabla a continuación:")
 
-    # Carga de datos
+    # Carga de datos original
     data = load_data(excel_file, "VPD_Consultores")
 
     if data is None:
         st.warning("No se pudo cargar la hoja VPD_Consultores.")
         return
     else:
-        # Verifica que las columnas requeridas existan
         required_columns = ['cargo', 'vpd_area', 'cantidad_funcionarios', 'monto_mensual', 'cantidad_meses', 'total']
+        
+        # Verificar columnas faltantes
         missing_cols = [col for col in required_columns if col not in data.columns]
         if missing_cols:
             st.error(f"Faltan columnas en VPD_Consultores: {missing_cols}. Revisa el archivo Excel.")
             st.write("Columnas disponibles:", data.columns.tolist())
             return
 
-        # Inicializar en session_state si no existe
+        # Inicializar datos en session_state una sola vez
         if 'dpp_2025_consultores_data' not in st.session_state:
             st.session_state.dpp_2025_consultores_data = data.copy()
 
-        # Editar datos sin callback
+        # Mostrar y editar datos
+        # Fijar num_rows a 'fixed' para evitar que el usuario agregue o elimine filas.
+        # Fijar el orden de las columnas con column_order para mantener estabilidad.
         edited_data = st.data_editor(
             st.session_state.dpp_2025_consultores_data,
-            num_rows="dynamic",
+            num_rows="fixed",
             use_container_width=True,
             key="dpp_2025_consultores_table",
+            column_order=required_columns,
             column_config={
                 "cargo": st.column_config.TextColumn("Cargo"),
                 "vpd_area": st.column_config.TextColumn("VPD Área"),
@@ -218,26 +222,25 @@ def mostrar_dpp_2025_consultores():
             }
         )
 
-        # Depuración: Ver las columnas del DataFrame editado
+        # Depuración: ver columnas después de editar
         st.write("**Columnas después de editar:**", edited_data.columns.tolist())
 
-        # Verifica que 'cantidad_funcionarios' existe después de editar
+        # Asegurar que la columna exista
         if 'cantidad_funcionarios' not in edited_data.columns:
-            st.error("La columna 'cantidad_funcionarios' no se encuentra en los datos editados. Revisa el origen de datos o las acciones del usuario.")
+            st.error("La columna 'cantidad_funcionarios' no se encuentra después de la edición.")
             st.write("Columnas disponibles en los datos editados:", edited_data.columns.tolist())
             return
 
-        # Actualizar session_state con los datos editados
-        st.session_state.dpp_2025_consultores_data = edited_data
+        # Actualizar session_state con datos editados
+        st.session_state.dpp_2025_consultores_data = edited_data.copy()
 
-        # Cálculo de la columna total
+        # Recalcular total aquí, fuera de cualquier callback
         st.session_state.dpp_2025_consultores_data['total'] = (
             st.session_state.dpp_2025_consultores_data['cantidad_funcionarios'] *
             st.session_state.dpp_2025_consultores_data['monto_mensual'] *
             st.session_state.dpp_2025_consultores_data['cantidad_meses']
         )
 
-        # Métricas
         total_sum = st.session_state.dpp_2025_consultores_data['total'].sum()
         monto_deseado = 130000
         diferencia = monto_deseado - total_sum
@@ -253,8 +256,8 @@ def mostrar_dpp_2025_consultores():
         with col3:
             st.metric("Diferencia ➖", diff_value)
 
-        # (Opcional) Depuración: Mostrar el estado actual de los datos
-        st.write("**Datos Editados Consultores DPP 2025:**", st.session_state.dpp_2025_consultores_data)
+        # Depuración final: mostrar estado actual
+        st.write("**Datos Finales Consultores DPP 2025:**", st.session_state.dpp_2025_consultores_data)
 
 def get_requerimiento(sheet_name):
     data = load_data(excel_file, sheet_name)
