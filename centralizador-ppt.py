@@ -71,10 +71,19 @@ def mostrar_dpp_2025_mito(sheet_name, monto_deseado):
         # Usar spreadsheet de Mito
         edited_data, code = spreadsheet(data)
         
-        # Convertir a DataFrame si es un OrderedDict
+        # Verificar y manejar el formato de `edited_data`
         if isinstance(edited_data, dict):
-            edited_data = pd.DataFrame(edited_data)
-        
+            try:
+                # Convertir a DataFrame si es un diccionario de listas
+                edited_data = pd.DataFrame(edited_data)
+            except ValueError:
+                st.error("Los datos editados no son válidos para convertirlos a DataFrame.")
+                return
+
+        elif not isinstance(edited_data, pd.DataFrame):
+            st.error("El formato de los datos no es compatible. Se esperaba un DataFrame o un diccionario.")
+            return
+
         # Guardar los datos en el estado de la sesión
         st.session_state[f"dpp_2025_{sheet_name}_data"] = edited_data
 
