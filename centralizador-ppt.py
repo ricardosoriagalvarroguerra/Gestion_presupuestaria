@@ -183,23 +183,31 @@ def mostrar_dpp_2025_consultores():
     st.header("DPP 2025 - Consultores")
     st.write("Edite los valores en la tabla a continuación:")
 
+    # Carga de datos
     data = load_data(excel_file, "VPD_Consultores")
-    if data is not None:
+
+    if data is None:
+        st.warning("No se pudo cargar la hoja VPD_Consultores.")
+        return
+    else:
+        # Verifica que las columnas requeridas existan
         required_columns = ['cargo', 'vpd_area', 'cantidad_funcionarios', 'monto_mensual', 'cantidad_meses', 'total']
-        if not all(col in data.columns for col in required_columns):
-            st.error(f"Faltan columnas en VPD_Consultores. Se requieren: {required_columns}")
+        missing_cols = [col for col in required_columns if col not in data.columns]
+        if missing_cols:
+            st.error(f"Faltan columnas en VPD_Consultores: {missing_cols}. Revisa el archivo Excel.")
+            st.write("Columnas disponibles:", data.columns.tolist())
             return
 
-        # Inicializar datos en session_state si no están presentes
+        # Inicializar en session_state si no existe
         if 'dpp_2025_consultores_data' not in st.session_state:
             st.session_state.dpp_2025_consultores_data = data.copy()
 
-        # Editar los datos
+        # Editar datos sin callback
         edited_data = st.data_editor(
             st.session_state.dpp_2025_consultores_data,
             num_rows="dynamic",
             use_container_width=True,
-            key="dpp_2025_consultores_table",  # Clave única
+            key="dpp_2025_consultores_table",
             column_config={
                 "cargo": st.column_config.TextColumn("Cargo"),
                 "vpd_area": st.column_config.TextColumn("VPD Área"),
@@ -210,15 +218,26 @@ def mostrar_dpp_2025_consultores():
             }
         )
 
+        # Depuración: Ver las columnas del DataFrame editado
+        st.write("**Columnas después de editar:**", edited_data.columns.tolist())
+
+        # Verifica que 'cantidad_funcionarios' existe después de editar
+        if 'cantidad_funcionarios' not in edited_data.columns:
+            st.error("La columna 'cantidad_funcionarios' no se encuentra en los datos editados. Revisa el origen de datos o las acciones del usuario.")
+            st.write("Columnas disponibles en los datos editados:", edited_data.columns.tolist())
+            return
+
         # Actualizar session_state con los datos editados
         st.session_state.dpp_2025_consultores_data = edited_data
+
+        # Cálculo de la columna total
         st.session_state.dpp_2025_consultores_data['total'] = (
             st.session_state.dpp_2025_consultores_data['cantidad_funcionarios'] *
             st.session_state.dpp_2025_consultores_data['monto_mensual'] *
             st.session_state.dpp_2025_consultores_data['cantidad_meses']
         )
 
-        # Mostrar métricas
+        # Métricas
         total_sum = st.session_state.dpp_2025_consultores_data['total'].sum()
         monto_deseado = 130000
         diferencia = monto_deseado - total_sum
@@ -236,8 +255,6 @@ def mostrar_dpp_2025_consultores():
 
         # (Opcional) Depuración: Mostrar el estado actual de los datos
         st.write("**Datos Editados Consultores DPP 2025:**", st.session_state.dpp_2025_consultores_data)
-    else:
-        st.warning("No se pudo cargar la tabla VPD_Consultores para DPP 2025.")
 
 def get_requerimiento(sheet_name):
     data = load_data(excel_file, sheet_name)
