@@ -54,11 +54,32 @@ def load_data(filepath, sheet_name):
 
 excel_file = "main_bdd.xlsx"
 
+# Inicializar variables de autenticación en session_state
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
 if "page_authenticated" not in st.session_state:
     st.session_state.page_authenticated = {page: False for page in page_passwords if page_passwords[page]}
+
+# Funciones de actualización para recalcular 'total'
+def update_total_misiones():
+    df = st.session_state.dpp_2025_table_misiones.copy()
+    df['total'] = (
+        df['cant_funcionarios'] * df['costo_pasaje'] +
+        df['cant_funcionarios'] * df['dias'] * df['alojamiento'] +
+        df['cant_funcionarios'] * df['dias'] * df['perdiem_otros'] +
+        df['cant_funcionarios'] * df['movilidad']
+    )
+    st.session_state.dpp_2025_data = df
+
+def update_total_consultores():
+    df = st.session_state.dpp_2025_consultores_table.copy()
+    df['total'] = (
+        df['cantidad_funcionarios'] *
+        df['monto_mensual'] *
+        df['cantidad_meses']
+    )
+    st.session_state.dpp_2025_consultores_data = df
 
 def mostrar_subpagina(sheet_name, misiones_PRE=0, misiones_VPO=0, misiones_VPD=0, misiones_VPF=0, download_filename='', mostrar_boxes=True):
     data = load_data(excel_file, sheet_name)
@@ -145,17 +166,12 @@ def mostrar_dpp_2025():
                 "perdiem_otros": st.column_config.NumberColumn("Perdiem Otros por Día por Funcionario", step=20.0, format="$%.2f"),
                 "movilidad": st.column_config.NumberColumn("Costo de Movilidad por Funcionario", step=30.0, format="$%.2f"),
                 "total": st.column_config.NumberColumn("Total", disabled=True, format="$%.2f")
-            }
+            },
+            on_change=update_total_misiones  # Callback para recalcular 'total'
         )
 
-        # Actualizar session_state con los datos editados
-        st.session_state.dpp_2025_data = edited_data
-        st.session_state.dpp_2025_data['total'] = (
-            st.session_state.dpp_2025_data['cant_funcionarios'] * st.session_state.dpp_2025_data['costo_pasaje'] +
-            st.session_state.dpp_2025_data['cant_funcionarios'] * st.session_state.dpp_2025_data['dias'] * st.session_state.dpp_2025_data['alojamiento'] +
-            st.session_state.dpp_2025_data['cant_funcionarios'] * st.session_state.dpp_2025_data['dias'] * st.session_state.dpp_2025_data['perdiem_otros'] +
-            st.session_state.dpp_2025_data['cant_funcionarios'] * st.session_state.dpp_2025_data['movilidad']
-        )
+        # 'update_total_misiones' ya actualiza 'st.session_state.dpp_2025_data'
+        # No es necesario reasignar aquí
 
         # Mostrar métricas
         total_sum = st.session_state.dpp_2025_data['total'].sum()
@@ -206,16 +222,12 @@ def mostrar_dpp_2025_consultores():
                 "monto_mensual": st.column_config.NumberColumn("Monto Mensual", step=100.0, format="$%.2f"),
                 "cantidad_meses": st.column_config.NumberColumn("Cantidad de Meses", step=1, format="%d"),
                 "total": st.column_config.NumberColumn("Total", disabled=True, format="$%.2f")
-            }
+            },
+            on_change=update_total_consultores  # Callback para recalcular 'total'
         )
 
-        # Actualizar session_state con los datos editados
-        st.session_state.dpp_2025_consultores_data = edited_data
-        st.session_state.dpp_2025_consultores_data['total'] = (
-            st.session_state.dpp_2025_consultores_data['cantidad_funcionarios'] *
-            st.session_state.dpp_2025_consultores_data['monto_mensual'] *
-            st.session_state.dpp_2025_consultores_data['cantidad_meses']
-        )
+        # 'update_total_consultores' ya actualiza 'st.session_state.dpp_2025_consultores_data'
+        # No es necesario reasignar aquí
 
         # Mostrar métricas
         total_sum = st.session_state.dpp_2025_consultores_data['total'].sum()
@@ -491,10 +503,12 @@ def main():
 if __name__ == "__main__":
     main()
 
+# Cierre de sesión
 if st.sidebar.button("Cerrar sesión"):
     st.session_state.authenticated = False
     st.session_state.page_authenticated = {page: False for page in page_passwords if page_passwords[page]}
     st.experimental_rerun()
 
+# Imagen en la barra lateral
 st.sidebar.markdown("---")
 st.sidebar.image("estrellafon_transparent.png", width=100)
