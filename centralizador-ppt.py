@@ -377,9 +377,13 @@ def get_requerimiento(sheet_name):
     return 0
 
 def main():
-    """
-    Función principal que maneja la autenticación y la navegación entre páginas.
-    """
+    # Inicializar variables de estado si no existen
+    if "authenticated" not in st.session_state:
+        st.session_state.authenticated = False
+
+    if "page_authenticated" not in st.session_state:
+        st.session_state.page_authenticated = {page: False for page in page_passwords if page_passwords[page]}
+
     if not st.session_state.authenticated:
         # Pantalla de inicio de sesión
         st.title("Gestión Presupuestaria")
@@ -390,7 +394,7 @@ def main():
         if login_button:
             if username_input == app_credentials["username"] and password_input == app_credentials["password"]:
                 st.session_state.authenticated = True
-                st.rerun()  # Usar st.rerun() en lugar de st.experimental_rerun()
+                st.rerun()
             else:
                 st.error("Usuario o contraseña incorrectos.")
     else:
@@ -410,7 +414,7 @@ def main():
             st.write("- Usa los botones de descarga en las tablas para obtener los datos en formato CSV si lo deseas.")
         else:
             # Autenticación por página si es necesario
-            if not st.session_state.page_authenticated[selected_page]:
+            if page_passwords[selected_page] is not None and not st.session_state.page_authenticated[selected_page]:
                 st.sidebar.markdown("---")
                 st.sidebar.write("**Autenticación por página**")
                 password_input = st.sidebar.text_input("Ingresa la contraseña", type="password", key=f"page_password_{selected_page}")
@@ -419,7 +423,7 @@ def main():
                 if verify_button:
                     if password_input == page_passwords[selected_page]:
                         st.session_state.page_authenticated[selected_page] = True
-                        st.rerun()  # Usar st.rerun() en lugar de st.experimental_rerun()
+                        st.rerun()
                     else:
                         st.sidebar.error("Contraseña incorrecta.")
             else:
@@ -538,7 +542,7 @@ def main():
         if st.sidebar.button("Cerrar sesión"):
             st.session_state.authenticated = False
             st.session_state.page_authenticated = {page: False for page in page_passwords if page_passwords[page]}
-            st.rerun()  # Usar st.rerun() en lugar de st.experimental_rerun()
+            st.rerun()
 
         # Elementos adicionales en la barra lateral
         st.sidebar.markdown("---")
