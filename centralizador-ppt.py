@@ -38,7 +38,7 @@ def load_data(filepath, sheet_name):
         st.error(f"Error cargando los datos: {e}")
         return None
 
-excel_file = "main_bdd.xlsx"
+excel_file = "/mnt/data/main_bdd.xlsx"
 
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
@@ -111,6 +111,66 @@ def mostrar_dpp_2025_mito(sheet_name, monto_dpp):
     else:
         st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
 
+def calcular_actualizacion(areas):
+    """Calcula y devuelve las tablas de Actualización por área."""
+    resultados = {}
+    for area, subareas in areas.items():
+        tablas = {}
+        for subarea in subareas:
+            # Cargar datos de Requerimiento de Área
+            sheet_name = f"{area}_{subarea}"
+            data = load_data(excel_file, sheet_name)
+
+            # Calcular total requerido del área
+            monto_requerido = 0
+            if data is not None and "total" in data.columns and pd.api.types.is_numeric_dtype(data["total"]):
+                monto_requerido = data["total"].sum()
+
+            # Obtener el DPP 2025 desde el estado de sesión
+            dpp_key = f"dpp_2025_{sheet_name}_data"
+            dpp_2025 = 0
+            if dpp_key in st.session_state:
+                dpp_data = st.session_state[dpp_key]
+                if "total" in dpp_data.columns and pd.api.types.is_numeric_dtype(dpp_data["total"]):
+                    dpp_2025 = dpp_data["total"].sum()
+
+            # Calcular diferencia
+            diferencia = dpp_2025 - monto_requerido
+
+            # Crear DataFrame con los resultados
+            tabla = pd.DataFrame({
+                "Área": [area],
+                "Subárea": [subarea],
+                "Monto Requerido del Área": [monto_requerido],
+                "DPP 2025": [dpp_2025],
+                "Diferencia": [diferencia]
+            })
+            tablas[subarea] = tabla
+        resultados[area] = tablas
+    return resultados
+
+def mostrar_actualizacion():
+    """Muestra la página de Actualización con tablas consolidadas."""
+    st.title("Actualización - Resumen Consolidado")
+    st.write("Estas tablas muestran el monto requerido, DPP 2025, y la diferencia para cada área.")
+
+    # Definir las áreas y subáreas
+    areas = {
+        "PRE": ["Misiones_personal", "Misiones_consultores", "Servicios_profesionales"],
+        "VPE": ["Misiones", "Consultores"],
+        "VPF": ["Misiones", "Consultores"],
+        "VPD": ["Misiones", "Consultores"],
+        "VPO": ["Misiones", "Consultores"]
+    }
+
+    resultados = calcular_actualizacion(areas)
+
+    for area, subareas in resultados.items():
+        st.subheader(area)
+        for subarea, tabla in subareas.items():
+            st.markdown(f"#### {subarea.replace('_', ' ').title()}")
+            st.dataframe(tabla)
+
 def main():
     """Estructura principal de la aplicación."""
     if not st.session_state.authenticated:
@@ -129,12 +189,13 @@ def main():
         pages = list(page_passwords.keys())
         selected_page = st.sidebar.selectbox("Selecciona una página", pages)
 
-        # Lógica para cada página
         if selected_page == "Principal":
             st.title("Página Principal")
             st.write("Bienvenido a la página principal de la app.")
+        elif selected_page == "Actualización":
+            mostrar_actualizacion()
         elif selected_page in ["VPD", "VPF", "VPO", "VPE"]:
-            st.title(selected_page)
+            # Misiones y Consultorías para cada área
             subpage_options = ["Misiones", "Consultorías"]
             selected_subpage = st.sidebar.selectbox("Selecciona una subpágina", subpage_options)
 
@@ -178,21 +239,6 @@ def main():
                     data = pd.read_excel(uploaded_file, engine="openpyxl")
                     st.write("Archivo cargado:")
                     st.dataframe(data)
-        else:
-            if not st.session_state.page_authenticated[selected_page]:
-                st.sidebar.markdown("---")
-                password_input = st.sidebar.text_input("Ingresa la contraseña", type="password", key=f"page_password_{selected_page}")
-                verify_button = st.sidebar.button("Verificar", key=f"verify_{selected_page}")
-
-                if verify_button:
-                    if password_input == page_passwords[selected_page]:
-                        st.session_state.page_authenticated[selected_page] = True
-                        st.rerun()
-                    else:
-                        st.sidebar.error("Contraseña incorrecta.")
-            else:
-                st.title(f"Página {selected_page}")
-                st.write("Contenido aún no implementado.")
 
 if __name__ == "__main__":
     main()
