@@ -44,12 +44,12 @@ subpages = {
     "Consolidado": []
 }
 
-@st.cache_data
 def load_data(filepath, sheet_name):
     try:
         df = pd.read_excel(filepath, sheet_name=sheet_name, engine='openpyxl')
         return df
-    except:
+    except Exception as e:
+        st.error(f"Error al cargar la hoja '{sheet_name}': {e}")
         return None
 
 excel_file = "main_bdd.xlsx"
@@ -172,6 +172,9 @@ def mostrar_dpp_2025():
             st.metric("Monto Deseado 🎯", f"${monto_deseado:,.2f}")
         with col3:
             st.metric("Diferencia ➖", diff_value)
+
+        # (Opcional) Depuración: Mostrar el estado actual de los datos
+        # st.write("Datos Editados:", st.session_state.dpp_2025_data)
     else:
         st.warning("No se pudo cargar la tabla VPD_Misiones para DPP 2025.")
 
@@ -229,6 +232,9 @@ def mostrar_dpp_2025_consultores():
             st.metric("Monto Deseado 🎯", f"${monto_deseado:,.2f}")
         with col3:
             st.metric("Diferencia ➖", diff_value)
+
+        # (Opcional) Depuración: Mostrar el estado actual de los datos
+        # st.write("Datos Editados Consultores:", st.session_state.dpp_2025_consultores_data)
     else:
         st.warning("No se pudo cargar la tabla VPD_Consultores para DPP 2025.")
 
@@ -344,7 +350,7 @@ def main():
         if login_button:
             if username_input == app_credentials["username"] and password_input == app_credentials["password"]:
                 st.session_state.authenticated = True
-                st.rerun()
+                st.experimental_rerun()
             else:
                 st.error("Usuario o contraseña incorrectos.")
     else:
@@ -370,7 +376,7 @@ def main():
                 if verify_button:
                     if password_input == page_passwords[selected_page]:
                         st.session_state.page_authenticated[selected_page] = True
-                        st.rerun()
+                        st.experimental_rerun()
                     else:
                         st.sidebar.error("Contraseña incorrecta.")
             else:
@@ -488,7 +494,7 @@ if __name__ == "__main__":
 if st.sidebar.button("Cerrar sesión"):
     st.session_state.authenticated = False
     st.session_state.page_authenticated = {page: False for page in page_passwords if page_passwords[page]}
-    st.rerun()
+    st.experimental_rerun()
 
 st.sidebar.markdown("---")
 st.sidebar.image("estrellafon_transparent.png", width=100)
