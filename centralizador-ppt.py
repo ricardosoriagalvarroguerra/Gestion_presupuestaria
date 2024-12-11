@@ -63,23 +63,27 @@ if "page_authenticated" not in st.session_state:
 
 # Funciones de actualización para recalcular 'total'
 def update_total_misiones():
-    df = st.session_state.dpp_2025_table_misiones.copy()
-    df['total'] = (
-        df['cant_funcionarios'] * df['costo_pasaje'] +
-        df['cant_funcionarios'] * df['dias'] * df['alojamiento'] +
-        df['cant_funcionarios'] * df['dias'] * df['perdiem_otros'] +
-        df['cant_funcionarios'] * df['movilidad']
-    )
-    st.session_state.dpp_2025_data = df
+    if 'dpp_2025_table_misiones' in st.session_state:
+        df = st.session_state.dpp_2025_table_misiones.copy()
+        df['total'] = (
+            df['cant_funcionarios'] * df['costo_pasaje'] +
+            df['cant_funcionarios'] * df['dias'] * df['alojamiento'] +
+            df['cant_funcionarios'] * df['dias'] * df['perdiem_otros'] +
+            df['cant_funcionarios'] * df['movilidad']
+        )
+        st.session_state.dpp_2025_data = df
+        st.session_state.dpp_2025_table_misiones = df  # Actualizar la tabla editable
 
 def update_total_consultores():
-    df = st.session_state.dpp_2025_consultores_table.copy()
-    df['total'] = (
-        df['cantidad_funcionarios'] *
-        df['monto_mensual'] *
-        df['cantidad_meses']
-    )
-    st.session_state.dpp_2025_consultores_data = df
+    if 'dpp_2025_consultores_table' in st.session_state:
+        df = st.session_state.dpp_2025_consultores_table.copy()
+        df['total'] = (
+            df['cantidad_funcionarios'] *
+            df['monto_mensual'] *
+            df['cantidad_meses']
+        )
+        st.session_state.dpp_2025_consultores_data = df
+        st.session_state.dpp_2025_consultores_table = df  # Actualizar la tabla editable
 
 def mostrar_subpagina(sheet_name, misiones_PRE=0, misiones_VPO=0, misiones_VPD=0, misiones_VPF=0, download_filename='', mostrar_boxes=True):
     data = load_data(excel_file, sheet_name)
@@ -170,8 +174,7 @@ def mostrar_dpp_2025():
             on_change=update_total_misiones  # Callback para recalcular 'total'
         )
 
-        # 'update_total_misiones' ya actualiza 'st.session_state.dpp_2025_data'
-        # No es necesario reasignar aquí
+        # Los datos editados y actualizados están en st.session_state.dpp_2025_data
 
         # Mostrar métricas
         total_sum = st.session_state.dpp_2025_data['total'].sum()
@@ -226,8 +229,7 @@ def mostrar_dpp_2025_consultores():
             on_change=update_total_consultores  # Callback para recalcular 'total'
         )
 
-        # 'update_total_consultores' ya actualiza 'st.session_state.dpp_2025_consultores_data'
-        # No es necesario reasignar aquí
+        # Los datos editados y actualizados están en st.session_state.dpp_2025_consultores_data
 
         # Mostrar métricas
         total_sum = st.session_state.dpp_2025_consultores_data['total'].sum()
@@ -362,7 +364,7 @@ def main():
         if login_button:
             if username_input == app_credentials["username"] and password_input == app_credentials["password"]:
                 st.session_state.authenticated = True
-                st.experimental_rerun()
+                st.rerun()
             else:
                 st.error("Usuario o contraseña incorrectos.")
     else:
@@ -388,7 +390,7 @@ def main():
                 if verify_button:
                     if password_input == page_passwords[selected_page]:
                         st.session_state.page_authenticated[selected_page] = True
-                        st.experimental_rerun()
+                        st.rerun()
                     else:
                         st.sidebar.error("Contraseña incorrecta.")
             else:
@@ -507,7 +509,7 @@ if __name__ == "__main__":
 if st.sidebar.button("Cerrar sesión"):
     st.session_state.authenticated = False
     st.session_state.page_authenticated = {page: False for page in page_passwords if page_passwords[page]}
-    st.experimental_rerun()
+    st.rerun()
 
 # Imagen en la barra lateral
 st.sidebar.markdown("---")
