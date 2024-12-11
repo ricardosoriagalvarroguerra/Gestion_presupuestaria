@@ -61,47 +61,35 @@ def mostrar_requerimiento_area(sheet_name):
     else:
         st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
 
-def mostrar_dpp_2025_mito(sheet_name, monto_deseado):
-    """Muestra y edita datos de DPP 2025 usando MITO, con cálculos dinámicos."""
+def convertir_a_dataframe(edited_data):
+    """Convierte los datos editados por Mito a un pandas DataFrame de manera robusta."""
+    if isinstance(edited_data, pd.DataFrame):
+        return edited_data
+    elif isinstance(edited_data, dict):
+        if all(isinstance(v, list) for v in edited_data.values()):
+            return pd.DataFrame(edited_data)
+        else:
+            return pd.DataFrame([edited_data])
+    elif isinstance(edited_data, list):
+        return pd.DataFrame.from_records(edited_data)
+    else:
+        st.error("El formato de los datos editados no es compatible.")
+        return None
+
+def mostrar_dpp_2025_mito(sheet_name):
+    """Muestra y edita datos de DPP 2025 usando MITO."""
     st.header(f"DPP 2025 - {sheet_name}")
     st.write("Edite los valores en la hoja de cálculo a continuación:")
 
     data = load_data(excel_file, sheet_name)
     if data is not None:
-        # Usar spreadsheet de Mito
         edited_data, code = spreadsheet(data)
+        edited_df = convertir_a_dataframe(edited_data)
         
-        # Verificar y manejar el formato de `edited_data`
-        if isinstance(edited_data, dict):
-            try:
-                # Convertir a DataFrame si es un diccionario de listas
-                edited_data = pd.DataFrame(edited_data)
-            except ValueError:
-                st.error("Los datos editados no son válidos para convertirlos a DataFrame.")
-                return
-
-        elif not isinstance(edited_data, pd.DataFrame):
-            st.error("El formato de los datos no es compatible. Se esperaba un DataFrame o un diccionario.")
-            return
-
-        # Guardar los datos en el estado de la sesión
-        st.session_state[f"dpp_2025_{sheet_name}_data"] = edited_data
-
-        # Verificar y calcular la columna "total"
-        if "total" in edited_data.columns and pd.api.types.is_numeric_dtype(edited_data["total"]):
-            total_sum = edited_data["total"].sum()
-            diferencia = monto_deseado - total_sum
-
-            st.markdown("### Resultados")
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric("Total Calculado", f"${total_sum:,.2f}")
-            with col2:
-                st.metric("Monto Deseado 🎯", f"${monto_deseado:,.2f}")
-            with col3:
-                st.metric("Diferencia ➖", f"${diferencia:,.2f}")
+        if edited_df is not None:
+            st.session_state[f"dpp_2025_{sheet_name}_data"] = edited_df
         else:
-            st.warning("No se encontró una columna 'total' válida en los datos.")
+            st.warning("No se pudo convertir los datos a un formato válido.")
     else:
         st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
 
@@ -116,7 +104,7 @@ def main():
         if login_button:
             if username_input == app_credentials["username"] and password_input == app_credentials["password"]:
                 st.session_state.authenticated = True
-                st.rerun()
+                st.experimental_rerun()
             else:
                 st.error("Usuario o contraseña incorrectos.")
     else:
@@ -126,8 +114,8 @@ def main():
         if selected_page == "Principal":
             st.title("Página Principal")
             st.write("Bienvenido a la página principal de la app.")
-        elif selected_page == "VPD":
-            st.title("VPD")
+        elif selected_page in ["VPD", "VPF"]:
+            st.title(selected_page)
             subpage_options = ["Misiones", "Consultorías"]
             selected_subpage = st.sidebar.selectbox("Selecciona una subpágina", subpage_options)
 
@@ -137,9 +125,11 @@ def main():
                 selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Misiones", subsubpage_options)
 
                 if selected_subsubpage == "Requerimiento de Área":
-                    mostrar_requerimiento_area("VPD_Misiones")
+                    sheet_name = f"{selected_page}_Misiones"
+                    mostrar_requerimiento_area(sheet_name)
                 elif selected_subsubpage == "DPP 2025":
-                    mostrar_dpp_2025_mito("VPD_Misiones", 168000)
+                    sheet_name = f"{selected_page}_Misiones"
+                    mostrar_dpp_2025_mito(sheet_name)
 
             elif selected_subpage == "Consultorías":
                 st.subheader("Consultorías")
@@ -147,9 +137,11 @@ def main():
                 selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Consultorías", subsubpage_options)
 
                 if selected_subsubpage == "Requerimiento de Área":
-                    mostrar_requerimiento_area("VPD_Consultores")
+                    sheet_name = f"{selected_page}_Consultores"
+                    mostrar_requerimiento_area(sheet_name)
                 elif selected_subsubpage == "DPP 2025":
-                    mostrar_dpp_2025_mito("VPD_Consultores", 130000)
+                    sheet_name = f"{selected_page}_Consultores"
+                    mostrar_dpp_2025_mito(sheet_name)
         else:
             if not st.session_state.page_authenticated[selected_page]:
                 st.sidebar.markdown("---")
@@ -159,7 +151,7 @@ def main():
                 if verify_button:
                     if password_input == page_passwords[selected_page]:
                         st.session_state.page_authenticated[selected_page] = True
-                        st.rerun()
+                        st.experimental_rerun()
                     else:
                         st.sidebar.error("Contraseña incorrecta.")
             else:
