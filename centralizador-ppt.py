@@ -68,9 +68,17 @@ def mostrar_dpp_2025_mito(sheet_name, monto_deseado):
 
     data = load_data(excel_file, sheet_name)
     if data is not None:
+        # Usar spreadsheet de Mito
         edited_data, code = spreadsheet(data)
+        
+        # Convertir a DataFrame si es un OrderedDict
+        if isinstance(edited_data, dict):
+            edited_data = pd.DataFrame(edited_data)
+        
+        # Guardar los datos en el estado de la sesión
         st.session_state[f"dpp_2025_{sheet_name}_data"] = edited_data
 
+        # Verificar y calcular la columna "total"
         if "total" in edited_data.columns and pd.api.types.is_numeric_dtype(edited_data["total"]):
             total_sum = edited_data["total"].sum()
             diferencia = monto_deseado - total_sum
