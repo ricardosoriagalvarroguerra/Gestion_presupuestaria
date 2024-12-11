@@ -47,18 +47,22 @@ if "page_authenticated" not in st.session_state:
     st.session_state.page_authenticated = {page: False for page in page_passwords if page_passwords[page]}
 
 def mostrar_requerimiento_area(sheet_name):
-    """Muestra datos de Requerimiento de Área sin editar."""
+    """Muestra datos de Requerimiento de Área sin editar, con suma del total."""
     st.header(f"Requerimiento de Área - {sheet_name}")
-    st.write("Vista de datos de Requerimiento de Área (solo lectura).")
 
     data = load_data(excel_file, sheet_name)
     if data is not None:
+        if "total" in data.columns and pd.api.types.is_numeric_dtype(data["total"]):
+            total_sum = data["total"].sum()
+            st.metric("Total Requerido", f"${total_sum:,.2f}")
+        else:
+            st.warning("No se encontró una columna 'total' válida en los datos.")
         st.dataframe(data)
     else:
         st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
 
-def mostrar_dpp_2025_mito(sheet_name):
-    """Muestra y edita datos de DPP 2025 usando MITO."""
+def mostrar_dpp_2025_mito(sheet_name, monto_deseado):
+    """Muestra y edita datos de DPP 2025 usando MITO, con cálculos dinámicos."""
     st.header(f"DPP 2025 - {sheet_name}")
     st.write("Edite los valores en la hoja de cálculo a continuación:")
 
@@ -69,7 +73,16 @@ def mostrar_dpp_2025_mito(sheet_name):
 
         if "total" in edited_data.columns and pd.api.types.is_numeric_dtype(edited_data["total"]):
             total_sum = edited_data["total"].sum()
-            st.metric("Total Calculado", f"${total_sum:,.2f}")
+            diferencia = monto_deseado - total_sum
+
+            st.markdown("### Resultados")
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Total Calculado", f"${total_sum:,.2f}")
+            with col2:
+                st.metric("Monto Deseado 🎯", f"${monto_deseado:,.2f}")
+            with col3:
+                st.metric("Diferencia ➖", f"${diferencia:,.2f}")
         else:
             st.warning("No se encontró una columna 'total' válida en los datos.")
     else:
@@ -109,7 +122,7 @@ def main():
                 if selected_subsubpage == "Requerimiento de Área":
                     mostrar_requerimiento_area("VPD_Misiones")
                 elif selected_subsubpage == "DPP 2025":
-                    mostrar_dpp_2025_mito("VPD_Misiones")
+                    mostrar_dpp_2025_mito("VPD_Misiones", 168000)
 
             elif selected_subpage == "Consultorías":
                 st.subheader("Consultorías")
@@ -119,7 +132,7 @@ def main():
                 if selected_subsubpage == "Requerimiento de Área":
                     mostrar_requerimiento_area("VPD_Consultores")
                 elif selected_subsubpage == "DPP 2025":
-                    mostrar_dpp_2025_mito("VPD_Consultores")
+                    mostrar_dpp_2025_mito("VPD_Consultores", 130000)
         else:
             if not st.session_state.page_authenticated[selected_page]:
                 st.sidebar.markdown("---")
