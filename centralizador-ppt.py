@@ -124,14 +124,16 @@ def mostrar_dpp_2025():
             st.error(f"Faltan columnas en VPD_Misiones. Se requieren: {required_columns}")
             return
 
+        # Inicializar datos en session_state si no están presentes
         if 'dpp_2025_data' not in st.session_state:
             st.session_state.dpp_2025_data = data.copy()
 
+        # Editar los datos
         edited_data = st.data_editor(
             st.session_state.dpp_2025_data,
             num_rows="dynamic",
             use_container_width=True,
-            key="dpp_2025_table_misiones",
+            key="dpp_2025_table_misiones",  # Clave única
             column_config={
                 "pais": st.column_config.TextColumn("País"),
                 "operacion": st.column_config.TextColumn("Operación"),
@@ -146,6 +148,7 @@ def mostrar_dpp_2025():
             }
         )
 
+        # Actualizar session_state con los datos editados
         st.session_state.dpp_2025_data = edited_data
         st.session_state.dpp_2025_data['total'] = (
             st.session_state.dpp_2025_data['cant_funcionarios'] * st.session_state.dpp_2025_data['costo_pasaje'] +
@@ -154,6 +157,7 @@ def mostrar_dpp_2025():
             st.session_state.dpp_2025_data['cant_funcionarios'] * st.session_state.dpp_2025_data['movilidad']
         )
 
+        # Mostrar métricas
         total_sum = st.session_state.dpp_2025_data['total'].sum()
         monto_deseado = 168000
         diferencia = monto_deseado - total_sum
@@ -182,14 +186,16 @@ def mostrar_dpp_2025_consultores():
             st.error(f"Faltan columnas en VPD_Consultores. Se requieren: {required_columns}")
             return
 
+        # Inicializar datos en session_state si no están presentes
         if 'dpp_2025_consultores_data' not in st.session_state:
             st.session_state.dpp_2025_consultores_data = data.copy()
 
+        # Editar los datos
         edited_data = st.data_editor(
             st.session_state.dpp_2025_consultores_data,
             num_rows="dynamic",
             use_container_width=True,
-            key="dpp_2025_consultores_table",
+            key="dpp_2025_consultores_table",  # Clave única
             column_config={
                 "cargo": st.column_config.TextColumn("Cargo"),
                 "vpd_area": st.column_config.TextColumn("VPD Área"),
@@ -200,6 +206,7 @@ def mostrar_dpp_2025_consultores():
             }
         )
 
+        # Actualizar session_state con los datos editados
         st.session_state.dpp_2025_consultores_data = edited_data
         st.session_state.dpp_2025_consultores_data['total'] = (
             st.session_state.dpp_2025_consultores_data['cantidad_funcionarios'] *
@@ -207,6 +214,7 @@ def mostrar_dpp_2025_consultores():
             st.session_state.dpp_2025_consultores_data['cantidad_meses']
         )
 
+        # Mostrar métricas
         total_sum = st.session_state.dpp_2025_consultores_data['total'].sum()
         monto_deseado = 130000
         diferencia = monto_deseado - total_sum
@@ -306,6 +314,7 @@ def pagina_consolidado():
     if data_total is not None:
         # Filas grises: 0, 6, 14, 20, 28, 36 → #adb5bd, texto negro, borde
         # Filas rojas: 4, 13, 19, 27, 35, 41, 42 → #c1121f, texto blanco, borde
+
         grey_rows = [0, 6, 14, 20, 28, 36]
         red_rows = [4, 13, 19, 27, 35, 41, 42]
 
