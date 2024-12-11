@@ -38,7 +38,7 @@ def load_data(filepath, sheet_name):
         st.error(f"Error cargando los datos: {e}")
         return None
 
-excel_file = "main_bdd.xlsx"
+excel_file = "/mnt/data/main_bdd.xlsx"
 
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
@@ -114,7 +114,7 @@ def main():
         if selected_page == "Principal":
             st.title("Página Principal")
             st.write("Bienvenido a la página principal de la app.")
-        elif selected_page in ["VPD", "VPF", "VPO"]:
+        elif selected_page in ["VPD", "VPF", "VPO", "VPE"]:
             st.title(selected_page)
             subpage_options = ["Misiones", "Consultorías"]
             selected_subpage = st.sidebar.selectbox("Selecciona una subpágina", subpage_options)
