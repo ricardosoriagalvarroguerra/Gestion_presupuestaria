@@ -114,7 +114,7 @@ def mostrar_subpagina(sheet_name, misiones_PRE=0, misiones_VPO=0, misiones_VPD=0
     else:
         st.warning("No se pudo cargar la tabla especificada.")
 
-def mostrar_dpp_2025_misiones():
+def mostrar_dpp_2025():
     st.header("DPP 2025 - Misiones")
     st.write("Edite los valores en la tabla a continuación:")
 
