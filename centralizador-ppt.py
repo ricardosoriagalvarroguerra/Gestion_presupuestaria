@@ -42,7 +42,10 @@ subpages = {
         "Consultores",
         "Gastos Centralizados"
     ],
-    "Requerimiento Personal": ["Misiones", "Consultores"]
+    "Requerimiento Personal": [
+        "Misiones Personal",
+        "Consultores Personal"
+    ]
 }
 
 @st.cache_data
@@ -63,34 +66,6 @@ if "authenticated" not in st.session_state:
 if "page_authenticated" not in st.session_state:
     st.session_state.page_authenticated = {page: False for page in page_passwords if page_passwords[page]}
 
-def mostrar_subpagina(sheet_name, download_filename='', mostrar_boxes=False):
-    """Muestra una subpágina con datos cargados de Excel."""
-    data = load_data(excel_file, sheet_name)
-    if data is not None:
-        st.subheader(f"Tabla de {sheet_name}")
-        if "total" in data.columns and pd.api.types.is_numeric_dtype(data["total"]):
-            total_sum = data["total"].sum()
-            st.metric(label="Total", value=f"${total_sum:,.2f}")
-        else:
-            st.warning("No se encontró una columna 'total' numérica en la tabla.")
-        st.dataframe(data)
-
-        if mostrar_boxes:
-            st.markdown("### Resumen de Misiones de Servicio")
-            total_sum = data["total"].sum() if ("total" in data.columns and pd.api.types.is_numeric_dtype(data["total"])) else 0
-            st.metric("Total Misiones", f"${total_sum:,.2f}")
-
-        if download_filename:
-            csv = data.to_csv(index=False).encode('utf-8')
-            st.download_button(
-                label="Descargar datos como CSV",
-                data=csv,
-                file_name=download_filename,
-                mime='text/csv',
-            )
-    else:
-        st.warning("No se pudo cargar la tabla especificada.")
-
 def mostrar_requerimiento_personal(sheet_name):
     """Muestra y edita datos del Requerimiento de Personal."""
     st.header(f"Requerimiento de Personal - {sheet_name}")
@@ -101,7 +76,7 @@ def mostrar_requerimiento_personal(sheet_name):
         edited_data, code = spreadsheet(data)
         st.session_state[f"{sheet_name}_data"] = edited_data
 
-        # Resultados básicos
+        # Cálculo de totales y métricas
         if "total" in edited_data.columns and pd.api.types.is_numeric_dtype(edited_data["total"]):
             total_sum = edited_data["total"].sum()
             st.metric("Total Requerido", f"${total_sum:,.2f}")
@@ -222,7 +197,7 @@ def main():
                     st.title("PRE")
                     subpage_options = subpages[selected_page]
                     selected_subpage = st.sidebar.selectbox("Selecciona una subpágina", subpage_options)
-                    mostrar_subpagina(selected_subpage, download_filename=f"{selected_subpage}.csv")
+                    mostrar_requerimiento_personal(selected_subpage)
                 else:
                     st.title(f"Página {selected_page}")
                     st.write("Contenido aún no implementado.")
