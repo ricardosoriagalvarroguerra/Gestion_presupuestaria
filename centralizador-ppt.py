@@ -38,7 +38,7 @@ def load_data(filepath, sheet_name):
         st.error(f"Error cargando los datos: {e}")
         return None
 
-excel_file = "main_bdd.xlsx"
+excel_file = "/mnt/data/main_bdd.xlsx"
 
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
@@ -51,95 +51,52 @@ def convertir_a_dataframe(edited_data):
     if isinstance(edited_data, pd.DataFrame):
         return edited_data
     elif isinstance(edited_data, dict):
-        if all(isinstance(v, list) for v in edited_data.values()):
-            return pd.DataFrame(edited_data)
-        else:
-            return pd.DataFrame([edited_data])
-    elif isinstance(edited_data, list):
-        return pd.DataFrame.from_records(edited_data)
+        key = list(edited_data.keys())[0]  # Tomar la primera clave del diccionario (e.g., 'df1')
+        return pd.DataFrame(edited_data[key])
     else:
         st.error("El formato de los datos editados no es compatible.")
         return None
 
-def mostrar_requerimiento_area(sheet_name):
-    """Muestra datos de Requerimiento de Área sin editar, con suma del total."""
-    st.header(f"Requerimiento de Área - {sheet_name}")
-
-    data = load_data(excel_file, sheet_name)
-    if data is not None:
-        if "total" in data.columns and pd.api.types.is_numeric_dtype(data["total"]):
-            total_sum = data["total"].sum()
-            st.metric("Total Requerido", f"${total_sum:,.2f}")
-        else:
-            st.warning("No se encontró una columna 'total' válida en los datos.")
-        st.dataframe(data)
-    else:
-        st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
-
-def mostrar_dpp_2025_mito(sheet_name):
-    """Muestra y edita datos de DPP 2025 usando MITO, con un Value Box para la suma de la columna 'total'."""
+def mostrar_dpp_2025_mito(sheet_name, monto_dpp):
+    """Muestra y edita datos de DPP 2025 usando MITO, con Value Boxes para suma de 'total' y monto DPP 2025."""
     st.header(f"DPP 2025 - {sheet_name}")
-    st.write("Edite los valores en la hoja de cálculo a continuación:")
 
     data = load_data(excel_file, sheet_name)
     if data is not None:
         edited_data, code = spreadsheet(data)
 
         # Extraer el DataFrame correcto desde el diccionario devuelto por Mito
-        if isinstance(edited_data, dict):
-            key = list(edited_data.keys())[0]  # Obtener el nombre de la clave principal (e.g., 'df1')
-            edited_df = pd.DataFrame(edited_data[key])  # Extraer el DataFrame real
-        elif isinstance(edited_data, pd.DataFrame):
-            edited_df = edited_data
-        else:
-            st.error("Formato inesperado de datos editados.")
-            return
+        edited_df = convertir_a_dataframe(edited_data)
 
-        # Mostrar nombres de columnas para depuración
-        st.write("Nombres de columnas originales después de Mito:", edited_df.columns.tolist())
+        if edited_df is not None:
+            # Normalizar nombres de columnas
+            edited_df.columns = edited_df.columns.str.strip().str.lower()
 
-        # Normalizar nombres de columnas
-        edited_df.columns = edited_df.columns.str.strip().str.lower()
+            # Guardar datos en el estado de sesión
+            st.session_state[f"dpp_2025_{sheet_name}_data"] = edited_df
 
-        # Mostrar los nombres de las columnas después de la normalización
-        st.write("Nombres de columnas después de la normalización:", edited_df.columns.tolist())
+            # Intentar convertir la columna 'total' a numérica y calcular la suma
+            if "total" in edited_df.columns:
+                try:
+                    edited_df["total"] = pd.to_numeric(edited_df["total"], errors="coerce")
+                    total_sum = edited_df["total"].sum()
 
-        # Guardar datos en el estado de sesión
-        st.session_state[f"dpp_2025_{sheet_name}_data"] = edited_df
+                    # Mostrar Value Boxes arriba de la tabla
+                    col1, col2, col3 = st.columns([1, 2, 1])  # Alinear los Value Boxes en el centro
+                    with col1:
+                        st.metric(label="Monto DPP 2025", value=f"${monto_dpp:,.2f}")
+                    with col3:
+                        st.metric(label="Suma de Total", value=f"${total_sum:,.2f}")
 
-        # Intentar convertir la columna 'total' a numérica y calcular la suma
-        if "total" in edited_df.columns:
-            try:
-                edited_df["total"] = pd.to_numeric(edited_df["total"], errors="coerce")
-                total_sum = edited_df["total"].sum()
-
-                # Mostrar el valor en un Value Box
-                col1, col2, col3 = st.columns([1, 2, 1])  # Alinear el Value Box en el centro
-                with col2:
-                    st.metric(label="Suma de Total", value=f"${total_sum:,.2f}")
-            except Exception as e:
-                st.warning(f"No se pudo convertir la columna 'total' a un formato numérico: {e}")
-        else:
-            st.error("No se encontró una columna llamada 'total' en los datos después de la normalización.")
+                    # Mostrar la tabla editada
+                    st.write("Edite los datos en la tabla a continuación:")
+                    st.dataframe(edited_df)
+                except Exception as e:
+                    st.warning(f"No se pudo convertir la columna 'total' a un formato numérico: {e}")
+            else:
+                st.error("No se encontró una columna llamada 'total' en los datos después de la normalización.")
     else:
         st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
-
-def gastos_centralizados():
-    """Permite subir y editar una base de datos para Gastos Centralizados."""
-    st.header("Gastos Centralizados")
-
-    uploaded_file = st.file_uploader("Sube un archivo Excel para Gastos Centralizados", type=["xlsx", "xls"])
-    if uploaded_file:
-        try:
-            data = pd.read_excel(uploaded_file, engine="openpyxl")
-            st.write("Datos cargados exitosamente. Puedes editarlos a continuación:")
-            edited_data, code = spreadsheet(data)
-            st.write("Datos Editados:")
-            st.dataframe(edited_data)
-        except Exception as e:
-            st.error(f"Error cargando el archivo: {e}")
-    else:
-        st.write("Por favor, sube un archivo para editarlo.")
 
 def main():
     """Estructura principal de la aplicación."""
@@ -159,50 +116,44 @@ def main():
         pages = list(page_passwords.keys())
         selected_page = st.sidebar.selectbox("Selecciona una página", pages)
 
+        # Lógica para cada página
         if selected_page == "Principal":
             st.title("Página Principal")
             st.write("Bienvenido a la página principal de la app.")
+        elif selected_page in ["VPD", "VPF", "VPO", "VPE"]:
+            st.title(selected_page)
+            subpage_options = ["Misiones", "Consultorías"]
+            selected_subpage = st.sidebar.selectbox("Selecciona una subpágina", subpage_options)
+
+            montos = {
+                "VPD": {"Misiones": 168000, "Consultorías": 130000},
+                "VPF": {"Misiones": 138600, "Consultorías": 170000},
+                "VPO": {"Misiones": 434707, "Consultorías": 547700},
+                "VPE": {"Misiones": 80168, "Consultorías": 338372},
+            }
+
+            if selected_subpage == "Misiones":
+                mostrar_dpp_2025_mito(f"{selected_page}_Misiones", montos[selected_page]["Misiones"])
+            elif selected_subpage == "Consultorías":
+                mostrar_dpp_2025_mito(f"{selected_page}_Consultores", montos[selected_page]["Consultorías"])
         elif selected_page == "PRE":
             st.title("PRE")
             subpage_options = ["Misiones Personal", "Misiones Consultores", "Servicios Profesionales", "Gastos Centralizados"]
             selected_subpage = st.sidebar.selectbox("Selecciona una subpágina", subpage_options)
 
             if selected_subpage == "Misiones Personal":
-                mostrar_requerimiento_area("PRE_Misiones_personal")
+                mostrar_dpp_2025_mito("PRE_Misiones_personal", 0)  # Define el monto correspondiente si aplica
             elif selected_subpage == "Misiones Consultores":
-                mostrar_requerimiento_area("PRE_Misiones_consultores")
+                mostrar_dpp_2025_mito("PRE_Misiones_consultores", 0)  # Define el monto correspondiente si aplica
             elif selected_subpage == "Servicios Profesionales":
-                mostrar_requerimiento_area("PRE_servicios_profesionales")
+                mostrar_dpp_2025_mito("PRE_servicios_profesionales", 0)  # Define el monto correspondiente si aplica
             elif selected_subpage == "Gastos Centralizados":
-                gastos_centralizados()
-        elif selected_page in ["VPD", "VPF", "VPO", "VPE"]:
-            st.title(selected_page)
-            subpage_options = ["Misiones", "Consultorías"]
-            selected_subpage = st.sidebar.selectbox("Selecciona una subpágina", subpage_options)
-
-            if selected_subpage == "Misiones":
-                st.subheader("Misiones")
-                subsubpage_options = ["Requerimiento de Área", "DPP 2025"]
-                selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Misiones", subsubpage_options)
-
-                if selected_subsubpage == "Requerimiento de Área":
-                    sheet_name = f"{selected_page}_Misiones"
-                    mostrar_requerimiento_area(sheet_name)
-                elif selected_subsubpage == "DPP 2025":
-                    sheet_name = f"{selected_page}_Misiones"
-                    mostrar_dpp_2025_mito(sheet_name)
-
-            elif selected_subpage == "Consultorías":
-                st.subheader("Consultorías")
-                subsubpage_options = ["Requerimiento de Área", "DPP 2025"]
-                selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Consultorías", subsubpage_options)
-
-                if selected_subsubpage == "Requerimiento de Área":
-                    sheet_name = f"{selected_page}_Consultores"
-                    mostrar_requerimiento_area(sheet_name)
-                elif selected_subsubpage == "DPP 2025":
-                    sheet_name = f"{selected_page}_Consultores"
-                    mostrar_dpp_2025_mito(sheet_name)
+                st.write("Sube un archivo para Gastos Centralizados.")
+                uploaded_file = st.file_uploader("Subir archivo Excel", type=["xlsx", "xls"])
+                if uploaded_file:
+                    data = pd.read_excel(uploaded_file, engine="openpyxl")
+                    st.write("Archivo cargado:")
+                    st.dataframe(data)
         else:
             if not st.session_state.page_authenticated[selected_page]:
                 st.sidebar.markdown("---")
