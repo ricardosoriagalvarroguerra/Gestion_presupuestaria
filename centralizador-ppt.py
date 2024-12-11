@@ -25,6 +25,7 @@ page_passwords = {
     "VPF": "vpf131",
     "Actualización": "update2023",
     "Consolidado": "consolidado321",
+    "Requerimiento Personal": "reqpersonal456",
     "Tablero": "tablero654"
 }
 
@@ -41,8 +42,7 @@ subpages = {
         "Consultores",
         "Gastos Centralizados"
     ],
-    "Actualización": [],
-    "Consolidado": []
+    "Requerimiento Personal": ["Misiones", "Consultores"]
 }
 
 @st.cache_data
@@ -61,6 +61,24 @@ if "authenticated" not in st.session_state:
 
 if "page_authenticated" not in st.session_state:
     st.session_state.page_authenticated = {page: False for page in page_passwords if page_passwords[page]}
+
+def mostrar_requerimiento_personal(sheet_name):
+    st.header(f"Requerimiento de Personal - {sheet_name}")
+    st.write("Revise los datos en la hoja de cálculo a continuación:")
+
+    data = load_data(excel_file, sheet_name)
+    if data is not None:
+        edited_data, code = spreadsheet(data)
+        st.session_state[f"{sheet_name}_data"] = edited_data
+
+        # Resultados básicos
+        if "total" in edited_data.columns and pd.api.types.is_numeric_dtype(edited_data["total"]):
+            total_sum = edited_data["total"].sum()
+            st.metric("Total Requerido", f"${total_sum:,.2f}")
+        else:
+            st.warning("No se encontró una columna 'total' válida en los datos.")
+    else:
+        st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
 
 def mostrar_subpagina(sheet_name, download_filename='', mostrar_boxes=False):
     data = load_data(excel_file, sheet_name)
@@ -168,6 +186,11 @@ def main():
         if selected_page == "Principal":
             st.title("Página Principal")
             st.write("Bienvenido a la página principal de la app.")
+        elif selected_page == "Requerimiento Personal":
+            st.title("Requerimiento de Personal")
+            subpage_options = subpages[selected_page]
+            selected_subpage = st.sidebar.selectbox("Selecciona una subpágina", subpage_options)
+            mostrar_requerimiento_personal(selected_subpage)
         else:
             if not st.session_state.page_authenticated[selected_page]:
                 st.sidebar.markdown("---")
@@ -183,7 +206,7 @@ def main():
             else:
                 if selected_page == "VPD":
                     st.title("VPD")
-                    subpage_options = ["Misiones", "Consultores"]
+                    subpage_options = subpages[selected_page]
                     selected_subpage = st.sidebar.selectbox("Selecciona una subpágina", subpage_options)
                     if selected_subpage == "Misiones":
                         mostrar_dpp_2025()
