@@ -81,28 +81,43 @@ def mostrar_dpp_2025_mito(sheet_name):
     st.header(f"DPP 2025 - {sheet_name}")
     st.write("Edite los valores en la hoja de cálculo a continuación:")
 
-    data = load_data(excel_file, sheet_name)
+    data = load_data(file_path, sheet_name)
     if data is not None:
         edited_data, code = spreadsheet(data)
-        edited_df = convertir_a_dataframe(edited_data)
-        
-        if edited_df is not None:
-            st.session_state[f"dpp_2025_{sheet_name}_data"] = edited_df
 
-            # Intentar convertir la columna 'total' a numérica
-            if "total" in edited_df.columns:
-                try:
-                    edited_df["total"] = pd.to_numeric(edited_df["total"], errors="coerce")
-                    total_sum = edited_df["total"].sum()
-                    
-                    st.markdown("### Métricas")
-                    st.metric("Suma de Total", f"${total_sum:,.2f}")
-                except Exception as e:
-                    st.warning(f"No se pudo convertir la columna 'total' a un formato numérico: {e}")
-            else:
-                st.warning("No se encontró una columna 'total' en los datos.")
+        # Inspeccionar el tipo de datos devueltos por Mito
+        st.write("Datos originales desde Mito:", edited_data)
+
+        # Convertir a DataFrame de manera robusta
+        if isinstance(edited_data, pd.DataFrame):
+            edited_df = edited_data
+        elif isinstance(edited_data, dict):
+            edited_df = pd.DataFrame.from_dict(edited_data)
         else:
-            st.warning("No se pudo convertir los datos a un formato válido.")
+            st.error("Formato inesperado de datos editados.")
+            return
+
+        # Normalizar nombres de columnas
+        edited_df.columns = edited_df.columns.str.strip().str.lower()
+
+        # Inspeccionar las columnas después de la normalización
+        st.write("Columnas después de la normalización:", edited_df.columns)
+
+        # Guardar datos en el estado de sesión
+        st.session_state[f"dpp_2025_{sheet_name}_data"] = edited_df
+
+        # Intentar convertir la columna 'total' a numérica
+        if "total" in edited_df.columns:
+            try:
+                edited_df["total"] = pd.to_numeric(edited_df["total"], errors="coerce")
+                total_sum = edited_df["total"].sum()
+
+                st.markdown("### Métricas")
+                st.metric("Suma de Total", f"${total_sum:,.2f}")
+            except Exception as e:
+                st.warning(f"No se pudo convertir la columna 'total' a un formato numérico: {e}")
+        else:
+            st.warning("No se encontró una columna 'total' en los datos después de la normalización.")
     else:
         st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
         
