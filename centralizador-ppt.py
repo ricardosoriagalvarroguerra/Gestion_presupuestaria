@@ -38,7 +38,7 @@ def load_data(filepath, sheet_name):
         st.error(f"Error cargando los datos: {e}")
         return None
 
-excel_file = "main_bdd.xlsx"
+excel_file = "/mnt/data/main_bdd.xlsx"
 
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
@@ -56,6 +56,19 @@ def convertir_a_dataframe(edited_data):
     else:
         st.error("El formato de los datos editados no es compatible.")
         return None
+
+def mostrar_requerimiento_area(sheet_name):
+    """Muestra una tabla estática de Requerimiento de Área o PRE con un Value Box de Total."""
+    st.header(f"Requerimiento de Área - {sheet_name}")
+
+    data = load_data(excel_file, sheet_name)
+    if data is not None:
+        if "total" in data.columns and pd.api.types.is_numeric_dtype(data["total"]):
+            total_sum = data["total"].sum()
+            st.metric("Total Requerido", f"${total_sum:,.2f}")
+        st.dataframe(data)
+    else:
+        st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
 
 def mostrar_dpp_2025_mito(sheet_name, monto_dpp):
     """Muestra y edita datos de DPP 2025 usando MITO, con Value Boxes para suma de 'total', monto DPP 2025 y diferencia."""
@@ -133,20 +146,31 @@ def main():
             }
 
             if selected_subpage == "Misiones":
-                mostrar_dpp_2025_mito(f"{selected_page}_Misiones", montos[selected_page]["Misiones"])
+                subsubpage_options = ["Requerimiento de Área", "DPP 2025"]
+                selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Misiones", subsubpage_options)
+                if selected_subsubpage == "Requerimiento de Área":
+                    mostrar_requerimiento_area(f"{selected_page}_Misiones")
+                elif selected_subsubpage == "DPP 2025":
+                    mostrar_dpp_2025_mito(f"{selected_page}_Misiones", montos[selected_page]["Misiones"])
+
             elif selected_subpage == "Consultorías":
-                mostrar_dpp_2025_mito(f"{selected_page}_Consultores", montos[selected_page]["Consultorías"])
+                subsubpage_options = ["Requerimiento de Área", "DPP 2025"]
+                selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Consultorías", subsubpage_options)
+                if selected_subsubpage == "Requerimiento de Área":
+                    mostrar_requerimiento_area(f"{selected_page}_Consultores")
+                elif selected_subsubpage == "DPP 2025":
+                    mostrar_dpp_2025_mito(f"{selected_page}_Consultores", montos[selected_page]["Consultorías"])
         elif selected_page == "PRE":
             st.title("PRE")
             subpage_options = ["Misiones Personal", "Misiones Consultores", "Servicios Profesionales", "Gastos Centralizados"]
             selected_subpage = st.sidebar.selectbox("Selecciona una subpágina", subpage_options)
 
             if selected_subpage == "Misiones Personal":
-                mostrar_dpp_2025_mito("PRE_Misiones_personal", 0)  # Define el monto correspondiente si aplica
+                mostrar_requerimiento_area("PRE_Misiones_personal")
             elif selected_subpage == "Misiones Consultores":
-                mostrar_dpp_2025_mito("PRE_Misiones_consultores", 0)  # Define el monto correspondiente si aplica
+                mostrar_requerimiento_area("PRE_Misiones_consultores")
             elif selected_subpage == "Servicios Profesionales":
-                mostrar_dpp_2025_mito("PRE_servicios_profesionales", 0)  # Define el monto correspondiente si aplica
+                mostrar_requerimiento_area("PRE_servicios_profesionales")
             elif selected_subpage == "Gastos Centralizados":
                 st.write("Sube un archivo para Gastos Centralizados.")
                 uploaded_file = st.file_uploader("Subir archivo Excel", type=["xlsx", "xls"])
