@@ -183,81 +183,72 @@ def mostrar_dpp_2025_consultores():
     st.header("DPP 2025 - Consultores")
     st.write("Edite los valores en la tabla a continuación:")
 
-    # Carga de datos original
+    # Cargar datos desde el archivo Excel
     data = load_data(excel_file, "VPD_Consultores")
 
     if data is None:
         st.warning("No se pudo cargar la hoja VPD_Consultores.")
         return
-    else:
-        required_columns = ['cargo', 'vpd_area', 'cantidad_funcionarios', 'monto_mensual', 'cantidad_meses', 'total']
-        
-        # Verificar columnas faltantes
-        missing_cols = [col for col in required_columns if col not in data.columns]
-        if missing_cols:
-            st.error(f"Faltan columnas en VPD_Consultores: {missing_cols}. Revisa el archivo Excel.")
-            st.write("Columnas disponibles:", data.columns.tolist())
-            return
 
-        # Inicializar datos en session_state una sola vez
-        if 'dpp_2025_consultores_data' not in st.session_state:
-            st.session_state.dpp_2025_consultores_data = data.copy()
+    # Verificar que las columnas requeridas existan
+    required_columns = ['cargo', 'vpd_area', 'cantidad_funcionarios', 'monto_mensual', 'cantidad_meses', 'total']
+    missing_columns = [col for col in required_columns if col not in data.columns]
+    if missing_columns:
+        st.error(f"Faltan columnas en los datos: {missing_columns}. Revisa el archivo Excel.")
+        st.write("Columnas disponibles:", data.columns.tolist())
+        return
 
-        # Mostrar y editar datos
-        # Fijar num_rows a 'fixed' para evitar que el usuario agregue o elimine filas.
-        # Fijar el orden de las columnas con column_order para mantener estabilidad.
-        edited_data = st.data_editor(
-            st.session_state.dpp_2025_consultores_data,
-            num_rows="fixed",
-            use_container_width=True,
-            key="dpp_2025_consultores_table",
-            column_order=required_columns,
-            column_config={
-                "cargo": st.column_config.TextColumn("Cargo"),
-                "vpd_area": st.column_config.TextColumn("VPD Área"),
-                "cantidad_funcionarios": st.column_config.NumberColumn("Cantidad de Funcionarios", step=1, format="%d"),
-                "monto_mensual": st.column_config.NumberColumn("Monto Mensual", step=100.0, format="$%.2f"),
-                "cantidad_meses": st.column_config.NumberColumn("Cantidad de Meses", step=1, format="%d"),
-                "total": st.column_config.NumberColumn("Total", disabled=True, format="$%.2f")
-            }
-        )
+    # Inicializar datos en `st.session_state` si no están presentes
+    if "dpp_2025_consultores_data" not in st.session_state:
+        st.session_state.dpp_2025_consultores_data = data.copy()
 
-        # Depuración: ver columnas después de editar
-        st.write("**Columnas después de editar:**", edited_data.columns.tolist())
+    # Mostrar y editar datos
+    edited_data = st.data_editor(
+        st.session_state.dpp_2025_consultores_data,
+        num_rows="fixed",  # No permitir agregar/eliminar filas
+        use_container_width=True,
+        key="dpp_2025_consultores_table",
+        column_order=required_columns,  # Fijar orden de columnas
+        column_config={
+            "cargo": st.column_config.TextColumn("Cargo"),
+            "vpd_area": st.column_config.TextColumn("VPD Área"),
+            "cantidad_funcionarios": st.column_config.NumberColumn("Cantidad de Funcionarios", step=1, format="%d"),
+            "monto_mensual": st.column_config.NumberColumn("Monto Mensual", step=100.0, format="$%.2f"),
+            "cantidad_meses": st.column_config.NumberColumn("Cantidad de Meses", step=1, format="%d"),
+            "total": st.column_config.NumberColumn("Total", disabled=True, format="$%.2f")  # Total no editable
+        }
+    )
 
-        # Asegurar que la columna exista
-        if 'cantidad_funcionarios' not in edited_data.columns:
-            st.error("La columna 'cantidad_funcionarios' no se encuentra después de la edición.")
-            st.write("Columnas disponibles en los datos editados:", edited_data.columns.tolist())
-            return
+    # Sincronizar los datos editados con `st.session_state`
+    st.session_state.dpp_2025_consultores_data = edited_data
 
-        # Actualizar session_state con datos editados
-        st.session_state.dpp_2025_consultores_data = edited_data.copy()
+    # Calcular la columna 'total' después de la edición
+    st.session_state.dpp_2025_consultores_data['total'] = (
+        st.session_state.dpp_2025_consultores_data['cantidad_funcionarios'] *
+        st.session_state.dpp_2025_consultores_data['monto_mensual'] *
+        st.session_state.dpp_2025_consultores_data['cantidad_meses']
+    )
 
-        # Recalcular total aquí, fuera de cualquier callback
-        st.session_state.dpp_2025_consultores_data['total'] = (
-            st.session_state.dpp_2025_consultores_data['cantidad_funcionarios'] *
-            st.session_state.dpp_2025_consultores_data['monto_mensual'] *
-            st.session_state.dpp_2025_consultores_data['cantidad_meses']
-        )
+    # Calcular métricas para mostrar al usuario
+    total_sum = st.session_state.dpp_2025_consultores_data['total'].sum()
+    monto_deseado = 130000
+    diferencia = monto_deseado - total_sum
+    diff_sign = "+" if diferencia >= 0 else "-"
+    diff_value = f"{diff_sign}${abs(diferencia):,.2f}"
 
-        total_sum = st.session_state.dpp_2025_consultores_data['total'].sum()
-        monto_deseado = 130000
-        diferencia = monto_deseado - total_sum
-        diff_sign = "+" if diferencia >= 0 else "-"
-        diff_value = f"{diff_sign}${abs(diferencia):,.2f}"
+    # Mostrar métricas y datos finales
+    st.markdown("### Resultados")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Total 💰", f"${total_sum:,.2f}")
+    with col2:
+        st.metric("Monto Deseado 🎯", f"${monto_deseado:,.2f}")
+    with col3:
+        st.metric("Diferencia ➖", diff_value)
 
-        st.markdown("### Resultados")
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("Total 💰", f"${total_sum:,.2f}")
-        with col2:
-            st.metric("Monto Deseado 🎯", f"${monto_deseado:,.2f}")
-        with col3:
-            st.metric("Diferencia ➖", diff_value)
+    # Depuración opcional: Mostrar el estado actual de los datos
+    st.write("**Datos Editados Consultores DPP 2025:**", st.session_state.dpp_2025_consultores_data)
 
-        # Depuración final: mostrar estado actual
-        st.write("**Datos Finales Consultores DPP 2025:**", st.session_state.dpp_2025_consultores_data)
 
 def get_requerimiento(sheet_name):
     data = load_data(excel_file, sheet_name)
