@@ -77,7 +77,7 @@ def mostrar_requerimiento_area(sheet_name):
         st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
 
 def mostrar_dpp_2025_mito(sheet_name):
-    """Muestra y edita datos de DPP 2025 usando MITO, con la suma de la columna 'total' mostrada en la página."""
+    """Muestra y edita datos de DPP 2025 usando MITO, con un Value Box para la suma de la columna 'total'."""
     st.header(f"DPP 2025 - {sheet_name}")
     st.write("Edite los valores en la hoja de cálculo a continuación:")
 
@@ -101,7 +101,7 @@ def mostrar_dpp_2025_mito(sheet_name):
         # Normalizar nombres de columnas
         edited_df.columns = edited_df.columns.str.strip().str.lower()
 
-        # Mostrar los nombres de las columnas después de normalización
+        # Mostrar los nombres de las columnas después de la normalización
         st.write("Nombres de columnas después de la normalización:", edited_df.columns.tolist())
 
         # Guardar datos en el estado de sesión
@@ -113,8 +113,10 @@ def mostrar_dpp_2025_mito(sheet_name):
                 edited_df["total"] = pd.to_numeric(edited_df["total"], errors="coerce")
                 total_sum = edited_df["total"].sum()
 
-                # Mostrar la suma directamente en texto
-                st.subheader(f"Suma de la columna 'total': ${total_sum:,.2f}")
+                # Mostrar el valor en un Value Box
+                col1, col2, col3 = st.columns([1, 2, 1])  # Alinear el Value Box en el centro
+                with col2:
+                    st.metric(label="Suma de Total", value=f"${total_sum:,.2f}")
             except Exception as e:
                 st.warning(f"No se pudo convertir la columna 'total' a un formato numérico: {e}")
         else:
