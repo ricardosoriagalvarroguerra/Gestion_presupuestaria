@@ -65,7 +65,7 @@ def mostrar_requerimiento_area(sheet_name):
     if data is not None:
         if "total" in data.columns and pd.api.types.is_numeric_dtype(data["total"]):
             total_sum = data["total"].sum()
-            st.metric("Total Requerido", f"${total_sum:,.2f}")
+            st.metric("Total Requerido", f"${total_sum:,.0f}")
         st.dataframe(data)
     else:
         st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
@@ -98,11 +98,11 @@ def mostrar_dpp_2025_mito(sheet_name, monto_dpp):
                     # Mostrar Value Boxes
                     col1, col2, col3 = st.columns(3)  # Alinear los Value Boxes
                     with col1:
-                        st.metric(label="Monto DPP 2025", value=f"${monto_dpp:,.2f}")
+                        st.metric(label="Monto DPP 2025", value=f"${monto_dpp:,.0f}")
                     with col2:
-                        st.metric(label="Suma de Total", value=f"${total_sum:,.2f}")
+                        st.metric(label="Suma de Total", value=f"${total_sum:,.0f}")
                     with col3:
-                        st.metric(label="Diferencia", value=f"${diferencia:,.2f}")
+                        st.metric(label="Diferencia", value=f"${diferencia:,.0f}")
 
                 except Exception as e:
                     st.warning(f"No se pudo convertir la columna 'total' a un formato numérico: {e}")
@@ -128,9 +128,9 @@ def calcular_actualizacion_tabla(vicepresidencias, tipo):
 
         filas.append({
             "Unidad Organizacional": vpe,
-            "Requerimiento Área": requerimiento,
-            "DPP 2025": dpp,
-            "Diferencia": diferencia
+            "Requerimiento Área": int(requerimiento),
+            "DPP 2025": int(dpp),
+            "Diferencia": int(diferencia)
         })
 
     df = pd.DataFrame(filas)
