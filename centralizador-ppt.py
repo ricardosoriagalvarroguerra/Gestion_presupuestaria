@@ -46,13 +46,77 @@ if "authenticated" not in st.session_state:
 if "page_authenticated" not in st.session_state:
     st.session_state.page_authenticated = {page: False for page in page_passwords if page_passwords[page]}
 
-def calcular_actualizacion_unificada(areas, montos):
-    """Calcula una única tabla de Actualización para Misiones y otra para Consultores."""
-    misiones_data = []
-    consultores_data = []
+def convertir_a_dataframe(edited_data):
+    """Convierte los datos editados por Mito a un pandas DataFrame de manera robusta."""
+    if isinstance(edited_data, pd.DataFrame):
+        return edited_data
+    elif isinstance(edited_data, dict):
+        key = list(edited_data.keys())[0]  # Tomar la primera clave del diccionario (e.g., 'df1')
+        return pd.DataFrame(edited_data[key])
+    else:
+        st.error("El formato de los datos editados no es compatible.")
+        return None
 
+def mostrar_requerimiento_area(sheet_name):
+    """Muestra una tabla estática de Requerimiento de Área o PRE con un Value Box de Total."""
+    st.header(f"Requerimiento de Área - {sheet_name}")
+
+    data = load_data(excel_file, sheet_name)
+    if data is not None:
+        if "total" in data.columns and pd.api.types.is_numeric_dtype(data["total"]):
+            total_sum = data["total"].sum()
+            st.metric("Total Requerido", f"${total_sum:,.2f}")
+        st.dataframe(data)
+    else:
+        st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
+
+def mostrar_dpp_2025_mito(sheet_name, monto_dpp):
+    """Muestra y edita datos de DPP 2025 usando MITO, con Value Boxes para suma de 'total', monto DPP 2025 y diferencia."""
+    st.header(f"DPP 2025 - {sheet_name}")
+
+    data = load_data(excel_file, sheet_name)
+    if data is not None:
+        edited_data, code = spreadsheet(data)
+
+        # Extraer el DataFrame correcto desde el diccionario devuelto por Mito
+        edited_df = convertir_a_dataframe(edited_data)
+
+        if edited_df is not None:
+            # Normalizar nombres de columnas
+            edited_df.columns = edited_df.columns.str.strip().str.lower()
+
+            # Guardar datos en el estado de sesión
+            st.session_state[f"dpp_2025_{sheet_name}_data"] = edited_df
+
+            # Intentar convertir la columna 'total' a numérica y calcular la suma
+            if "total" in edited_df.columns:
+                try:
+                    edited_df["total"] = pd.to_numeric(edited_df["total"], errors="coerce")
+                    total_sum = edited_df["total"].sum()
+                    diferencia = total_sum - monto_dpp
+
+                    # Mostrar Value Boxes
+                    col1, col2, col3 = st.columns(3)  # Alinear los Value Boxes
+                    with col1:
+                        st.metric(label="Monto DPP 2025", value=f"${monto_dpp:,.2f}")
+                    with col2:
+                        st.metric(label="Suma de Total", value=f"${total_sum:,.2f}")
+                    with col3:
+                        st.metric(label="Diferencia", value=f"${diferencia:,.2f}")
+
+                except Exception as e:
+                    st.warning(f"No se pudo convertir la columna 'total' a un formato numérico: {e}")
+            else:
+                st.error("No se encontró una columna llamada 'total' en los datos después de la normalización.")
+    else:
+        st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
+
+def calcular_actualizacion(areas):
+    """Calcula y devuelve las tablas de Actualización por área."""
+    resultados = {}
     for area, subareas in areas.items():
-        for subarea, subarea_type in subareas.items():
+        tablas = {}
+        for subarea in subareas:
             # Cargar datos de Requerimiento de Área
             sheet_name = f"{area}_{subarea}"
             data = load_data(excel_file, sheet_name)
@@ -62,62 +126,50 @@ def calcular_actualizacion_unificada(areas, montos):
             if data is not None and "total" in data.columns and pd.api.types.is_numeric_dtype(data["total"]):
                 monto_requerido = data["total"].sum()
 
-            # Obtener el monto DPP 2025 configurado
-            dpp_2025 = montos[area][subarea_type]
+            # Obtener el DPP 2025 desde el estado de sesión
+            dpp_key = f"dpp_2025_{sheet_name}_data"
+            dpp_2025 = 0
+            if dpp_key in st.session_state:
+                dpp_data = st.session_state[dpp_key]
+                if "total" in dpp_data.columns and pd.api.types.is_numeric_dtype(dpp_data["total"]):
+                    dpp_2025 = dpp_data["total"].sum()
 
             # Calcular diferencia
             diferencia = dpp_2025 - monto_requerido
 
-            # Agregar a la tabla correspondiente
-            fila = {
-                "Área": area,
-                "Monto Requerido del Área": monto_requerido,
-                "DPP 2025": dpp_2025,
-                "Diferencia": diferencia
-            }
-            if subarea_type == "Misiones":
-                misiones_data.append(fila)
-            elif subarea_type == "Consultorías":
-                consultores_data.append(fila)
-
-    # Convertir listas a DataFrames
-    misiones_df = pd.DataFrame(misiones_data)
-    consultores_df = pd.DataFrame(consultores_data)
-
-    return misiones_df, consultores_df
+            # Crear DataFrame con los resultados
+            tabla = pd.DataFrame({
+                "Área": [area],
+                "Subárea": [subarea],
+                "Monto Requerido del Área": [monto_requerido],
+                "DPP 2025": [dpp_2025],
+                "Diferencia": [diferencia]
+            })
+            tablas[subarea] = tabla
+        resultados[area] = tablas
+    return resultados
 
 def mostrar_actualizacion():
-    """Muestra la página de Actualización con tablas consolidadas para Misiones y Consultores."""
+    """Muestra la página de Actualización con tablas consolidadas."""
     st.title("Actualización - Resumen Consolidado")
-    st.write("Estas tablas muestran el monto requerido, DPP 2025, y la diferencia para Misiones y Consultores.")
+    st.write("Estas tablas muestran el monto requerido, DPP 2025, y la diferencia para cada área.")
 
     # Definir las áreas y subáreas
     areas = {
-        "PRE": {"Misiones_personal": "Misiones", "Misiones_consultores": "Consultorías", "Servicios_profesionales": "Consultorías"},
-        "VPE": {"Misiones": "Misiones", "Consultores": "Consultorías"},
-        "VPF": {"Misiones": "Misiones", "Consultores": "Consultorías"},
-        "VPD": {"Misiones": "Misiones", "Consultores": "Consultorías"},
-        "VPO": {"Misiones": "Misiones", "Consultores": "Consultorías"}
+        "PRE": ["Misiones_personal", "Misiones_consultores", "Servicios_profesionales"],
+        "VPE": ["Misiones", "Consultores"],
+        "VPF": ["Misiones", "Consultores"],
+        "VPD": ["Misiones", "Consultores"],
+        "VPO": ["Misiones", "Consultores"]
     }
 
-    # Montos DPP 2025 configurados
-    montos = {
-        "VPD": {"Misiones": 168000, "Consultorías": 130000},
-        "VPF": {"Misiones": 138600, "Consultorías": 170000},
-        "VPO": {"Misiones": 434707, "Consultorías": 547700},
-        "VPE": {"Misiones": 80168, "Consultorías": 338372},
-        "PRE": {"Misiones": 0, "Consultorías": 0}  # Ajustar según corresponda
-    }
+    resultados = calcular_actualizacion(areas)
 
-    # Calcular tablas
-    misiones_df, consultores_df = calcular_actualizacion_unificada(areas, montos)
-
-    # Mostrar tablas
-    st.subheader("Misiones")
-    st.dataframe(misiones_df)
-
-    st.subheader("Consultorías")
-    st.dataframe(consultores_df)
+    for area, subareas in resultados.items():
+        st.subheader(area)
+        for subarea, tabla in subareas.items():
+            st.markdown(f"#### {subarea.replace('_', ' ').title()}")
+            st.dataframe(tabla)
 
 def main():
     """Estructura principal de la aplicación."""
