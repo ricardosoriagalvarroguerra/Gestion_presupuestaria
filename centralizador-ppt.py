@@ -111,65 +111,63 @@ def mostrar_dpp_2025_mito(sheet_name, monto_dpp):
     else:
         st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
 
-def calcular_actualizacion(areas):
-    """Calcula y devuelve las tablas de Actualización por área."""
-    resultados = {}
-    for area, subareas in areas.items():
-        tablas = {}
-        for subarea in subareas:
-            # Cargar datos de Requerimiento de Área
-            sheet_name = f"{area}_{subarea}"
-            data = load_data(excel_file, sheet_name)
+def calcular_actualizacion_tabla(vicepresidencias, tipo):
+    """Calcula la tabla de Actualización para Misiones o Consultores."""
+    filas = []
+    for vpe, montos in vicepresidencias.items():
+        requerimiento_key = f"dpp_2025_{vpe}_{tipo}_data"
+        requerimiento = 0
 
-            # Calcular total requerido del área
-            monto_requerido = 0
-            if data is not None and "total" in data.columns and pd.api.types.is_numeric_dtype(data["total"]):
-                monto_requerido = data["total"].sum()
+        if requerimiento_key in st.session_state:
+            data = st.session_state[requerimiento_key]
+            if "total" in data.columns and pd.api.types.is_numeric_dtype(data["total"]):
+                requerimiento = data["total"].sum()
 
-            # Obtener el DPP 2025 desde el estado de sesión
-            dpp_key = f"dpp_2025_{sheet_name}_data"
-            dpp_2025 = 0
-            if dpp_key in st.session_state:
-                dpp_data = st.session_state[dpp_key]
-                if "total" in dpp_data.columns and pd.api.types.is_numeric_dtype(dpp_data["total"]):
-                    dpp_2025 = dpp_data["total"].sum()
+        dpp = montos[tipo]
+        diferencia = requerimiento - dpp
 
-            # Calcular diferencia
-            diferencia = dpp_2025 - monto_requerido
+        filas.append({
+            "Unidad Organizacional": vpe,
+            "Requerimiento Área": requerimiento,
+            "DPP 2025": dpp,
+            "Diferencia": diferencia
+        })
 
-            # Crear DataFrame con los resultados
-            tabla = pd.DataFrame({
-                "Área": [area],
-                "Subárea": [subarea],
-                "Monto Requerido del Área": [monto_requerido],
-                "DPP 2025": [dpp_2025],
-                "Diferencia": [diferencia]
-            })
-            tablas[subarea] = tabla
-        resultados[area] = tablas
-    return resultados
+    df = pd.DataFrame(filas)
+    return df
+
+def aplicar_estilos(df):
+    """Aplica estilos condicionales a la columna Diferencia."""
+    def resaltar_diferencia(val):
+        if val == 0:
+            return "background-color: green; color: white;"
+        else:
+            return "background-color: yellow; color: black;"
+
+    styled_df = df.style.applymap(resaltar_diferencia, subset=["Diferencia"])
+    return styled_df
 
 def mostrar_actualizacion():
     """Muestra la página de Actualización con tablas consolidadas."""
     st.title("Actualización - Resumen Consolidado")
     st.write("Estas tablas muestran el monto requerido, DPP 2025, y la diferencia para cada área.")
 
-    # Definir las áreas y subáreas
-    areas = {
-        "PRE": ["Misiones_personal", "Misiones_consultores", "Servicios_profesionales"],
-        "VPE": ["Misiones", "Consultores"],
-        "VPF": ["Misiones", "Consultores"],
-        "VPD": ["Misiones", "Consultores"],
-        "VPO": ["Misiones", "Consultores"]
+    vicepresidencias = {
+        "VPD": {"Misiones": 168000, "Consultores": 130000},
+        "VPF": {"Misiones": 138600, "Consultores": 170000},
+        "VPO": {"Misiones": 434707, "Consultores": 547700},
+        "VPE": {"Misiones": 80168, "Consultores": 338372},
     }
 
-    resultados = calcular_actualizacion(areas)
+    st.subheader("Misiones")
+    misiones_df = calcular_actualizacion_tabla(vicepresidencias, "Misiones")
+    styled_misiones_df = aplicar_estilos(misiones_df)
+    st.write(styled_misiones_df, unsafe_allow_html=True)
 
-    for area, subareas in resultados.items():
-        st.subheader(area)
-        for subarea, tabla in subareas.items():
-            st.markdown(f"#### {subarea.replace('_', ' ').title()}")
-            st.dataframe(tabla)
+    st.subheader("Consultores")
+    consultores_df = calcular_actualizacion_tabla(vicepresidencias, "Consultores")
+    styled_consultores_df = aplicar_estilos(consultores_df)
+    st.write(styled_consultores_df, unsafe_allow_html=True)
 
 def main():
     """Estructura principal de la aplicación."""
@@ -195,15 +193,14 @@ def main():
         elif selected_page == "Actualización":
             mostrar_actualizacion()
         elif selected_page in ["VPD", "VPF", "VPO", "VPE"]:
-            # Misiones y Consultorías para cada área
             subpage_options = ["Misiones", "Consultorías"]
             selected_subpage = st.sidebar.selectbox("Selecciona una subpágina", subpage_options)
 
             montos = {
-                "VPD": {"Misiones": 168000, "Consultorías": 130000},
-                "VPF": {"Misiones": 138600, "Consultorías": 170000},
-                "VPO": {"Misiones": 434707, "Consultorías": 547700},
-                "VPE": {"Misiones": 80168, "Consultorías": 338372},
+                "VPD": {"Misiones": 168000, "Consultores": 130000},
+                "VPF": {"Misiones": 138600, "Consultores": 170000},
+                "VPO": {"Misiones": 434707, "Consultores": 547700},
+                "VPE": {"Misiones": 80168, "Consultores": 338372},
             }
 
             if selected_subpage == "Misiones":
@@ -220,7 +217,7 @@ def main():
                 if selected_subsubpage == "Requerimiento de Área":
                     mostrar_requerimiento_area(f"{selected_page}_Consultores")
                 elif selected_subsubpage == "DPP 2025":
-                    mostrar_dpp_2025_mito(f"{selected_page}_Consultores", montos[selected_page]["Consultorías"])
+                    mostrar_dpp_2025_mito(f"{selected_page}_Consultores", montos[selected_page]["Consultores"])
         elif selected_page == "PRE":
             st.title("PRE")
             subpage_options = ["Misiones Personal", "Misiones Consultores", "Servicios Profesionales", "Gastos Centralizados"]
