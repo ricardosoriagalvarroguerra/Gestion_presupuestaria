@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 from mitosheet.streamlit.v1 import spreadsheet
-import os
 
 # Configuración de la aplicación
 st.set_page_config(
@@ -29,10 +28,6 @@ page_passwords = {
     "Tablero": "tablero654"
 }
 
-# Ruta para guardar los datos modificados
-cache_folder = "cache_data"
-os.makedirs(cache_folder, exist_ok=True)
-
 @st.cache_data
 def load_data(filepath, sheet_name):
     """Carga datos de una hoja de Excel."""
@@ -42,35 +37,6 @@ def load_data(filepath, sheet_name):
     except Exception as e:
         st.error(f"Error cargando los datos: {e}")
         return None
-
-def save_data_to_file(data, filename):
-    """Guarda el DataFrame en un archivo Excel."""
-    filepath = os.path.join(cache_folder, filename)
-    data.to_excel(filepath, index=False, engine='openpyxl')
-
-def load_data_from_cache(filename):
-    """Carga datos desde un archivo Excel en el caché."""
-    filepath = os.path.join(cache_folder, filename)
-    if os.path.exists(filepath):
-        return pd.read_excel(filepath, engine='openpyxl')
-    return None
-
-def get_data(sheet_name, cache_key):
-    """Obtiene los datos desde el caché o los carga desde el archivo original."""
-    if cache_key in st.session_state:
-        return st.session_state[cache_key]
-    cached_data = load_data_from_cache(f"{sheet_name}.xlsx")
-    if cached_data is not None:
-        st.session_state[cache_key] = cached_data
-        return cached_data
-    data = load_data(excel_file, sheet_name)
-    st.session_state[cache_key] = data
-    return data
-
-def update_cache_and_save(data, sheet_name, cache_key):
-    """Actualiza el caché y guarda los datos en un archivo."""
-    st.session_state[cache_key] = data
-    save_data_to_file(data, f"{sheet_name}.xlsx")
 
 excel_file = "main_bdd.xlsx"
 
@@ -92,10 +58,10 @@ def convertir_a_dataframe(edited_data):
         return None
 
 def mostrar_requerimiento_area(sheet_name):
-    """Muestra una tabla fija de Requerimiento de Área."""
+    """Muestra una tabla estática de Requerimiento de Área o PRE con un Value Box de Total."""
     st.header(f"Requerimiento de Área - {sheet_name}")
 
-    data = load_data(excel_file, sheet_name)  # Carga directa del archivo original
+    data = load_data(excel_file, sheet_name)
     if data is not None:
         if "total" in data.columns and pd.api.types.is_numeric_dtype(data["total"]):
             total_sum = data["total"].sum()
@@ -104,11 +70,11 @@ def mostrar_requerimiento_area(sheet_name):
     else:
         st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
 
-def mostrar_dpp_2025_mito(sheet_name, monto_dpp, cache_key):
-    """Muestra y edita datos de DPP 2025 usando MITO."""
+def mostrar_dpp_2025_mito(sheet_name, monto_dpp):
+    """Muestra y edita datos de DPP 2025 usando MITO, con Value Boxes para suma de 'total', monto DPP 2025 y diferencia."""
     st.header(f"DPP 2025 - {sheet_name}")
 
-    data = get_data(sheet_name, cache_key)
+    data = load_data(excel_file, sheet_name)
     if data is not None:
         edited_data, code = spreadsheet(data)
 
@@ -119,8 +85,8 @@ def mostrar_dpp_2025_mito(sheet_name, monto_dpp, cache_key):
             # Normalizar nombres de columnas
             edited_df.columns = edited_df.columns.str.strip().str.lower()
 
-            # Guardar datos en el caché y archivo
-            update_cache_and_save(edited_df, sheet_name, cache_key)
+            # Guardar datos en el estado de sesión
+            st.session_state[f"dpp_2025_{sheet_name}_data"] = edited_df
 
             # Intentar convertir la columna 'total' a numérica y calcular la suma
             if "total" in edited_df.columns:
@@ -149,36 +115,29 @@ def calcular_actualizacion_tabla(vicepresidencias, tipo):
     """Calcula la tabla de Actualización para Misiones o Consultores."""
     filas = []
     for vpe, montos in vicepresidencias.items():
-        # Requerimiento Área: load from main_bdd.xlsx sheet_name = f"{vpe}_{tipo}_Requerimiento"
-        sheet_name_requerimiento = f"{vpe}_{tipo}"
-        requerimiento_data = load_data(excel_file, sheet_name_requerimiento)
-        if requerimiento_data is not None and "total" in requerimiento_data.columns and pd.api.types.is_numeric_dtype(requerimiento_data["total"]):
-            requerimiento = requerimiento_data["total"].sum()
-        else:
-            requerimiento = 0
+        requerimiento_key = f"dpp_2025_{vpe}_{tipo}_data"
+        requerimiento = 0
 
-        # DPP 2025: load from session_state or use monto_dpp
-        dpp_key = f"dpp_2025_{vpe}_{tipo}_DPP2025_data"
-        if dpp_key in st.session_state and "total" in st.session_state[dpp_key].columns and pd.api.types.is_numeric_dtype(st.session_state[dpp_key]["total"]):
-            dpp = st.session_state[dpp_key]["total"].sum()
-        else:
-            dpp = montos[tipo]
+        if requerimiento_key in st.session_state:
+            data = st.session_state[requerimiento_key]
+            if "total" in data.columns and pd.api.types.is_numeric_dtype(data["total"]):
+                requerimiento = data["total"].sum()
 
-        # Diferencia
-        diferencia = dpp - requerimiento
+        dpp = montos[tipo]
+        diferencia = requerimiento - dpp
 
         filas.append({
             "Unidad Organizacional": vpe,
-            "Requerimiento Área": requerimiento,
-            "DPP 2025": dpp,
-            "Diferencia": diferencia
+            "Requerimiento Área": int(requerimiento),
+            "DPP 2025": int(dpp),
+            "Diferencia": int(diferencia)
         })
 
     df = pd.DataFrame(filas)
     return df
 
 def aplicar_estilos(df):
-    """Aplica estilos condicionales a la columna Diferencia y formatea los números."""
+    """Aplica estilos condicionales a la columna Diferencia."""
     def resaltar_diferencia(val):
         if val == 0:
             return "background-color: green; color: white;"
@@ -186,12 +145,6 @@ def aplicar_estilos(df):
             return "background-color: yellow; color: black;"
 
     styled_df = df.style.applymap(resaltar_diferencia, subset=["Diferencia"])
-    # Formatear columnas con separador de miles y sin decimales
-    styled_df = styled_df.format({
-        "Requerimiento Área": "{:,.0f}",
-        "DPP 2025": "{:,.0f}",
-        "Diferencia": "{:,.0f}"
-    })
     return styled_df
 
 def mostrar_actualizacion():
@@ -227,7 +180,7 @@ def main():
         if login_button:
             if username_input == app_credentials["username"] and password_input == app_credentials["password"]:
                 st.session_state.authenticated = True
-                # Eliminado st.experimental_rerun()
+                st.rerun()
             else:
                 st.error("Usuario o contraseña incorrectos.")
     else:
@@ -240,7 +193,7 @@ def main():
         elif selected_page == "Actualización":
             mostrar_actualizacion()
         elif selected_page in ["VPD", "VPF", "VPO", "VPE"]:
-            subpage_options = ["Misiones", "Consultores"]  # Cambiado "Consultorías" a "Consultores"
+            subpage_options = ["Misiones", "Consultorías"]
             selected_subpage = st.sidebar.selectbox("Selecciona una subpágina", subpage_options)
 
             montos = {
@@ -254,49 +207,28 @@ def main():
                 subsubpage_options = ["Requerimiento de Área", "DPP 2025"]
                 selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Misiones", subsubpage_options)
                 if selected_subsubpage == "Requerimiento de Área":
-                    # Cargar desde la hoja fija de Requerimiento Área
-                    sheet_name = f"{selected_page}_Misiones"
-                    mostrar_requerimiento_area(sheet_name)
+                    mostrar_requerimiento_area(f"{selected_page}_Misiones")
                 elif selected_subsubpage == "DPP 2025":
-                    # Cargar y editar la hoja de DPP 2025
-                    sheet_name = f"{selected_page}_Misiones"
-                    cache_key = f"dpp_2025_{selected_page}_Misiones_DPP2025_data"
-                    mostrar_dpp_2025_mito(
-                        sheet_name,
-                        montos[selected_page]["Misiones"],
-                        cache_key
-                    )
+                    mostrar_dpp_2025_mito(f"{selected_page}_Misiones", montos[selected_page]["Misiones"])
 
-            elif selected_subpage == "Consultores":  # Cambiado "Consultorías" a "Consultores"
+            elif selected_subpage == "Consultorías":
                 subsubpage_options = ["Requerimiento de Área", "DPP 2025"]
-                selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Consultores", subsubpage_options)
+                selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Consultorías", subsubpage_options)
                 if selected_subsubpage == "Requerimiento de Área":
-                    # Cargar desde la hoja fija de Requerimiento Área
-                    sheet_name = f"{selected_page}_Consultores"
-                    mostrar_requerimiento_area(sheet_name)
+                    mostrar_requerimiento_area(f"{selected_page}_Consultores")
                 elif selected_subsubpage == "DPP 2025":
-                    # Cargar y editar la hoja de DPP 2025
-                    sheet_name = f"{selected_page}_Consultores"
-                    cache_key = f"dpp_2025_{selected_page}_Consultores_DPP2025_data"
-                    mostrar_dpp_2025_mito(
-                        sheet_name,
-                        montos[selected_page]["Consultores"],
-                        cache_key
-                    )
+                    mostrar_dpp_2025_mito(f"{selected_page}_Consultores", montos[selected_page]["Consultores"])
         elif selected_page == "PRE":
             st.title("PRE")
             subpage_options = ["Misiones Personal", "Misiones Consultores", "Servicios Profesionales", "Gastos Centralizados"]
             selected_subpage = st.sidebar.selectbox("Selecciona una subpágina", subpage_options)
 
             if selected_subpage == "Misiones Personal":
-                sheet_name = "PRE_Misiones_personal"
-                mostrar_requerimiento_area(sheet_name)
+                mostrar_requerimiento_area("PRE_Misiones_personal")
             elif selected_subpage == "Misiones Consultores":
-                sheet_name = "PRE_Misiones_consultores"
-                mostrar_requerimiento_area(sheet_name)
+                mostrar_requerimiento_area("PRE_Misiones_consultores")
             elif selected_subpage == "Servicios Profesionales":
-                sheet_name = "PRE_servicios_profesionales"
-                mostrar_requerimiento_area(sheet_name)
+                mostrar_requerimiento_area("PRE_servicios_profesionales")
             elif selected_subpage == "Gastos Centralizados":
                 st.write("Sube un archivo para Gastos Centralizados.")
                 uploaded_file = st.file_uploader("Subir archivo Excel", type=["xlsx", "xls"])
