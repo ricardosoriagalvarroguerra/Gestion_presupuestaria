@@ -148,7 +148,7 @@ def mostrar_actualizacion():
         "VPD": {"Misiones": 168000, "Consultores": 130000},
         "VPF": {"Misiones": 138600, "Consultores": 170000},
         "VPO": {"Misiones": 434707, "Consultores": 547700},
-        "VPE": {"Misiones": 80168, "Consultores": 338372},
+        "VPE": {"Misiones": 28244, "Consultores": 179446},
     }
 
     st.subheader("Misiones")
@@ -218,7 +218,7 @@ def main():
                 "VPD": {"Misiones": 168000, "Consultores": 130000},
                 "VPF": {"Misiones": 138600, "Consultores": 170000},
                 "VPO": {"Misiones": 434707, "Consultores": 547700},
-                "VPE": {"Misiones": 80168, "Consultores": 338372},
+                "VPE": {"Misiones": 28244, "Consultores": 179446},
             }
 
             if selected_subpage == "Misiones":
