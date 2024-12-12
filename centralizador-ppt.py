@@ -181,10 +181,11 @@ def main():
 
         if selected_page == "Principal":
             st.title("Página Principal")
+            st.write("Bienvenido a la página principal de la app.")
         elif selected_page == "Actualización":
             mostrar_actualizacion()
         elif selected_page in ["VPD", "VPF", "VPO", "VPE"]:
-            subpage_options = ["Misiones", "Consultorías"]
+            subpage_options = ["Requerimiento de Área", "DPP 2025"]
             selected_subpage = st.sidebar.selectbox("Selecciona una subpágina", subpage_options)
 
             montos = {
@@ -194,10 +195,10 @@ def main():
                 "VPE": {"Misiones": 80168, "Consultores": 338372},
             }
 
-            if selected_subpage == "Misiones":
+            if selected_subpage == "Requerimiento de Área":
+                mostrar_requerimiento_area(f"{selected_page}_Misiones")
+            elif selected_subpage == "DPP 2025":
                 mostrar_dpp_2025_mito(f"{selected_page}_Misiones", montos[selected_page]["Misiones"])
-            elif selected_subpage == "Consultorías":
-                mostrar_dpp_2025_mito(f"{selected_page}_Consultores", montos[selected_page]["Consultores"])
 
 if __name__ == "__main__":
     main()
