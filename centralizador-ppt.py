@@ -150,7 +150,7 @@ def calcular_actualizacion_tabla(vicepresidencias, tipo):
     filas = []
     for vpe, montos in vicepresidencias.items():
         # Requerimiento Área: load from main_bdd.xlsx sheet_name = f"{vpe}_{tipo}_Requerimiento"
-        sheet_name_requerimiento = f"{vpe}_{tipo}_Requerimiento"
+        sheet_name_requerimiento = f"{vpe}_{tipo}"
         requerimiento_data = load_data(excel_file, sheet_name_requerimiento)
         if requerimiento_data is not None and "total" in requerimiento_data.columns and pd.api.types.is_numeric_dtype(requerimiento_data["total"]):
             requerimiento = requerimiento_data["total"].sum()
@@ -259,7 +259,7 @@ def main():
                     mostrar_requerimiento_area(sheet_name)
                 elif selected_subsubpage == "DPP 2025":
                     # Cargar y editar la hoja de DPP 2025
-                    sheet_name = f"{selected_page}_Misiones_DPP2025"
+                    sheet_name = f"{selected_page}_Misiones"
                     cache_key = f"dpp_2025_{selected_page}_Misiones_DPP2025_data"
                     mostrar_dpp_2025_mito(
                         sheet_name,
@@ -272,11 +272,11 @@ def main():
                 selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Consultores", subsubpage_options)
                 if selected_subsubpage == "Requerimiento de Área":
                     # Cargar desde la hoja fija de Requerimiento Área
-                    sheet_name = f"{selected_page}_Consultores_Requerimiento"
+                    sheet_name = f"{selected_page}_Consultores"
                     mostrar_requerimiento_area(sheet_name)
                 elif selected_subsubpage == "DPP 2025":
                     # Cargar y editar la hoja de DPP 2025
-                    sheet_name = f"{selected_page}_Consultores_DPP2025"
+                    sheet_name = f"{selected_page}_Consultores"
                     cache_key = f"dpp_2025_{selected_page}_Consultores_DPP2025_data"
                     mostrar_dpp_2025_mito(
                         sheet_name,
