@@ -51,7 +51,7 @@ def convertir_a_dataframe(edited_data):
     if isinstance(edited_data, pd.DataFrame):
         return edited_data
     elif isinstance(edited_data, dict):
-        key = list(edited_data.keys())[0]  # Tomar la primera clave del diccionario (e.g., 'df1')
+        key = list(edited_data.keys())[0]
         return pd.DataFrame(edited_data[key])
     else:
         st.error("El formato de los datos editados no es compatible.")
@@ -77,33 +77,25 @@ def mostrar_dpp_2025_mito(sheet_name, monto_dpp):
     data = load_data(excel_file, sheet_name)
     if data is not None:
         edited_data, code = spreadsheet(data)
-
-        # Extraer el DataFrame correcto desde el diccionario devuelto por Mito
         edited_df = convertir_a_dataframe(edited_data)
 
         if edited_df is not None:
-            # Normalizar nombres de columnas
             edited_df.columns = edited_df.columns.str.strip().str.lower()
-
-            # Guardar datos en el estado de sesión
             st.session_state[f"dpp_2025_{sheet_name}_data"] = edited_df
 
-            # Intentar convertir la columna 'total' a numérica y calcular la suma
             if "total" in edited_df.columns:
                 try:
                     edited_df["total"] = pd.to_numeric(edited_df["total"], errors="coerce")
                     total_sum = edited_df["total"].sum()
                     diferencia = total_sum - monto_dpp
 
-                    # Mostrar Value Boxes
-                    col1, col2, col3 = st.columns(3)  # Alinear los Value Boxes
+                    col1, col2, col3 = st.columns(3)
                     with col1:
                         st.metric(label="Monto DPP 2025", value=f"${monto_dpp:,.0f}")
                     with col2:
                         st.metric(label="Suma de Total", value=f"${total_sum:,.0f}")
                     with col3:
                         st.metric(label="Diferencia", value=f"${diferencia:,.0f}")
-
                 except Exception as e:
                     st.warning(f"No se pudo convertir la columna 'total' a un formato numérico: {e}")
             else:
@@ -188,8 +180,34 @@ def main():
         selected_page = st.sidebar.selectbox("Selecciona una página", pages)
 
         if selected_page == "Principal":
-            st.title("Página Principal")
-            st.write("Bienvenido a la página principal de la app.")
+            st.title("Página Principal - Gestión Presupuestaria")
+            st.write("Bienvenido a la aplicación de Gestión Presupuestaria. Esta herramienta le permitirá administrar y visualizar presupuestos de manera interactiva.")
+            
+            st.header("Instrucciones de Uso")
+            st.markdown("""
+            1. **Acceso a Páginas**:
+                - Use el menú lateral para navegar entre las diferentes páginas y subpáginas disponibles.
+                - Cada página puede estar protegida con una contraseña. Ingrese la contraseña correcta cuando se le solicite.
+
+            2. **Editar Datos**:
+                - En las secciones de 'DPP 2025', podrá editar las tablas de datos utilizando la funcionalidad de Mito.
+                - Después de editar los datos, las métricas se actualizarán automáticamente.
+
+            3. **Visualizar Resúmenes**:
+                - En la página de 'Actualización', podrá ver un resumen consolidado con el total requerido, monto asignado (DPP 2025), y la diferencia.
+
+            4. **Subir Archivos**:
+                - Algunas secciones permiten cargar archivos Excel personalizados. Asegúrese de que los archivos sigan el formato requerido.
+
+            5. **Interpretar Métricas**:
+                - En las vistas que muestran métricas (por ejemplo, total requerido y diferencias), los valores positivos o negativos indicarán si hay excedentes o déficits presupuestarios.
+
+            6. **Guardar Cambios**:
+                - Los cambios realizados en las tablas se guardan automáticamente en la sesión de la app mientras está abierta.
+                - Para descargar los datos editados, use las funcionalidades de descarga específicas cuando estén disponibles.
+
+            Si tiene alguna duda o necesita asistencia, comuníquese con el administrador de la aplicación.
+            """)
         elif selected_page == "Actualización":
             mostrar_actualizacion()
         elif selected_page in ["VPD", "VPF", "VPO", "VPE"]:
