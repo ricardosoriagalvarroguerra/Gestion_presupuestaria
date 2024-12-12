@@ -227,7 +227,7 @@ def main():
         if login_button:
             if username_input == app_credentials["username"] and password_input == app_credentials["password"]:
                 st.session_state.authenticated = True
-                st.experimental_rerun()
+                # Eliminado st.experimental_rerun()
             else:
                 st.error("Usuario o contraseña incorrectos.")
     else:
@@ -240,7 +240,7 @@ def main():
         elif selected_page == "Actualización":
             mostrar_actualizacion()
         elif selected_page in ["VPD", "VPF", "VPO", "VPE"]:
-            subpage_options = ["Misiones", "Consultorías"]
+            subpage_options = ["Misiones", "Consultores"]  # Cambiado "Consultorías" a "Consultores"
             selected_subpage = st.sidebar.selectbox("Selecciona una subpágina", subpage_options)
 
             montos = {
@@ -267,9 +267,9 @@ def main():
                         cache_key
                     )
 
-            elif selected_subpage == "Consultorías":
+            elif selected_subpage == "Consultores":  # Cambiado "Consultorías" a "Consultores"
                 subsubpage_options = ["Requerimiento de Área", "DPP 2025"]
-                selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Consultorías", subsubpage_options)
+                selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Consultores", subsubpage_options)
                 if selected_subsubpage == "Requerimiento de Área":
                     # Cargar desde la hoja fija de Requerimiento Área
                     sheet_name = f"{selected_page}_Consultores_Requerimiento"
