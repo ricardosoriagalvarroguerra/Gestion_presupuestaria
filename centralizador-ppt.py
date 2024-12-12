@@ -38,7 +38,7 @@ def load_data(filepath, sheet_name):
         st.error(f"Error cargando los datos: {e}")
         return None
 
-excel_file = "/mnt/data/main_bdd.xlsx"
+excel_file = "main_bdd.xlsx"
 
 def calcular_actualizacion_tabla_unificada(areas, montos):
     """Consolida los datos de todas las unidades organizacionales en una sola tabla."""
@@ -74,7 +74,6 @@ def calcular_actualizacion_tabla_unificada(areas, montos):
 
 def aplicar_formato_condicional(df):
     """Aplica formato condicional a la columna Diferencia."""
-    # Convertir DataFrame a HTML con estilos condicionales
     def estilo_filas(val):
         if val == 0:
             return 'background-color: #d4edda; color: #155724;'  # Verde
@@ -133,14 +132,12 @@ def mostrar_dpp_2025_mito(sheet_name, monto_dpp):
     if data is not None:
         edited_data, code = spreadsheet(data)
 
-        # Extraer el DataFrame correcto desde el diccionario devuelto por Mito
         edited_df = pd.DataFrame(edited_data[list(edited_data.keys())[0]]) if isinstance(edited_data, dict) else edited_data
 
         if edited_df is not None:
             # Normalizar nombres de columnas
             edited_df.columns = edited_df.columns.str.strip().str.lower()
 
-            # Intentar convertir la columna 'total' a numérica y calcular la suma
             if "total" in edited_df.columns:
                 try:
                     edited_df["total"] = pd.to_numeric(edited_df["total"], errors="coerce")
@@ -172,8 +169,7 @@ def main():
         st.write("Bienvenido a la página principal de la app.")
     elif selected_page == "Actualización":
         mostrar_actualizacion()
-    else:
-        # Requerimiento de Área o DPP 2025
+    elif selected_page in ["PRE", "VPE", "VPF", "VPD", "VPO"]:
         subpage_options = ["Misiones", "Consultorías"]
         selected_subpage = st.sidebar.radio("Selecciona una subpágina", subpage_options)
 
