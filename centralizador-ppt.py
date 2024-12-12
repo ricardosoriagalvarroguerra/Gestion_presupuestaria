@@ -38,56 +38,60 @@ def load_data(filepath, sheet_name):
         st.error(f"Error cargando los datos: {e}")
         return None
 
-excel_file = "main_bdd.xlsx"
+excel_file = "/mnt/data/main_bdd.xlsx"
 
-def calcular_actualizacion_tabla_unificada(areas, montos):
-    """Consolida los datos de todas las unidades organizacionales en una sola tabla."""
-    data_unificada = []
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
 
-    for unidad, subareas in areas.items():
-        for subarea, tipo in subareas.items():
+if "page_authenticated" not in st.session_state:
+    st.session_state.page_authenticated = {page: False for page in page_passwords if page_passwords[page]}
+
+def calcular_actualizacion_unificada(areas, montos):
+    """Calcula una única tabla de Actualización para Misiones y otra para Consultores."""
+    misiones_data = []
+    consultores_data = []
+
+    for area, subareas in areas.items():
+        for subarea, subarea_type in subareas.items():
             # Cargar datos de Requerimiento de Área
-            sheet_name = f"{unidad}_{subarea}"
+            sheet_name = f"{area}_{subarea}"
             data = load_data(excel_file, sheet_name)
 
-            # Calcular monto requerido del área
+            # Calcular total requerido del área
             monto_requerido = 0
             if data is not None and "total" in data.columns and pd.api.types.is_numeric_dtype(data["total"]):
                 monto_requerido = data["total"].sum()
 
-            # Obtener monto DPP 2025 configurado
-            dpp_2025 = montos[unidad][tipo]
+            # Obtener el monto DPP 2025 configurado
+            dpp_2025 = montos[area][subarea_type]
 
             # Calcular diferencia
             diferencia = dpp_2025 - monto_requerido
 
-            # Agregar fila a la tabla consolidada
-            data_unificada.append({
-                "Unidad Organizacional": unidad,
+            # Agregar a la tabla correspondiente
+            fila = {
+                "Área": area,
                 "Monto Requerido del Área": monto_requerido,
-                "Monto DPP 2025": dpp_2025,
+                "DPP 2025": dpp_2025,
                 "Diferencia": diferencia
-            })
+            }
+            if subarea_type == "Misiones":
+                misiones_data.append(fila)
+            elif subarea_type == "Consultorías":
+                consultores_data.append(fila)
 
-    # Convertir a DataFrame
-    return pd.DataFrame(data_unificada)
+    # Convertir listas a DataFrames
+    misiones_df = pd.DataFrame(misiones_data)
+    consultores_df = pd.DataFrame(consultores_data)
 
-def aplicar_formato_condicional(df):
-    """Aplica formato condicional a la columna Diferencia."""
-    def estilo_filas(val):
-        if val == 0:
-            return 'background-color: #d4edda; color: #155724;'  # Verde
-        else:
-            return 'background-color: #fff3cd; color: #856404;'  # Amarillo
-
-    return df.style.applymap(estilo_filas, subset=["Diferencia"])
+    return misiones_df, consultores_df
 
 def mostrar_actualizacion():
-    """Muestra la página de Actualización consolidada."""
-    st.title("Actualización - Consolidado")
-    st.write("Tabla única consolidada para Misiones y Consultores.")
+    """Muestra la página de Actualización con tablas consolidadas para Misiones y Consultores."""
+    st.title("Actualización - Resumen Consolidado")
+    st.write("Estas tablas muestran el monto requerido, DPP 2025, y la diferencia para Misiones y Consultores.")
 
-    # Configuración de las áreas y montos DPP 2025
+    # Definir las áreas y subáreas
     areas = {
         "PRE": {"Misiones_personal": "Misiones", "Misiones_consultores": "Consultorías", "Servicios_profesionales": "Consultorías"},
         "VPE": {"Misiones": "Misiones", "Consultores": "Consultorías"},
@@ -96,97 +100,93 @@ def mostrar_actualizacion():
         "VPO": {"Misiones": "Misiones", "Consultores": "Consultorías"}
     }
 
+    # Montos DPP 2025 configurados
     montos = {
         "VPD": {"Misiones": 168000, "Consultorías": 130000},
         "VPF": {"Misiones": 138600, "Consultorías": 170000},
         "VPO": {"Misiones": 434707, "Consultorías": 547700},
         "VPE": {"Misiones": 80168, "Consultorías": 338372},
-        "PRE": {"Misiones": 0, "Consultorías": 0}  # Ajustar si aplica
+        "PRE": {"Misiones": 0, "Consultorías": 0}  # Ajustar según corresponda
     }
 
-    # Calcular tabla consolidada
-    tabla_unificada = calcular_actualizacion_tabla_unificada(areas, montos)
+    # Calcular tablas
+    misiones_df, consultores_df = calcular_actualizacion_unificada(areas, montos)
 
-    # Mostrar tabla consolidada con formato condicional
-    st.subheader("Tabla Consolidada")
-    st.dataframe(aplicar_formato_condicional(tabla_unificada))
+    # Mostrar tablas
+    st.subheader("Misiones")
+    st.dataframe(misiones_df)
 
-def mostrar_requerimiento_area(sheet_name):
-    """Muestra una tabla estática de Requerimiento de Área con un Value Box de Total."""
-    st.header(f"Requerimiento de Área - {sheet_name}")
-
-    data = load_data(excel_file, sheet_name)
-    if data is not None:
-        if "total" in data.columns and pd.api.types.is_numeric_dtype(data["total"]):
-            total_sum = data["total"].sum()
-            st.metric("Total Requerido", f"${total_sum:,.2f}")
-        st.dataframe(data)
-    else:
-        st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
-
-def mostrar_dpp_2025_mito(sheet_name, monto_dpp):
-    """Muestra y edita datos de DPP 2025 usando MITO, con Value Boxes para suma de 'total', monto DPP 2025 y diferencia."""
-    st.header(f"DPP 2025 - {sheet_name}")
-
-    data = load_data(excel_file, sheet_name)
-    if data is not None:
-        edited_data, code = spreadsheet(data)
-
-        edited_df = pd.DataFrame(edited_data[list(edited_data.keys())[0]]) if isinstance(edited_data, dict) else edited_data
-
-        if edited_df is not None:
-            # Normalizar nombres de columnas
-            edited_df.columns = edited_df.columns.str.strip().str.lower()
-
-            if "total" in edited_df.columns:
-                try:
-                    edited_df["total"] = pd.to_numeric(edited_df["total"], errors="coerce")
-                    total_sum = edited_df["total"].sum()
-                    diferencia = total_sum - monto_dpp
-
-                    # Mostrar Value Boxes
-                    col1, col2, col3 = st.columns(3)
-                    with col1:
-                        st.metric(label="Monto DPP 2025", value=f"${monto_dpp:,.2f}")
-                    with col2:
-                        st.metric(label="Suma de Total", value=f"${total_sum:,.2f}")
-                    with col3:
-                        st.metric(label="Diferencia", value=f"${diferencia:,.2f}")
-                except Exception as e:
-                    st.warning(f"No se pudo convertir la columna 'total' a numérico: {e}")
-            else:
-                st.error("No se encontró una columna llamada 'total'.")
-    else:
-        st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
+    st.subheader("Consultorías")
+    st.dataframe(consultores_df)
 
 def main():
     """Estructura principal de la aplicación."""
-    pages = ["Principal", "Actualización", "PRE", "VPE", "VPF", "VPD", "VPO"]
-    selected_page = st.sidebar.selectbox("Selecciona una página", pages)
+    if not st.session_state.authenticated:
+        st.title("Gestión Presupuestaria")
+        username_input = st.text_input("Usuario", key="login_username")
+        password_input = st.text_input("Contraseña", type="password", key="login_password")
+        login_button = st.button("Ingresar", key="login_button")
 
-    if selected_page == "Principal":
-        st.title("Página Principal")
-        st.write("Bienvenido a la página principal de la app.")
-    elif selected_page == "Actualización":
-        mostrar_actualizacion()
-    elif selected_page in ["PRE", "VPE", "VPF", "VPD", "VPO"]:
-        subpage_options = ["Misiones", "Consultorías"]
-        selected_subpage = st.sidebar.radio("Selecciona una subpágina", subpage_options)
+        if login_button:
+            if username_input == app_credentials["username"] and password_input == app_credentials["password"]:
+                st.session_state.authenticated = True
+                st.rerun()
+            else:
+                st.error("Usuario o contraseña incorrectos.")
+    else:
+        pages = list(page_passwords.keys())
+        selected_page = st.sidebar.selectbox("Selecciona una página", pages)
 
-        montos = {
-            "VPD": {"Misiones": 168000, "Consultorías": 130000},
-            "VPF": {"Misiones": 138600, "Consultorías": 170000},
-            "VPO": {"Misiones": 434707, "Consultorías": 547700},
-            "VPE": {"Misiones": 80168, "Consultorías": 338372},
-            "PRE": {"Misiones": 0, "Consultorías": 0}
-        }
+        if selected_page == "Principal":
+            st.title("Página Principal")
+            st.write("Bienvenido a la página principal de la app.")
+        elif selected_page == "Actualización":
+            mostrar_actualizacion()
+        elif selected_page in ["VPD", "VPF", "VPO", "VPE"]:
+            # Misiones y Consultorías para cada área
+            subpage_options = ["Misiones", "Consultorías"]
+            selected_subpage = st.sidebar.selectbox("Selecciona una subpágina", subpage_options)
 
-        if subpage_options == "Misiones":
-            mostrar_requerimiento_area(f"{selected_page}_Misiones")
-            mostrar_dpp_2025_mito(f"{selected_page}_Misiones", montos[selected_page]["Misiones"])
-        elif subpage_options == "Consultorías":
-            mostrar_requerimiento_area(f"{selected_page}_Consultores")
-            mostrar_dpp_2025_mito(f"{selected_page}_Consultores", montos[selected_page]["Consultorías"])
+            montos = {
+                "VPD": {"Misiones": 168000, "Consultorías": 130000},
+                "VPF": {"Misiones": 138600, "Consultorías": 170000},
+                "VPO": {"Misiones": 434707, "Consultorías": 547700},
+                "VPE": {"Misiones": 80168, "Consultorías": 338372},
+            }
+
+            if selected_subpage == "Misiones":
+                subsubpage_options = ["Requerimiento de Área", "DPP 2025"]
+                selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Misiones", subsubpage_options)
+                if selected_subsubpage == "Requerimiento de Área":
+                    mostrar_requerimiento_area(f"{selected_page}_Misiones")
+                elif selected_subsubpage == "DPP 2025":
+                    mostrar_dpp_2025_mito(f"{selected_page}_Misiones", montos[selected_page]["Misiones"])
+
+            elif selected_subpage == "Consultorías":
+                subsubpage_options = ["Requerimiento de Área", "DPP 2025"]
+                selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Consultorías", subsubpage_options)
+                if selected_subsubpage == "Requerimiento de Área":
+                    mostrar_requerimiento_area(f"{selected_page}_Consultores")
+                elif selected_subsubpage == "DPP 2025":
+                    mostrar_dpp_2025_mito(f"{selected_page}_Consultores", montos[selected_page]["Consultorías"])
+        elif selected_page == "PRE":
+            st.title("PRE")
+            subpage_options = ["Misiones Personal", "Misiones Consultores", "Servicios Profesionales", "Gastos Centralizados"]
+            selected_subpage = st.sidebar.selectbox("Selecciona una subpágina", subpage_options)
+
+            if selected_subpage == "Misiones Personal":
+                mostrar_requerimiento_area("PRE_Misiones_personal")
+            elif selected_subpage == "Misiones Consultores":
+                mostrar_requerimiento_area("PRE_Misiones_consultores")
+            elif selected_subpage == "Servicios Profesionales":
+                mostrar_requerimiento_area("PRE_servicios_profesionales")
+            elif selected_subpage == "Gastos Centralizados":
+                st.write("Sube un archivo para Gastos Centralizados.")
+                uploaded_file = st.file_uploader("Subir archivo Excel", type=["xlsx", "xls"])
+                if uploaded_file:
+                    data = pd.read_excel(uploaded_file, engine="openpyxl")
+                    st.write("Archivo cargado:")
+                    st.dataframe(data)
 
 if __name__ == "__main__":
     main()
