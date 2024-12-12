@@ -255,7 +255,7 @@ def main():
                 selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Misiones", subsubpage_options)
                 if selected_subsubpage == "Requerimiento de Área":
                     # Cargar desde la hoja fija de Requerimiento Área
-                    sheet_name = f"{selected_page}_Misiones_Requerimiento"
+                    sheet_name = f"{selected_page}_Misiones"
                     mostrar_requerimiento_area(sheet_name)
                 elif selected_subsubpage == "DPP 2025":
                     # Cargar y editar la hoja de DPP 2025
@@ -289,13 +289,13 @@ def main():
             selected_subpage = st.sidebar.selectbox("Selecciona una subpágina", subpage_options)
 
             if selected_subpage == "Misiones Personal":
-                sheet_name = "PRE_Misiones_personal_Requerimiento"
+                sheet_name = "PRE_Misiones_personal"
                 mostrar_requerimiento_area(sheet_name)
             elif selected_subpage == "Misiones Consultores":
-                sheet_name = "PRE_Misiones_consultores_Requerimiento"
+                sheet_name = "PRE_Misiones_consultores"
                 mostrar_requerimiento_area(sheet_name)
             elif selected_subpage == "Servicios Profesionales":
-                sheet_name = "PRE_servicios_profesionales_Requerimiento"
+                sheet_name = "PRE_servicios_profesionales"
                 mostrar_requerimiento_area(sheet_name)
             elif selected_subpage == "Gastos Centralizados":
                 st.write("Sube un archivo para Gastos Centralizados.")
