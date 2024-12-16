@@ -10,7 +10,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Credenciales globales de acceso a la app
+# Credenciales globales
 app_credentials = {
     "username": "luciana_botafogo",
     "password": "fonplata"
@@ -187,25 +187,30 @@ def mostrar_consolidado():
     data_cuadro_9 = load_data(excel_file, "Cuadro_9")
     if data_cuadro_9 is not None:
         data_cuadro_9 = data_cuadro_9.reset_index(drop=True)
-        if len(data_cuadro_9) >= 10:
-            # Convertir última fila (índice 9) y última columna a numérico
-            data_cuadro_9.iloc[9, :] = pd.to_numeric(data_cuadro_9.iloc[9, :], errors='coerce')
-            data_cuadro_9.iloc[:, -1] = pd.to_numeric(data_cuadro_9.iloc[:, -1], errors='coerce')
 
-            # Multiplicamos por 100 para pasar de 0.55 a 55.00 que luego formateamos como "55.00%"
-            data_cuadro_9.iloc[9, :] = data_cuadro_9.iloc[9, :] * 100.0
-            data_cuadro_9.iloc[:, -1] = data_cuadro_9.iloc[:, -1] * 100.0
+        # Comprobamos filas 9 y 10 (índices 9 y 10) y la última columna
+        # Primero convertimos a numérico las filas y la última columna
+        if len(data_cuadro_9) > 9:  # existe la fila con índice 9
+            data_cuadro_9.iloc[9, :] = pd.to_numeric(data_cuadro_9.iloc[9, :], errors='coerce') * 100.0
+        if len(data_cuadro_9) > 10: # existe la fila con índice 10
+            data_cuadro_9.iloc[10, :] = pd.to_numeric(data_cuadro_9.iloc[10, :], errors='coerce') * 100.0
 
-            styled_9 = data_cuadro_9.style
-            # Formato para la fila 10 (índice 9)
+        data_cuadro_9.iloc[:, -1] = pd.to_numeric(data_cuadro_9.iloc[:, -1], errors='coerce') * 100.0
+
+        # Todos los valores con dos decimales
+        styled_9 = data_cuadro_9.style.format("{:.2f}")
+
+        # Si existe la fila 9, formatearla con '%'
+        if len(data_cuadro_9) > 9:
             styled_9 = styled_9.format("{:.2f}%", subset=pd.IndexSlice[[9], :])
-            # Formato para la última columna
-            styled_9 = styled_9.format("{:.2f}%", subset=pd.IndexSlice[:, [data_cuadro_9.columns[-1]]])
+        # Si existe la fila 10, formatearla con '%'
+        if len(data_cuadro_9) > 10:
+            styled_9 = styled_9.format("{:.2f}%", subset=pd.IndexSlice[[10], :])
 
-            st.dataframe(styled_9)
-        else:
-            # Si no hay suficientes filas, se muestra la tabla sin cambios
-            st.dataframe(data_cuadro_9)
+        # Formatear la última columna con '%'
+        styled_9 = styled_9.format("{:.2f}%", subset=pd.IndexSlice[:, [data_cuadro_9.columns[-1]]])
+
+        st.dataframe(styled_9)
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_9'.")
 
@@ -213,7 +218,9 @@ def mostrar_consolidado():
     data_cuadro_10 = load_data(excel_file, "Cuadro_10")
     if data_cuadro_10 is not None:
         data_cuadro_10 = data_cuadro_10.reset_index(drop=True)
-        st.dataframe(data_cuadro_10)
+        # Todos los valores de cuadro 10 con dos decimales (sin %)
+        styled_10 = data_cuadro_10.style.format("{:.2f}")
+        st.dataframe(styled_10)
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_10'.")
 
@@ -221,7 +228,9 @@ def mostrar_consolidado():
     data_cuadro_11 = load_data(excel_file, "Cuadro_11")
     if data_cuadro_11 is not None:
         data_cuadro_11 = data_cuadro_11.reset_index(drop=True)
-        st.dataframe(data_cuadro_11)
+        # Todos los valores con dos decimales
+        styled_11 = data_cuadro_11.style.format("{:.2f}")
+        st.dataframe(styled_11)
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_11'.")
 
@@ -229,7 +238,9 @@ def mostrar_consolidado():
     data_consolidado = load_data(excel_file, "Consolidado")
     if data_consolidado is not None:
         data_consolidado = data_consolidado.reset_index(drop=True)
-        st.dataframe(data_consolidado)
+        # Todos los valores con dos decimales
+        styled_consolidado = data_consolidado.style.format("{:.2f}")
+        st.dataframe(styled_consolidado)
     else:
         st.warning("No se pudo cargar la hoja 'Consolidado'.")
 
