@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import openpyxl
 
 # Configuración de la aplicación
 st.set_page_config(
@@ -37,6 +38,16 @@ def load_data(filepath, sheet_name):
         st.error(f"Error cargando los datos: {e}")
         return None
 
+def save_data(filepath, sheet_name, df):
+    """Guarda el DataFrame en una hoja específica de un archivo Excel existente,
+    reemplazando sólo esa hoja y conservando las demás."""
+    try:
+        # Abre el archivo en modo append y reemplaza la hoja existente
+        with pd.ExcelWriter(filepath, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
+            df.to_excel(writer, sheet_name=sheet_name, index=False)
+    except Exception as e:
+        st.error(f"Error al guardar los datos: {e}")
+
 excel_file = "main_bdd.xlsx"
 
 if "authenticated" not in st.session_state:
@@ -58,7 +69,8 @@ def mostrar_requerimiento_area(sheet_name):
         st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
 
 def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
-    """Muestra y edita datos de DPP 2025 usando st.data_editor(), con métricas actualizadas al guardar cambios."""
+    """Muestra y edita datos de DPP 2025 usando st.data_editor(), con métricas actualizadas al guardar cambios,
+    y persiste los datos en el archivo Excel."""
     st.header(f"DPP 2025 - {sheet_name}")
 
     session_key = f"dpp_2025_{sheet_name}_data"
@@ -73,12 +85,14 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
     # Mostrar el editor de datos
     edited_df = st.data_editor(st.session_state[session_key], key=f"editor_{sheet_name}", num_rows="dynamic")
 
-    # Botón para guardar los cambios en session_state
+    # Botón para guardar los cambios en session_state y en el Excel
     if st.button("Guardar Cambios", key=f"guardar_{sheet_name}"):
         # Normalizar columnas
         edited_df.columns = edited_df.columns.str.strip().str.lower()
         st.session_state[session_key] = edited_df
-        st.success("Cambios guardados.")
+        # Guardar en el archivo Excel
+        save_data(excel_file, sheet_name, edited_df)
+        st.success("Cambios guardados en el archivo Excel.")
 
     # Utilizar la versión actual (posiblemente ya editada) para calcular métricas
     current_df = st.session_state[session_key]
@@ -215,7 +229,6 @@ def main():
                     if selected_subsubpage == "Requerimiento de Área":
                         mostrar_requerimiento_area(f"{selected_page}_Misiones")
                     elif selected_subsubpage == "DPP 2025":
-                        # Reemplazamos la función anterior por la nueva con data_editor
                         mostrar_dpp_2025_editor(f"{selected_page}_Misiones", montos[selected_page]["Misiones"])
 
                 elif selected_subpage == "Consultorías":
