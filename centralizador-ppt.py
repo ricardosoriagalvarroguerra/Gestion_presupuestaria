@@ -161,10 +161,8 @@ def mostrar_actualizacion():
     st.write(styled_consultores_df, unsafe_allow_html=True)
 
 def mostrar_consolidado():
-    """Muestra las tablas solicitadas en la página 'Consolidado'."""
     st.title("Consolidado")
 
-    # Cuadro 9
     st.header("Cuadro 9.")
     data_cuadro_9 = load_data(excel_file, "Cuadro_9")
     if data_cuadro_9 is not None:
@@ -172,7 +170,6 @@ def mostrar_consolidado():
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_9'.")
 
-    # Cuadro 10
     st.header("Cuadro 10.")
     data_cuadro_10 = load_data(excel_file, "Cuadro_10")
     if data_cuadro_10 is not None:
@@ -180,7 +177,6 @@ def mostrar_consolidado():
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_10'.")
 
-    # Cuadro 11
     st.header("Cuadro 11.")
     data_cuadro_11 = load_data(excel_file, "Cuadro_11")
     if data_cuadro_11 is not None:
@@ -188,7 +184,6 @@ def mostrar_consolidado():
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_11'.")
 
-    # Consolidado DPP 2025
     st.header("Consolidado DPP 2025")
     data_consolidado = load_data(excel_file, "Consolidado")
     if data_consolidado is not None:
@@ -215,7 +210,7 @@ def main():
 
         if selected_page == "Principal":
             st.title("Página Principal - Gestión Presupuestaria")
-            st.write("Bienvenido a la aplicación de Gestión Presupuestaria. Aquí podrá editar y visualizar presupuestos de manera interactiva.")
+            st.write("Bienvenido a la aplicación de Gestión Presupuestaria.")
         elif selected_page == "Actualización":
             if not st.session_state.page_authenticated["Actualización"]:
                 password = st.text_input("Contraseña para Actualización", type="password")
@@ -263,6 +258,7 @@ def main():
                         mostrar_requerimiento_area(f"{selected_page}_Consultores")
                     elif selected_subsubpage == "DPP 2025":
                         mostrar_dpp_2025_editor(f"{selected_page}_Consultores", montos[selected_page]["Consultores"])
+
         elif selected_page == "PRE":
             if not st.session_state.page_authenticated["PRE"]:
                 password = st.text_input("Contraseña para PRE", type="password")
@@ -278,7 +274,22 @@ def main():
                 selected_subpage = st.sidebar.selectbox("Selecciona una subpágina", subpage_options)
 
                 if selected_subpage == "Misiones Personal":
+                    # Mostramos la tabla original
                     mostrar_requerimiento_area("PRE_Misiones_personal")
+
+                    # Agregamos los value boxes solicitados
+                    # Primera fila: VPD y VPO
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.metric("Gasto Centralizados VPD", "$35,960")
+                    with col2:
+                        st.metric("Gasto Centralizados VPO", "$48,158")
+
+                    # Segunda fila: VPF
+                    col3, _ = st.columns([1,1])  # segunda columna vacía para mantener el diseño
+                    with col3:
+                        st.metric("Gasto Centralizados VPF", "$40,960")
+
                 elif selected_subpage == "Misiones Consultores":
                     mostrar_requerimiento_area("PRE_Misiones_consultores")
                 elif selected_subpage == "Servicios Profesionales":
