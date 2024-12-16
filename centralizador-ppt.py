@@ -10,7 +10,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Credenciales globales
+# Credenciales globales de acceso a la app
 app_credentials = {
     "username": "luciana_botafogo",
     "password": "fonplata"
@@ -30,7 +30,7 @@ page_passwords = {
 }
 
 def load_data(filepath, sheet_name):
-    """Carga datos de una hoja de Excel sin usar caché."""
+    """Carga datos de una hoja de Excel."""
     try:
         df = pd.read_excel(filepath, sheet_name=sheet_name, engine='openpyxl')
         return df
@@ -39,8 +39,7 @@ def load_data(filepath, sheet_name):
         return None
 
 def save_data(filepath, sheet_name, df):
-    """Guarda el DataFrame en una hoja específica de un archivo Excel existente,
-    reemplazando sólo esa hoja."""
+    """Guarda el DataFrame en una hoja específica de un archivo Excel existente."""
     try:
         if not os.path.exists(filepath):
             df.to_excel(filepath, sheet_name=sheet_name, index=False)
@@ -188,24 +187,34 @@ def mostrar_consolidado():
     if data_cuadro_9 is not None:
         data_cuadro_9 = data_cuadro_9.reset_index(drop=True)
 
-        # Comprobamos filas 9 y 10 (índices 9 y 10) y la última columna
-        # Primero convertimos a numérico las filas y la última columna
-        if len(data_cuadro_9) > 9:  # existe la fila con índice 9
-            data_cuadro_9.iloc[9, :] = pd.to_numeric(data_cuadro_9.iloc[9, :], errors='coerce') * 100.0
-        if len(data_cuadro_9) > 10: # existe la fila con índice 10
-            data_cuadro_9.iloc[10, :] = pd.to_numeric(data_cuadro_9.iloc[10, :], errors='coerce') * 100.0
+        # Multiplicamos por 100 y formateamos solo la fila 9 y la fila 11, y la última columna
+        # La fila 10 se deja normal
 
+        # Convertimos a numérico la última columna siempre
         data_cuadro_9.iloc[:, -1] = pd.to_numeric(data_cuadro_9.iloc[:, -1], errors='coerce') * 100.0
 
-        # Todos los valores con dos decimales
+        # Fila índice 9 (10ma fila)
+        if len(data_cuadro_9) > 9:
+            data_cuadro_9.iloc[9, :] = pd.to_numeric(data_cuadro_9.iloc[9, :], errors='coerce') * 100.0
+
+        # Fila índice 10 (11va fila) se deja igual, no se altera
+
+        # Fila índice 11 (12va fila)
+        if len(data_cuadro_9) > 11:
+            data_cuadro_9.iloc[11, :] = pd.to_numeric(data_cuadro_9.iloc[11, :], errors='coerce') * 100.0
+
+        # Todos con dos decimales
         styled_9 = data_cuadro_9.style.format("{:.2f}")
 
-        # Si existe la fila 9, formatearla con '%'
+        # Formatear fila 9 con '%'
         if len(data_cuadro_9) > 9:
             styled_9 = styled_9.format("{:.2f}%", subset=pd.IndexSlice[[9], :])
-        # Si existe la fila 10, formatearla con '%'
-        if len(data_cuadro_9) > 10:
-            styled_9 = styled_9.format("{:.2f}%", subset=pd.IndexSlice[[10], :])
+
+        # Fila 10 sin cambios adicionales (ya tiene dos decimales)
+
+        # Formatear fila 11 con '%'
+        if len(data_cuadro_9) > 11:
+            styled_9 = styled_9.format("{:.2f}%", subset=pd.IndexSlice[[11], :])
 
         # Formatear la última columna con '%'
         styled_9 = styled_9.format("{:.2f}%", subset=pd.IndexSlice[:, [data_cuadro_9.columns[-1]]])
@@ -218,7 +227,6 @@ def mostrar_consolidado():
     data_cuadro_10 = load_data(excel_file, "Cuadro_10")
     if data_cuadro_10 is not None:
         data_cuadro_10 = data_cuadro_10.reset_index(drop=True)
-        # Todos los valores de cuadro 10 con dos decimales (sin %)
         styled_10 = data_cuadro_10.style.format("{:.2f}")
         st.dataframe(styled_10)
     else:
@@ -228,7 +236,6 @@ def mostrar_consolidado():
     data_cuadro_11 = load_data(excel_file, "Cuadro_11")
     if data_cuadro_11 is not None:
         data_cuadro_11 = data_cuadro_11.reset_index(drop=True)
-        # Todos los valores con dos decimales
         styled_11 = data_cuadro_11.style.format("{:.2f}")
         st.dataframe(styled_11)
     else:
@@ -238,7 +245,6 @@ def mostrar_consolidado():
     data_consolidado = load_data(excel_file, "Consolidado")
     if data_consolidado is not None:
         data_consolidado = data_consolidado.reset_index(drop=True)
-        # Todos los valores con dos decimales
         styled_consolidado = data_consolidado.style.format("{:.2f}")
         st.dataframe(styled_consolidado)
     else:
@@ -348,7 +354,7 @@ def main():
                             mostrar_dpp_2025_editor("VPF_Consultores", montos["VPF"]["Consultores"])
 
                 else:
-                    # VPE sin cambios adicionales solicitados
+                    # VPE sin cambios adicionales
                     if selected_subpage == "Misiones":
                         subsubpage_options = ["Requerimiento de Área", "DPP 2025"]
                         selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Misiones", subsubpage_options)
