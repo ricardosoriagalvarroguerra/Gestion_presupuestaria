@@ -47,10 +47,11 @@ if "page_authenticated" not in st.session_state:
     st.session_state.page_authenticated = {page: False for page in page_passwords if page_passwords[page]}
 
 def convertir_a_dataframe(edited_data):
-    """Convierte los datos editados por Mito a un pandas DataFrame de manera robusta."""
+    """Convierte los datos editados por Mito a un DataFrame."""
     if isinstance(edited_data, pd.DataFrame):
         return edited_data
     elif isinstance(edited_data, dict):
+        # El dict retornado por Mito tiene las hojas en keys, tomamos la primera
         key = list(edited_data.keys())[0]
         return pd.DataFrame(edited_data[key])
     else:
@@ -58,7 +59,7 @@ def convertir_a_dataframe(edited_data):
         return None
 
 def mostrar_requerimiento_area(sheet_name):
-    """Muestra una tabla estática de Requerimiento de Área o PRE con un Value Box de Total."""
+    """Muestra una tabla estática de Requerimiento de Área con un Value Box de Total."""
     st.header(f"Requerimiento de Área - {sheet_name}")
 
     data = load_data(excel_file, sheet_name)
@@ -71,26 +72,29 @@ def mostrar_requerimiento_area(sheet_name):
         st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
 
 def mostrar_dpp_2025_mito(sheet_name, monto_dpp):
-    """Muestra y edita datos de DPP 2025 usando MITO, con Value Boxes para suma de 'total', monto DPP 2025 y diferencia."""
+    """Muestra y edita datos de DPP 2025 usando Mito, con métricas de total, DPP 2025 y diferencia."""
     st.header(f"DPP 2025 - {sheet_name}")
 
-    # Primero revisamos si ya existe una versión editada en session_state
     session_key = f"dpp_2025_{sheet_name}_data"
+    # Si ya existe en session_state, usamos esa versión
     if session_key in st.session_state:
         data = st.session_state[session_key]
     else:
-        # Si no existe, cargamos desde el archivo
+        # De lo contrario cargamos desde el archivo solo una vez
         data = load_data(excel_file, sheet_name)
         if data is None:
             st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
             return
+        st.session_state[session_key] = data
 
-    edited_data, code = spreadsheet(data)
+    # Usar una key única para el widget Mito para mantener estado interno
+    mito_key = f"mito_{sheet_name}"
+    edited_data, code = spreadsheet(st.session_state[session_key], key=mito_key)
     edited_df = convertir_a_dataframe(edited_data)
 
     if edited_df is not None:
         edited_df.columns = edited_df.columns.str.strip().str.lower()
-        # Guardamos la versión editada en session_state para uso futuro
+        # Actualizar session_state con la versión editada
         st.session_state[session_key] = edited_df
 
         if "total" in edited_df.columns:
@@ -107,9 +111,9 @@ def mostrar_dpp_2025_mito(sheet_name, monto_dpp):
                 with col3:
                     st.metric(label="Diferencia", value=f"${diferencia:,.0f}")
             except Exception as e:
-                st.warning(f"No se pudo convertir la columna 'total' a un formato numérico: {e}")
+                st.warning(f"No se pudo convertir la columna 'total' a numérico: {e}")
         else:
-            st.error("No se encontró una columna llamada 'total' en los datos después de la normalización.")
+            st.error("No se encontró una columna 'total' en los datos.")
     else:
         st.warning("No se pudieron convertir los datos editados.")
 
@@ -182,7 +186,7 @@ def main():
         if login_button:
             if username_input == app_credentials["username"] and password_input == app_credentials["password"]:
                 st.session_state.authenticated = True
-                st.rerun()  # Reemplaza st.experimental_rerun() con st.rerun()
+                st.rerun()
             else:
                 st.error("Usuario o contraseña incorrectos.")
     else:
@@ -196,36 +200,32 @@ def main():
             st.header("Instrucciones de Uso")
             st.markdown("""
             1. **Acceso a Páginas**:
-                - Use el menú lateral para navegar entre las diferentes páginas y subpáginas disponibles.
+                - Use el menú lateral para navegar entre las diferentes páginas.
                 - Cada página puede estar protegida con una contraseña. Ingrese la contraseña correcta cuando se le solicite.
 
             2. **Editar Datos**:
-                - En las secciones de 'DPP 2025', podrá editar las tablas de datos utilizando la funcionalidad de Mito.
-                - Después de editar los datos, las métricas se actualizarán automáticamente.
+                - En las secciones de 'DPP 2025', podrá editar las tablas con Mito.
+                - Después de editar, las métricas se actualizarán automáticamente.
 
             3. **Visualizar Resúmenes**:
-                - En la página de 'Actualización', podrá ver un resumen consolidado con el total requerido, monto asignado (DPP 2025), y la diferencia.
+                - En la página de 'Actualización', podrá ver un resumen consolidado.
 
-            4. **Subir Archivos**:
-                - Algunas secciones permiten cargar archivos Excel personalizados. Asegúrese de que los archivos sigan el formato requerido.
-
-            5. **Interpretar Métricas**:
-                - En las vistas que muestran métricas (por ejemplo, total requerido y diferencias), los valores positivos o negativos indicarán si hay excedentes o déficits presupuestarios.
-
-            6. **Guardar Cambios**:
-                - Los cambios realizados en las tablas se guardan automáticamente en la sesión de la app mientras está abierta.
+            4. **Guardar Cambios**:
+                - Los cambios en las tablas se guardan automáticamente en la sesión mientras esté abierta.
             """)
+
         elif selected_page == "Actualización":
             if not st.session_state.page_authenticated["Actualización"]:
                 password = st.text_input("Contraseña para Actualización", type="password")
                 if st.button("Ingresar"):
                     if password == page_passwords["Actualización"]:
                         st.session_state.page_authenticated["Actualización"] = True
-                        st.rerun()  # Llama a st.rerun() para recargar y mostrar la página ya autenticada
+                        st.rerun()
                     else:
                         st.error("Contraseña incorrecta.")
             else:
                 mostrar_actualizacion()
+
         elif selected_page in ["VPD", "VPF", "VPO", "VPE"]:
             if not st.session_state.page_authenticated[selected_page]:
                 password = st.text_input(f"Contraseña para {selected_page}", type="password")
@@ -261,6 +261,7 @@ def main():
                         mostrar_requerimiento_area(f"{selected_page}_Consultores")
                     elif selected_subsubpage == "DPP 2025":
                         mostrar_dpp_2025_mito(f"{selected_page}_Consultores", montos[selected_page]["Consultores"])
+
         elif selected_page == "PRE":
             if not st.session_state.page_authenticated["PRE"]:
                 password = st.text_input("Contraseña para PRE", type="password")
