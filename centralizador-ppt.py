@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import openpyxl
+import os
 
 # Configuración de la aplicación
 st.set_page_config(
@@ -28,9 +29,8 @@ page_passwords = {
     "Tablero": "tablero654"
 }
 
-@st.cache_data
 def load_data(filepath, sheet_name):
-    """Carga datos de una hoja de Excel."""
+    """Carga datos de una hoja de Excel sin usar caché."""
     try:
         df = pd.read_excel(filepath, sheet_name=sheet_name, engine='openpyxl')
         return df
@@ -42,9 +42,12 @@ def save_data(filepath, sheet_name, df):
     """Guarda el DataFrame en una hoja específica de un archivo Excel existente,
     reemplazando sólo esa hoja y conservando las demás."""
     try:
-        # Abre el archivo en modo append y reemplaza la hoja existente
-        with pd.ExcelWriter(filepath, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
-            df.to_excel(writer, sheet_name=sheet_name, index=False)
+        # Si el archivo no existe, lo creamos con ese DF
+        if not os.path.exists(filepath):
+            df.to_excel(filepath, sheet_name=sheet_name, index=False)
+        else:
+            with pd.ExcelWriter(filepath, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
+                df.to_excel(writer, sheet_name=sheet_name, index=False)
     except Exception as e:
         st.error(f"Error al guardar los datos: {e}")
 
@@ -74,7 +77,8 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
     st.header(f"DPP 2025 - {sheet_name}")
 
     session_key = f"dpp_2025_{sheet_name}_data"
-    # Cargamos el DataFrame sólo una vez
+    # Cargamos el DataFrame sólo una vez (si no existe en session_state)
+    # Si ya existe en session_state, asumimos que es la versión actualizada
     if session_key not in st.session_state:
         data = load_data(excel_file, sheet_name)
         if data is None:
@@ -94,7 +98,7 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
         save_data(excel_file, sheet_name, edited_df)
         st.success("Cambios guardados en el archivo Excel.")
 
-    # Utilizar la versión actual (posiblemente ya editada) para calcular métricas
+    # Métricas con el DataFrame actual (en session_state)
     current_df = st.session_state[session_key]
     if "total" in current_df.columns:
         try:
