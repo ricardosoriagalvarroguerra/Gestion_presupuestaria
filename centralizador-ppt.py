@@ -42,7 +42,6 @@ def save_data(filepath, sheet_name, df):
     """Guarda el DataFrame en una hoja específica de un archivo Excel existente,
     reemplazando sólo esa hoja y conservando las demás."""
     try:
-        # Si el archivo no existe, lo creamos con ese DF
         if not os.path.exists(filepath):
             df.to_excel(filepath, sheet_name=sheet_name, index=False)
         else:
@@ -60,7 +59,6 @@ if "page_authenticated" not in st.session_state:
     st.session_state.page_authenticated = {page: False for page in page_passwords if page_passwords[page]}
 
 def mostrar_requerimiento_area(sheet_name):
-    """Muestra una tabla estática de Requerimiento de Área o PRE con un Value Box de Total."""
     st.header(f"Requerimiento de Área - {sheet_name}")
     data = load_data(excel_file, sheet_name)
     if data is not None:
@@ -72,13 +70,9 @@ def mostrar_requerimiento_area(sheet_name):
         st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
 
 def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
-    """Muestra y edita datos de DPP 2025 usando st.data_editor(), con métricas actualizadas al guardar cambios,
-    y persiste los datos en el archivo Excel."""
     st.header(f"DPP 2025 - {sheet_name}")
 
     session_key = f"dpp_2025_{sheet_name}_data"
-    # Cargamos el DataFrame sólo una vez (si no existe en session_state)
-    # Si ya existe en session_state, asumimos que es la versión actualizada
     if session_key not in st.session_state:
         data = load_data(excel_file, sheet_name)
         if data is None:
@@ -86,19 +80,14 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
             return
         st.session_state[session_key] = data
 
-    # Mostrar el editor de datos
     edited_df = st.data_editor(st.session_state[session_key], key=f"editor_{sheet_name}", num_rows="dynamic")
 
-    # Botón para guardar los cambios en session_state y en el Excel
     if st.button("Guardar Cambios", key=f"guardar_{sheet_name}"):
-        # Normalizar columnas
         edited_df.columns = edited_df.columns.str.strip().str.lower()
         st.session_state[session_key] = edited_df
-        # Guardar en el archivo Excel
         save_data(excel_file, sheet_name, edited_df)
         st.success("Cambios guardados en el archivo Excel.")
 
-    # Métricas con el DataFrame actual (en session_state)
     current_df = st.session_state[session_key]
     if "total" in current_df.columns:
         try:
@@ -119,7 +108,6 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
         st.error("No se encontró una columna 'total' en los datos.")
 
 def calcular_actualizacion_tabla(vicepresidencias, tipo):
-    """Calcula la tabla de Actualización para Misiones o Consultores."""
     filas = []
     for vpe, montos in vicepresidencias.items():
         requerimiento_key = f"dpp_2025_{vpe}_{tipo}_data"
@@ -143,7 +131,6 @@ def calcular_actualizacion_tabla(vicepresidencias, tipo):
     return df
 
 def aplicar_estilos(df):
-    """Aplica estilos condicionales a la columna Diferencia."""
     def resaltar_diferencia(val):
         if val == 0:
             return "background-color: green; color: white;"
@@ -153,7 +140,6 @@ def aplicar_estilos(df):
     return styled_df
 
 def mostrar_actualizacion():
-    """Muestra la página de Actualización con tablas consolidadas."""
     st.title("Actualización - Resumen Consolidado")
     st.write("Estas tablas muestran el monto requerido, DPP 2025, y la diferencia para cada área.")
 
@@ -174,8 +160,43 @@ def mostrar_actualizacion():
     styled_consultores_df = aplicar_estilos(consultores_df)
     st.write(styled_consultores_df, unsafe_allow_html=True)
 
+def mostrar_consolidado():
+    """Muestra las tablas solicitadas en la página 'Consolidado'."""
+    st.title("Consolidado")
+
+    # Cuadro 9
+    st.header("Cuadro 9.")
+    data_cuadro_9 = load_data(excel_file, "Cuadro_9")
+    if data_cuadro_9 is not None:
+        st.dataframe(data_cuadro_9)
+    else:
+        st.warning("No se pudo cargar la hoja 'Cuadro_9'.")
+
+    # Cuadro 10
+    st.header("Cuadro 10.")
+    data_cuadro_10 = load_data(excel_file, "Cuadro_10")
+    if data_cuadro_10 is not None:
+        st.dataframe(data_cuadro_10)
+    else:
+        st.warning("No se pudo cargar la hoja 'Cuadro_10'.")
+
+    # Cuadro 11
+    st.header("Cuadro 11.")
+    data_cuadro_11 = load_data(excel_file, "Cuadro_11")
+    if data_cuadro_11 is not None:
+        st.dataframe(data_cuadro_11)
+    else:
+        st.warning("No se pudo cargar la hoja 'Cuadro_11'.")
+
+    # Consolidado DPP 2025
+    st.header("Consolidado DPP 2025")
+    data_consolidado = load_data(excel_file, "Consolidado")
+    if data_consolidado is not None:
+        st.dataframe(data_consolidado)
+    else:
+        st.warning("No se pudo cargar la hoja 'Consolidado'.")
+
 def main():
-    """Estructura principal de la aplicación."""
     if not st.session_state.authenticated:
         st.title("Gestión Presupuestaria")
         username_input = st.text_input("Usuario", key="login_username")
@@ -269,6 +290,17 @@ def main():
                         data = pd.read_excel(uploaded_file, engine="openpyxl")
                         st.write("Archivo cargado:")
                         st.dataframe(data)
+        elif selected_page == "Consolidado":
+            if not st.session_state.page_authenticated["Consolidado"]:
+                password = st.text_input("Contraseña para Consolidado", type="password")
+                if st.button("Ingresar"):
+                    if password == page_passwords["Consolidado"]:
+                        st.session_state.page_authenticated["Consolidado"] = True
+                        st.rerun()
+                    else:
+                        st.error("Contraseña incorrecta.")
+            else:
+                mostrar_consolidado()
 
 if __name__ == "__main__":
     main()
