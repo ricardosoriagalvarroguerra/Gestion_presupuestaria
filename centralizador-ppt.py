@@ -40,7 +40,7 @@ def load_data(filepath, sheet_name):
 
 def save_data(filepath, sheet_name, df):
     """Guarda el DataFrame en una hoja específica de un archivo Excel existente,
-    reemplazando sólo esa hoja y conservando las demás."""
+    reemplazando sólo esa hoja."""
     try:
         if not os.path.exists(filepath):
             df.to_excel(filepath, sheet_name=sheet_name, index=False)
@@ -192,7 +192,10 @@ def mostrar_consolidado():
             data_cuadro_9.iloc[9, :] = pd.to_numeric(data_cuadro_9.iloc[9, :], errors='coerce')
             data_cuadro_9.iloc[:, -1] = pd.to_numeric(data_cuadro_9.iloc[:, -1], errors='coerce')
 
-            # Ahora simplemente formateamos la última fila y última columna agregando "%"
+            # Multiplicamos por 100 para pasar de 0.55 a 55.00 que luego formateamos como "55.00%"
+            data_cuadro_9.iloc[9, :] = data_cuadro_9.iloc[9, :] * 100.0
+            data_cuadro_9.iloc[:, -1] = data_cuadro_9.iloc[:, -1] * 100.0
+
             styled_9 = data_cuadro_9.style
             # Formato para la fila 10 (índice 9)
             styled_9 = styled_9.format("{:.2f}%", subset=pd.IndexSlice[[9], :])
