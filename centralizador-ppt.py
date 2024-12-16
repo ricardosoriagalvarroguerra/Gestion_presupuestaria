@@ -188,13 +188,13 @@ def mostrar_consolidado():
     if data_cuadro_9 is not None:
         data_cuadro_9 = data_cuadro_9.reset_index(drop=True)
         if len(data_cuadro_9) >= 10:
-            # Convertir a numérico la última fila (índice 9) y última columna antes de multiplicar
+            # Convertir a numérico la última fila (índice 9) y última columna antes de dividir
             data_cuadro_9.iloc[9, :] = pd.to_numeric(data_cuadro_9.iloc[9, :], errors='coerce')
             data_cuadro_9.iloc[:, -1] = pd.to_numeric(data_cuadro_9.iloc[:, -1], errors='coerce')
 
-            # Ahora multiplicamos por 100 (en lugar de dividir)
-            data_cuadro_9.iloc[9, :] = data_cuadro_9.iloc[9, :] * 100.0
-            data_cuadro_9.iloc[:, -1] = data_cuadro_9.iloc[:, -1] * 100.0
+            # Ahora dividimos por 100 para convertir a porcentaje
+            data_cuadro_9.iloc[9, :] = data_cuadro_9.iloc[9, :] / 100.0
+            data_cuadro_9.iloc[:, -1] = data_cuadro_9.iloc[:, -1] / 100.0
 
             styled_9 = data_cuadro_9.style.format("{:.2%}", subset=pd.IndexSlice[[9], :])
             styled_9 = styled_9.format("{:.2%}", subset=pd.IndexSlice[:, [data_cuadro_9.columns[-1]]])
