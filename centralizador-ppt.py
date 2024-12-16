@@ -30,6 +30,7 @@ page_passwords = {
 }
 
 def load_data(filepath, sheet_name):
+    """Carga datos de una hoja de Excel sin usar caché."""
     try:
         df = pd.read_excel(filepath, sheet_name=sheet_name, engine='openpyxl')
         return df
@@ -38,6 +39,8 @@ def load_data(filepath, sheet_name):
         return None
 
 def save_data(filepath, sheet_name, df):
+    """Guarda el DataFrame en una hoja específica de un archivo Excel existente,
+    reemplazando sólo esa hoja y conservando las demás."""
     try:
         if not os.path.exists(filepath):
             df.to_excel(filepath, sheet_name=sheet_name, index=False)
@@ -305,7 +308,6 @@ def main():
                         if selected_subsubpage == "Requerimiento de Área":
                             mostrar_requerimiento_area("VPF_Misiones")
                         elif selected_subsubpage == "DPP 2025":
-                            # Aquí se mostrará el Gasto Centralizados VPF = 40,960
                             mostrar_dpp_2025_editor("VPF_Misiones", montos["VPF"]["Misiones"])
 
                     elif selected_subpage == "Consultorías":
@@ -314,7 +316,6 @@ def main():
                         if selected_subsubpage == "Requerimiento de Área":
                             mostrar_requerimiento_area("VPF_Consultores")
                         elif selected_subsubpage == "DPP 2025":
-                            # Aquí se mostrará el Gasto Centralizados VPF = 88,460
                             mostrar_dpp_2025_editor("VPF_Consultores", montos["VPF"]["Consultores"])
 
                 else:
