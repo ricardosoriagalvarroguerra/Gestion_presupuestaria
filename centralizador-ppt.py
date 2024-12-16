@@ -274,24 +274,33 @@ def main():
                 selected_subpage = st.sidebar.selectbox("Selecciona una subpágina", subpage_options)
 
                 if selected_subpage == "Misiones Personal":
-                    # Mostramos la tabla original
+                    # Tabla original
                     mostrar_requerimiento_area("PRE_Misiones_personal")
-
-                    # Agregamos los value boxes solicitados
-                    # Primera fila: VPD y VPO
+                    # Value boxes
                     col1, col2 = st.columns(2)
                     with col1:
                         st.metric("Gasto Centralizados VPD", "$35,960")
                     with col2:
                         st.metric("Gasto Centralizados VPO", "$48,158")
 
-                    # Segunda fila: VPF
-                    col3, _ = st.columns([1,1])  # segunda columna vacía para mantener el diseño
+                    col3, _ = st.columns([1,1])
                     with col3:
                         st.metric("Gasto Centralizados VPF", "$40,960")
 
                 elif selected_subpage == "Misiones Consultores":
+                    # Tabla original
                     mostrar_requerimiento_area("PRE_Misiones_consultores")
+                    # Value boxes con las cantidades solicitadas: todas 13160
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.metric("Gasto Centralizados VPD", "$13,160")
+                    with col2:
+                        st.metric("Gasto Centralizados VPO", "$13,160")
+
+                    col3, _ = st.columns([1,1])
+                    with col3:
+                        st.metric("Gasto Centralizados VPF", "$13,160")
+
                 elif selected_subpage == "Servicios Profesionales":
                     mostrar_requerimiento_area("PRE_servicios_profesionales")
                 elif selected_subpage == "Gastos Centralizados":
@@ -301,6 +310,7 @@ def main():
                         data = pd.read_excel(uploaded_file, engine="openpyxl")
                         st.write("Archivo cargado:")
                         st.dataframe(data)
+
         elif selected_page == "Consolidado":
             if not st.session_state.page_authenticated["Consolidado"]:
                 password = st.text_input("Contraseña para Consolidado", type="password")
