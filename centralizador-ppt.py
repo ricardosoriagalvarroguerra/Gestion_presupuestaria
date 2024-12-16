@@ -102,6 +102,16 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
                 st.metric(label="Suma de Total", value=f"${total_sum:,.0f}")
             with col3:
                 st.metric(label="Diferencia", value=f"${diferencia:,.0f}")
+
+            # Agregar metric adicional para VPD Misiones y VPD Consultores
+            if "VPD_Misiones" in sheet_name:
+                # Abajo de los otros value boxes
+                st.metric("Gastos Centralizados VPD", "$35,960")
+
+            if "VPD_Consultores" in sheet_name:
+                # Abajo de los otros value boxes
+                st.metric("Gastos Centralizados VPD", "$193,160")
+
         except Exception as e:
             st.warning(f"No se pudo convertir la columna 'total' a un formato numérico: {e}")
     else:
@@ -244,19 +254,25 @@ def main():
                 }
 
                 if selected_subpage == "Misiones":
+                    # DPP 2025 para VPD Misiones
                     subsubpage_options = ["Requerimiento de Área", "DPP 2025"]
                     selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Misiones", subsubpage_options)
                     if selected_subsubpage == "Requerimiento de Área":
                         mostrar_requerimiento_area(f"{selected_page}_Misiones")
                     elif selected_subsubpage == "DPP 2025":
+                        # Al ser VPD_Misiones, después de mostrar los 3 métricos habituales,
+                        # se mostrará el de Gastos Centralizados VPD = 35960.
                         mostrar_dpp_2025_editor(f"{selected_page}_Misiones", montos[selected_page]["Misiones"])
 
                 elif selected_subpage == "Consultorías":
+                    # DPP 2025 para VPD Consultores
                     subsubpage_options = ["Requerimiento de Área", "DPP 2025"]
                     selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Consultorías", subsubpage_options)
                     if selected_subsubpage == "Requerimiento de Área":
                         mostrar_requerimiento_area(f"{selected_page}_Consultores")
                     elif selected_subsubpage == "DPP 2025":
+                        # Al ser VPD_Consultores, después de mostrar los 3 métricos habituales,
+                        # se mostrará el de Gastos Centralizados VPD = 193160.
                         mostrar_dpp_2025_editor(f"{selected_page}_Consultores", montos[selected_page]["Consultores"])
 
         elif selected_page == "PRE":
@@ -299,7 +315,6 @@ def main():
 
                 elif selected_subpage == "Servicios Profesionales":
                     mostrar_requerimiento_area("PRE_servicios_profesionales")
-                    # Value Boxes para Servicios Profesionales
                     col1, col2 = st.columns(2)
                     with col1:
                         st.metric("Gasto Centralizados VPD", "$180,000")
