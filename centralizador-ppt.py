@@ -274,9 +274,7 @@ def main():
                 selected_subpage = st.sidebar.selectbox("Selecciona una subpágina", subpage_options)
 
                 if selected_subpage == "Misiones Personal":
-                    # Tabla original
                     mostrar_requerimiento_area("PRE_Misiones_personal")
-                    # Value boxes
                     col1, col2 = st.columns(2)
                     with col1:
                         st.metric("Gasto Centralizados VPD", "$35,960")
@@ -288,9 +286,7 @@ def main():
                         st.metric("Gasto Centralizados VPF", "$40,960")
 
                 elif selected_subpage == "Misiones Consultores":
-                    # Tabla original
                     mostrar_requerimiento_area("PRE_Misiones_consultores")
-                    # Value boxes con las cantidades solicitadas: todas 13160
                     col1, col2 = st.columns(2)
                     with col1:
                         st.metric("Gasto Centralizados VPD", "$13,160")
@@ -303,6 +299,17 @@ def main():
 
                 elif selected_subpage == "Servicios Profesionales":
                     mostrar_requerimiento_area("PRE_servicios_profesionales")
+                    # Value Boxes para Servicios Profesionales
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.metric("Gasto Centralizados VPD", "$180,000")
+                    with col2:
+                        st.metric("Gasto Centralizados VPO", "$144,000")
+
+                    col3, _ = st.columns([1,1])
+                    with col3:
+                        st.metric("Gasto Centralizados VPF", "$140,000")
+
                 elif selected_subpage == "Gastos Centralizados":
                     st.write("Sube un archivo para Gastos Centralizados.")
                     uploaded_file = st.file_uploader("Subir archivo Excel", type=["xlsx", "xls"])
