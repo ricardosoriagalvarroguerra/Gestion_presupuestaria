@@ -183,6 +183,7 @@ def mostrar_consolidado():
     st.header("Cuadro 9.")
     data_cuadro_9 = load_data(excel_file, "Cuadro_9")
     if data_cuadro_9 is not None:
+        data_cuadro_9 = data_cuadro_9.reset_index(drop=True)
         st.dataframe(data_cuadro_9)
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_9'.")
@@ -190,6 +191,7 @@ def mostrar_consolidado():
     st.header("Cuadro 10.")
     data_cuadro_10 = load_data(excel_file, "Cuadro_10")
     if data_cuadro_10 is not None:
+        data_cuadro_10 = data_cuadro_10.reset_index(drop=True)
         st.dataframe(data_cuadro_10)
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_10'.")
@@ -197,6 +199,7 @@ def mostrar_consolidado():
     st.header("Cuadro 11.")
     data_cuadro_11 = load_data(excel_file, "Cuadro_11")
     if data_cuadro_11 is not None:
+        data_cuadro_11 = data_cuadro_11.reset_index(drop=True)
         st.dataframe(data_cuadro_11)
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_11'.")
@@ -204,6 +207,7 @@ def mostrar_consolidado():
     st.header("Consolidado DPP 2025")
     data_consolidado = load_data(excel_file, "Consolidado")
     if data_consolidado is not None:
+        data_consolidado = data_consolidado.reset_index(drop=True)
         st.dataframe(data_consolidado)
     else:
         st.warning("No se pudo cargar la hoja 'Consolidado'.")
