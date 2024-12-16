@@ -100,19 +100,24 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
             with col3:
                 st.metric(label="Diferencia", value=f"${diferencia:,.0f}")
 
-            # Agregar metric adicional según el sheet_name
+            # Métricas adicionales según el sheet_name
+            # VPD
             if "VPD_Misiones" in sheet_name:
                 st.metric("Gastos Centralizados VPD", "$35,960")
-
             if "VPD_Consultores" in sheet_name:
                 st.metric("Gastos Centralizados VPD", "$193,160")
 
-            # Ahora agregamos los value boxes para VPO
+            # VPO
             if "VPO_Misiones" in sheet_name:
                 st.metric("Gastos Centralizados VPO", "$48,158")
-
             if "VPO_Consultores" in sheet_name:
                 st.metric("Gastos Centralizados VPO", "$33,160")
+
+            # VPF
+            if "VPF_Misiones" in sheet_name:
+                st.metric("Gastos Centralizados VPF", "$40,960")
+            if "VPF_Consultores" in sheet_name:
+                st.metric("Gastos Centralizados VPF", "$88,460")
 
         except Exception as e:
             st.warning(f"No se pudo convertir la columna 'total' a un formato numérico: {e}")
@@ -260,55 +265,71 @@ def main():
                         subsubpage_options = ["Requerimiento de Área", "DPP 2025"]
                         selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Misiones", subsubpage_options)
                         if selected_subsubpage == "Requerimiento de Área":
-                            mostrar_requerimiento_area(f"{selected_page}_Misiones")
+                            mostrar_requerimiento_area("VPD_Misiones")
                         elif selected_subsubpage == "DPP 2025":
-                            mostrar_dpp_2025_editor(f"{selected_page}_Misiones", montos[selected_page]["Misiones"])
+                            mostrar_dpp_2025_editor("VPD_Misiones", montos["VPD"]["Misiones"])
 
                     elif selected_subpage == "Consultorías":
                         subsubpage_options = ["Requerimiento de Área", "DPP 2025"]
                         selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Consultorías", subsubpage_options)
                         if selected_subsubpage == "Requerimiento de Área":
-                            mostrar_requerimiento_area(f"{selected_page}_Consultores")
+                            mostrar_requerimiento_area("VPD_Consultores")
                         elif selected_subsubpage == "DPP 2025":
-                            mostrar_dpp_2025_editor(f"{selected_page}_Consultores", montos[selected_page]["Consultores"])
+                            mostrar_dpp_2025_editor("VPD_Consultores", montos["VPD"]["Consultores"])
 
                 elif selected_page == "VPO":
                     if selected_subpage == "Misiones":
                         subsubpage_options = ["Requerimiento de Área", "DPP 2025"]
                         selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Misiones", subsubpage_options)
                         if selected_subsubpage == "Requerimiento de Área":
-                            mostrar_requerimiento_area(f"{selected_page}_Misiones")
+                            mostrar_requerimiento_area("VPO_Misiones")
                         elif selected_subsubpage == "DPP 2025":
-                            # VPO Misiones DPP 2025 mostrará el metric adicional "Gastos Centralizados VPO" = 48158
-                            mostrar_dpp_2025_editor(f"{selected_page}_Misiones", montos[selected_page]["Misiones"])
+                            mostrar_dpp_2025_editor("VPO_Misiones", montos["VPO"]["Misiones"])
 
                     elif selected_subpage == "Consultorías":
                         subsubpage_options = ["Requerimiento de Área", "DPP 2025"]
                         selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Consultorías", subsubpage_options)
                         if selected_subsubpage == "Requerimiento de Área":
-                            mostrar_requerimiento_area(f"{selected_page}_Consultores")
+                            mostrar_requerimiento_area("VPO_Consultores")
                         elif selected_subsubpage == "DPP 2025":
-                            # VPO Consultores DPP 2025 mostrará el metric adicional "Gastos Centralizados VPO" = 33160
-                            mostrar_dpp_2025_editor(f"{selected_page}_Consultores", montos[selected_page]["Consultores"])
+                            mostrar_dpp_2025_editor("VPO_Consultores", montos["VPO"]["Consultores"])
 
-                else:
-                    # Para VPF y VPE no se han solicitado cambios adicionales
+                elif selected_page == "VPF":
                     if selected_subpage == "Misiones":
                         subsubpage_options = ["Requerimiento de Área", "DPP 2025"]
                         selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Misiones", subsubpage_options)
                         if selected_subsubpage == "Requerimiento de Área":
-                            mostrar_requerimiento_area(f"{selected_page}_Misiones")
+                            mostrar_requerimiento_area("VPF_Misiones")
                         elif selected_subsubpage == "DPP 2025":
-                            mostrar_dpp_2025_editor(f"{selected_page}_Misiones", montos[selected_page]["Misiones"])
+                            # Aquí se mostrará el Gasto Centralizados VPF = 40,960
+                            mostrar_dpp_2025_editor("VPF_Misiones", montos["VPF"]["Misiones"])
 
                     elif selected_subpage == "Consultorías":
                         subsubpage_options = ["Requerimiento de Área", "DPP 2025"]
                         selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Consultorías", subsubpage_options)
                         if selected_subsubpage == "Requerimiento de Área":
-                            mostrar_requerimiento_area(f"{selected_page}_Consultores")
+                            mostrar_requerimiento_area("VPF_Consultores")
                         elif selected_subsubpage == "DPP 2025":
-                            mostrar_dpp_2025_editor(f"{selected_page}_Consultores", montos[selected_page]["Consultores"])
+                            # Aquí se mostrará el Gasto Centralizados VPF = 88,460
+                            mostrar_dpp_2025_editor("VPF_Consultores", montos["VPF"]["Consultores"])
 
+                else:
+                    # VPE sin cambios adicionales solicitados
+                    if selected_subpage == "Misiones":
+                        subsubpage_options = ["Requerimiento de Área", "DPP 2025"]
+                        selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Misiones", subsubpage_options)
+                        if selected_subsubpage == "Requerimiento de Área":
+                            mostrar_requerimiento_area("VPE_Misiones")
+                        elif selected_subsubpage == "DPP 2025":
+                            mostrar_dpp_2025_editor("VPE_Misiones", montos["VPE"]["Misiones"])
+
+                    elif selected_subpage == "Consultorías":
+                        subsubpage_options = ["Requerimiento de Área", "DPP 2025"]
+                        selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Consultorías", subsubpage_options)
+                        if selected_subsubpage == "Requerimiento de Área":
+                            mostrar_requerimiento_area("VPE_Consultores")
+                        elif selected_subsubpage == "DPP 2025":
+                            mostrar_dpp_2025_editor("VPE_Consultores", montos["VPE"]["Consultores"])
 
         elif selected_page == "PRE":
             if not st.session_state.page_authenticated["PRE"]:
