@@ -10,12 +10,13 @@ st.set_page_config(
     layout="wide"
 )
 
-# Credenciales globales
+# Credenciales globales de acceso a la app
 app_credentials = {
     "username": "luciana_botafogo",
     "password": "fonplata"
 }
 
+# Contraseñas para cada página
 page_passwords = {
     "Principal": None,
     "PRE": "pre456",
@@ -29,6 +30,7 @@ page_passwords = {
 }
 
 def load_data(filepath, sheet_name):
+    """Carga datos de una hoja de Excel sin usar caché."""
     try:
         df = pd.read_excel(filepath, sheet_name=sheet_name, engine='openpyxl')
         return df
@@ -37,6 +39,8 @@ def load_data(filepath, sheet_name):
         return None
 
 def save_data(filepath, sheet_name, df):
+    """Guarda el DataFrame en una hoja específica de un archivo Excel existente,
+    reemplazando sólo esa hoja y conservando las demás."""
     try:
         if not os.path.exists(filepath):
             df.to_excel(filepath, sheet_name=sheet_name, index=False)
@@ -119,7 +123,7 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
                 st.metric("Gastos Centralizados VPF", "$88,460")
 
         except Exception as e:
-            st.warning(f"No se pudo convertir la columna 'total' a numérico: {e}")
+            st.warning(f"No se pudo convertir la columna 'total' a un formato numérico: {e}")
     else:
         st.error("No se encontró una columna 'total' en los datos.")
 
@@ -182,19 +186,22 @@ def mostrar_consolidado():
     st.header("Cuadro 9.")
     data_cuadro_9 = load_data(excel_file, "Cuadro_9")
     if data_cuadro_9 is not None:
-        # Convertimos la última columna y la fila 10 (índice 9) a porcentaje
-        # Asumimos que los valores actuales deben dividirse por 100 para representar porcentaje
-        if len(data_cuadro_9) >= 10:  # Aseguramos que exista la fila 10 (índice 9)
-            # Dividir la última columna por 100
-            data_cuadro_9.iloc[:, -1] = data_cuadro_9.iloc[:, -1] / 100.0
-            # Dividir la fila 10 (índice 9) por 100
-            data_cuadro_9.iloc[9, :] = data_cuadro_9.iloc[9, :] / 100.0
-
         data_cuadro_9 = data_cuadro_9.reset_index(drop=True)
-        # Aplicamos formato de porcentaje a la última columna y a la fila 10
-        styled_9 = data_cuadro_9.style.format("{:.2%}", subset=pd.IndexSlice[[9], :])
-        styled_9 = styled_9.format("{:.2%}", subset=pd.IndexSlice[:, [data_cuadro_9.columns[-1]]])
-        st.dataframe(styled_9)
+        if len(data_cuadro_9) >= 10:
+            # Convertir a numérico la última fila (índice 9) y última columna antes de dividir
+            data_cuadro_9.iloc[9, :] = pd.to_numeric(data_cuadro_9.iloc[9, :], errors='coerce')
+            data_cuadro_9.iloc[:, -1] = pd.to_numeric(data_cuadro_9.iloc[:, -1], errors='coerce')
+
+            # Ahora dividimos por 100 para convertir a porcentaje
+            data_cuadro_9.iloc[9, :] = data_cuadro_9.iloc[9, :] / 100.0
+            data_cuadro_9.iloc[:, -1] = data_cuadro_9.iloc[:, -1] / 100.0
+
+            styled_9 = data_cuadro_9.style.format("{:.2%}", subset=pd.IndexSlice[[9], :])
+            styled_9 = styled_9.format("{:.2%}", subset=pd.IndexSlice[:, [data_cuadro_9.columns[-1]]])
+            st.dataframe(styled_9)
+        else:
+            # Si no hay suficientes filas, sólo mostramos la tabla sin cambios
+            st.dataframe(data_cuadro_9)
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_9'.")
 
