@@ -9,12 +9,13 @@ st.set_page_config(
     layout="wide"
 )
 
-# Credenciales globales
+# Credenciales globales de acceso a la app
 app_credentials = {
     "username": "luciana_botafogo",
     "password": "fonplata"
 }
 
+# Contraseñas para cada página
 page_passwords = {
     "Principal": None,
     "PRE": "pre456",
@@ -29,6 +30,7 @@ page_passwords = {
 
 @st.cache_data
 def load_data(filepath, sheet_name):
+    """Carga datos de una hoja de Excel."""
     try:
         df = pd.read_excel(filepath, sheet_name=sheet_name, engine='openpyxl')
         return df
@@ -45,6 +47,7 @@ if "page_authenticated" not in st.session_state:
     st.session_state.page_authenticated = {page: False for page in page_passwords if page_passwords[page]}
 
 def convertir_a_dataframe(edited_data):
+    """Convierte los datos editados por Mito a un pandas DataFrame de manera robusta."""
     if isinstance(edited_data, pd.DataFrame):
         return edited_data
     elif isinstance(edited_data, dict):
@@ -55,7 +58,9 @@ def convertir_a_dataframe(edited_data):
         return None
 
 def mostrar_requerimiento_area(sheet_name):
+    """Muestra una tabla estática de Requerimiento de Área o PRE con un Value Box de Total."""
     st.header(f"Requerimiento de Área - {sheet_name}")
+
     data = load_data(excel_file, sheet_name)
     if data is not None:
         if "total" in data.columns and pd.api.types.is_numeric_dtype(data["total"]):
@@ -66,11 +71,15 @@ def mostrar_requerimiento_area(sheet_name):
         st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
 
 def mostrar_dpp_2025_mito(sheet_name, monto_dpp):
+    """Muestra y edita datos de DPP 2025 usando MITO, con Value Boxes para suma de 'total', monto DPP 2025 y diferencia."""
     st.header(f"DPP 2025 - {sheet_name}")
+
+    # Primero revisamos si ya existe una versión editada en session_state
     session_key = f"dpp_2025_{sheet_name}_data"
     if session_key in st.session_state:
         data = st.session_state[session_key]
     else:
+        # Si no existe, cargamos desde el archivo
         data = load_data(excel_file, sheet_name)
         if data is None:
             st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
@@ -81,6 +90,7 @@ def mostrar_dpp_2025_mito(sheet_name, monto_dpp):
 
     if edited_df is not None:
         edited_df.columns = edited_df.columns.str.strip().str.lower()
+        # Guardamos la versión editada en session_state para uso futuro
         st.session_state[session_key] = edited_df
 
         if "total" in edited_df.columns:
@@ -97,13 +107,14 @@ def mostrar_dpp_2025_mito(sheet_name, monto_dpp):
                 with col3:
                     st.metric(label="Diferencia", value=f"${diferencia:,.0f}")
             except Exception as e:
-                st.warning(f"No se pudo convertir la columna 'total' a numérico: {e}")
+                st.warning(f"No se pudo convertir la columna 'total' a un formato numérico: {e}")
         else:
-            st.error("No se encontró una columna 'total' después de normalizar.")
+            st.error("No se encontró una columna llamada 'total' en los datos después de la normalización.")
     else:
         st.warning("No se pudieron convertir los datos editados.")
 
 def calcular_actualizacion_tabla(vicepresidencias, tipo):
+    """Calcula la tabla de Actualización para Misiones o Consultores."""
     filas = []
     for vpe, montos in vicepresidencias.items():
         requerimiento_key = f"dpp_2025_{vpe}_{tipo}_data"
@@ -128,6 +139,7 @@ def calcular_actualizacion_tabla(vicepresidencias, tipo):
     return df
 
 def aplicar_estilos(df):
+    """Aplica estilos condicionales a la columna Diferencia."""
     def resaltar_diferencia(val):
         if val == 0:
             return "background-color: green; color: white;"
@@ -138,6 +150,7 @@ def aplicar_estilos(df):
     return styled_df
 
 def mostrar_actualizacion():
+    """Muestra la página de Actualización con tablas consolidadas."""
     st.title("Actualización - Resumen Consolidado")
     st.write("Estas tablas muestran el monto requerido, DPP 2025, y la diferencia para cada área.")
 
@@ -159,6 +172,7 @@ def mostrar_actualizacion():
     st.write(styled_consultores_df, unsafe_allow_html=True)
 
 def main():
+    """Estructura principal de la aplicación."""
     if not st.session_state.authenticated:
         st.title("Gestión Presupuestaria")
         username_input = st.text_input("Usuario", key="login_username")
@@ -168,8 +182,7 @@ def main():
         if login_button:
             if username_input == app_credentials["username"] and password_input == app_credentials["password"]:
                 st.session_state.authenticated = True
-                # En vez de st.experimental_rerun(), usamos st.stop() para detener aquí.
-                st.stop()
+                st.rerun()  # Reemplaza st.experimental_rerun() con st.rerun()
             else:
                 st.error("Usuario o contraseña incorrectos.")
     else:
@@ -178,14 +191,37 @@ def main():
 
         if selected_page == "Principal":
             st.title("Página Principal - Gestión Presupuestaria")
-            st.write("Bienvenido a la aplicación de Gestión Presupuestaria.")
+            st.write("Bienvenido a la aplicación de Gestión Presupuestaria. Esta herramienta le permitirá administrar y visualizar presupuestos de manera interactiva.")
+            
+            st.header("Instrucciones de Uso")
+            st.markdown("""
+            1. **Acceso a Páginas**:
+                - Use el menú lateral para navegar entre las diferentes páginas y subpáginas disponibles.
+                - Cada página puede estar protegida con una contraseña. Ingrese la contraseña correcta cuando se le solicite.
+
+            2. **Editar Datos**:
+                - En las secciones de 'DPP 2025', podrá editar las tablas de datos utilizando la funcionalidad de Mito.
+                - Después de editar los datos, las métricas se actualizarán automáticamente.
+
+            3. **Visualizar Resúmenes**:
+                - En la página de 'Actualización', podrá ver un resumen consolidado con el total requerido, monto asignado (DPP 2025), y la diferencia.
+
+            4. **Subir Archivos**:
+                - Algunas secciones permiten cargar archivos Excel personalizados. Asegúrese de que los archivos sigan el formato requerido.
+
+            5. **Interpretar Métricas**:
+                - En las vistas que muestran métricas (por ejemplo, total requerido y diferencias), los valores positivos o negativos indicarán si hay excedentes o déficits presupuestarios.
+
+            6. **Guardar Cambios**:
+                - Los cambios realizados en las tablas se guardan automáticamente en la sesión de la app mientras está abierta.
+            """)
         elif selected_page == "Actualización":
             if not st.session_state.page_authenticated["Actualización"]:
                 password = st.text_input("Contraseña para Actualización", type="password")
                 if st.button("Ingresar"):
                     if password == page_passwords["Actualización"]:
                         st.session_state.page_authenticated["Actualización"] = True
-                        st.stop()
+                        st.rerun()  # Llama a st.rerun() para recargar y mostrar la página ya autenticada
                     else:
                         st.error("Contraseña incorrecta.")
             else:
@@ -196,7 +232,7 @@ def main():
                 if st.button("Ingresar"):
                     if password == page_passwords[selected_page]:
                         st.session_state.page_authenticated[selected_page] = True
-                        st.stop()
+                        st.rerun()
                     else:
                         st.error("Contraseña incorrecta.")
             else:
@@ -231,7 +267,7 @@ def main():
                 if st.button("Ingresar"):
                     if password == page_passwords["PRE"]:
                         st.session_state.page_authenticated["PRE"] = True
-                        st.stop()
+                        st.rerun()
                     else:
                         st.error("Contraseña incorrecta.")
             else:
