@@ -9,13 +9,11 @@ st.set_page_config(
     layout="wide"
 )
 
-# Credenciales globales de acceso a la app
 app_credentials = {
     "username": "luciana_botafogo",
     "password": "fonplata"
 }
 
-# Contraseñas para cada página
 page_passwords = {
     "Principal": None,
     "PRE": "pre456",
@@ -30,7 +28,6 @@ page_passwords = {
 
 @st.cache_data
 def load_data(filepath, sheet_name):
-    """Carga datos de una hoja de Excel."""
     try:
         df = pd.read_excel(filepath, sheet_name=sheet_name, engine='openpyxl')
         return df
@@ -47,7 +44,6 @@ if "page_authenticated" not in st.session_state:
     st.session_state.page_authenticated = {page: False for page in page_passwords if page_passwords[page]}
 
 def convertir_a_dataframe(edited_data):
-    """Convierte los datos editados por Mito a un DataFrame."""
     if isinstance(edited_data, pd.DataFrame):
         return edited_data
     elif isinstance(edited_data, dict):
@@ -58,7 +54,6 @@ def convertir_a_dataframe(edited_data):
         return None
 
 def mostrar_requerimiento_area(sheet_name):
-    """Muestra una tabla estática de Requerimiento de Área o PRE con un Value Box de Total."""
     st.header(f"Requerimiento de Área - {sheet_name}")
     data = load_data(excel_file, sheet_name)
     if data is not None:
@@ -70,11 +65,10 @@ def mostrar_requerimiento_area(sheet_name):
         st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
 
 def mostrar_dpp_2025_mito(sheet_name, monto_dpp):
-    """Muestra y edita datos de DPP 2025 usando Mito dentro de un formulario, para evitar reinicios inesperados."""
     st.header(f"DPP 2025 - {sheet_name}")
 
     session_key = f"dpp_2025_{sheet_name}_data"
-    # Si no existe en session_state, lo cargamos por primera y única vez
+    # Cargamos una sola vez el DataFrame original
     if session_key not in st.session_state:
         data = load_data(excel_file, sheet_name)
         if data is None:
@@ -82,45 +76,36 @@ def mostrar_dpp_2025_mito(sheet_name, monto_dpp):
             return
         st.session_state[session_key] = data
 
-    # Ahora siempre usamos la versión de session_state
-    current_df = st.session_state[session_key]
+    # Siempre tomamos el DF desde session_state, sin volver a cargar el archivo
+    edited_data, code = spreadsheet(st.session_state[session_key], key=f"mito_{sheet_name}")
+    edited_df = convertir_a_dataframe(edited_data)
 
-    # Usar un formulario para controlar cuándo se aplican los cambios
-    mito_key = f"mito_{sheet_name}"
-    with st.form(key=f"{sheet_name}_form"):
-        edited_data, code = spreadsheet(current_df, key=mito_key)
-        submitted = st.form_submit_button("Aplicar Cambios")
+    if edited_df is not None:
+        edited_df.columns = edited_df.columns.str.strip().str.lower()
+        # Actualizamos el DataFrame en session_state inmediatamente después de la edición
+        st.session_state[session_key] = edited_df
 
-    if submitted:
-        edited_df = convertir_a_dataframe(edited_data)
-        if edited_df is not None:
-            edited_df.columns = edited_df.columns.str.strip().str.lower()
-            # Actualizamos session_state solo en el momento de "Aplicar Cambios"
-            st.session_state[session_key] = edited_df
+        if "total" in edited_df.columns:
+            try:
+                edited_df["total"] = pd.to_numeric(edited_df["total"], errors="coerce")
+                total_sum = edited_df["total"].sum()
+                diferencia = total_sum - monto_dpp
 
-    # Obtenemos la versión más reciente del DF (podría haber sido actualizada)
-    df_final = st.session_state[session_key]
-
-    if "total" in df_final.columns:
-        try:
-            df_final["total"] = pd.to_numeric(df_final["total"], errors="coerce")
-            total_sum = df_final["total"].sum()
-            diferencia = total_sum - monto_dpp
-
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric(label="Monto DPP 2025", value=f"${monto_dpp:,.0f}")
-            with col2:
-                st.metric(label="Suma de Total", value=f"${total_sum:,.0f}")
-            with col3:
-                st.metric(label="Diferencia", value=f"${diferencia:,.0f}")
-        except Exception as e:
-            st.warning(f"No se pudo convertir la columna 'total' a un formato numérico: {e}")
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric(label="Monto DPP 2025", value=f"${monto_dpp:,.0f}")
+                with col2:
+                    st.metric(label="Suma de Total", value=f"${total_sum:,.0f}")
+                with col3:
+                    st.metric(label="Diferencia", value=f"${diferencia:,.0f}")
+            except Exception as e:
+                st.warning(f"No se pudo convertir la columna 'total' a numérico: {e}")
+        else:
+            st.error("No se encontró una columna 'total' en los datos.")
     else:
-        st.error("No se encontró una columna llamada 'total' en los datos.")
+        st.warning("No se pudieron convertir los datos editados.")
 
 def calcular_actualizacion_tabla(vicepresidencias, tipo):
-    """Calcula la tabla de Actualización para Misiones o Consultores."""
     filas = []
     for vpe, montos in vicepresidencias.items():
         requerimiento_key = f"dpp_2025_{vpe}_{tipo}_data"
@@ -145,7 +130,6 @@ def calcular_actualizacion_tabla(vicepresidencias, tipo):
     return df
 
 def aplicar_estilos(df):
-    """Aplica estilos condicionales a la columna Diferencia."""
     def resaltar_diferencia(val):
         if val == 0:
             return "background-color: green; color: white;"
@@ -156,7 +140,6 @@ def aplicar_estilos(df):
     return styled_df
 
 def mostrar_actualizacion():
-    """Muestra la página de Actualización con tablas consolidadas."""
     st.title("Actualización - Resumen Consolidado")
     st.write("Estas tablas muestran el monto requerido, DPP 2025, y la diferencia para cada área.")
 
@@ -178,7 +161,6 @@ def mostrar_actualizacion():
     st.write(styled_consultores_df, unsafe_allow_html=True)
 
 def main():
-    """Estructura principal de la aplicación."""
     if not st.session_state.authenticated:
         st.title("Gestión Presupuestaria")
         username_input = st.text_input("Usuario", key="login_username")
@@ -188,7 +170,7 @@ def main():
         if login_button:
             if username_input == app_credentials["username"] and password_input == app_credentials["password"]:
                 st.session_state.authenticated = True
-                st.rerun()
+                st.rerun()  # Rerun sólo después del login
             else:
                 st.error("Usuario o contraseña incorrectos.")
     else:
@@ -197,25 +179,7 @@ def main():
 
         if selected_page == "Principal":
             st.title("Página Principal - Gestión Presupuestaria")
-            st.write("Bienvenido a la aplicación de Gestión Presupuestaria. Esta herramienta le permitirá administrar y visualizar presupuestos de manera interactiva.")
-            
-            st.header("Instrucciones de Uso")
-            st.markdown("""
-            1. **Acceso a Páginas**:
-                - Use el menú lateral para navegar entre las diferentes páginas y subpáginas disponibles.
-                - Cada página puede estar protegida con una contraseña. Ingrese la contraseña correcta cuando se le solicite.
-
-            2. **Editar Datos**:
-                - En las secciones de 'DPP 2025', se utiliza un formulario con Mito. Edite la tabla y presione "Aplicar Cambios" para guardar los cambios.
-            
-            3. **Visualizar Resúmenes**:
-                - En la página de 'Actualización', podrá ver un resumen consolidado con el total requerido, monto asignado (DPP 2025), y la diferencia.
-
-            4. **Guardar Cambios**:
-                - Los cambios realizados en las tablas se guardan al presionar "Aplicar Cambios".
-                - De esta manera se evita que los cambios se pierdan al hacer ediciones consecutivas.
-            """)
-
+            st.write("Esta herramienta permite editar presupuestos de manera interactiva. Realice cambios directamente en las tablas mostradas.")
         elif selected_page == "Actualización":
             if not st.session_state.page_authenticated["Actualización"]:
                 password = st.text_input("Contraseña para Actualización", type="password")
@@ -227,7 +191,6 @@ def main():
                         st.error("Contraseña incorrecta.")
             else:
                 mostrar_actualizacion()
-
         elif selected_page in ["VPD", "VPF", "VPO", "VPE"]:
             if not st.session_state.page_authenticated[selected_page]:
                 password = st.text_input(f"Contraseña para {selected_page}", type="password")
@@ -263,7 +226,6 @@ def main():
                         mostrar_requerimiento_area(f"{selected_page}_Consultores")
                     elif selected_subsubpage == "DPP 2025":
                         mostrar_dpp_2025_mito(f"{selected_page}_Consultores", montos[selected_page]["Consultores"])
-
         elif selected_page == "PRE":
             if not st.session_state.page_authenticated["PRE"]:
                 password = st.text_input("Contraseña para PRE", type="password")
