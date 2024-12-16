@@ -29,8 +29,9 @@ page_passwords = {
     "Tablero": "tablero654"
 }
 
+@st.cache_data
 def load_data(filepath, sheet_name):
-    """Carga datos de una hoja de Excel."""
+    """Carga datos de una hoja de Excel sin usar caché."""
     try:
         df = pd.read_excel(filepath, sheet_name=sheet_name, engine='openpyxl')
         return df
@@ -40,7 +41,7 @@ def load_data(filepath, sheet_name):
 
 def save_data(filepath, sheet_name, df):
     """Guarda el DataFrame en una hoja específica de un archivo Excel existente,
-    reemplazando sólo esa hoja."""
+    reemplazando sólo esa hoja y conservando las demás."""
     try:
         if not os.path.exists(filepath):
             df.to_excel(filepath, sheet_name=sheet_name, index=False)
@@ -104,16 +105,19 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
                 st.metric(label="Diferencia", value=f"${diferencia:,.0f}")
 
             # Métricas adicionales según el sheet_name
+            # VPD
             if "VPD_Misiones" in sheet_name:
                 st.metric("Gastos Centralizados VPD", "$35,960")
             if "VPD_Consultores" in sheet_name:
                 st.metric("Gastos Centralizados VPD", "$193,160")
 
+            # VPO
             if "VPO_Misiones" in sheet_name:
                 st.metric("Gastos Centralizados VPO", "$48,158")
             if "VPO_Consultores" in sheet_name:
                 st.metric("Gastos Centralizados VPO", "$33,160")
 
+            # VPF
             if "VPF_Misiones" in sheet_name:
                 st.metric("Gastos Centralizados VPF", "$40,960")
             if "VPF_Consultores" in sheet_name:
@@ -184,37 +188,7 @@ def mostrar_consolidado():
     data_cuadro_9 = load_data(excel_file, "Cuadro_9")
     if data_cuadro_9 is not None:
         data_cuadro_9 = data_cuadro_9.reset_index(drop=True)
-        # Convertimos todo a numérico
-        data_cuadro_9 = data_cuadro_9.apply(pd.to_numeric, errors='coerce')
-
-        # Multiplicamos la última columna por 100
-        data_cuadro_9.iloc[:, -1] = data_cuadro_9.iloc[:, -1] * 100.0
-
-        # Fila 9 (índice 9) multiplicar por 100
-        if len(data_cuadro_9) > 9:
-            data_cuadro_9.iloc[9, :] = data_cuadro_9.iloc[9, :] * 100.0
-
-        # Fila 10 (índice 10) no se modifica
-
-        # Fila 11 (índice 11) multiplicar por 100
-        if len(data_cuadro_9) > 11:
-            data_cuadro_9.iloc[11, :] = data_cuadro_9.iloc[11, :] * 100.0
-
-        # Formato general a dos decimales
-        styled_9 = data_cuadro_9.style.format("{:.2f}")
-
-        # Fila 9 con '%'
-        if len(data_cuadro_9) > 9:
-            styled_9 = styled_9.format("{:.2f}%", subset=pd.IndexSlice[[9], :])
-
-        # Fila 11 con '%'
-        if len(data_cuadro_9) > 11:
-            styled_9 = styled_9.format("{:.2f}%", subset=pd.IndexSlice[[11], :])
-
-        # Última columna con '%'
-        styled_9 = styled_9.format("{:.2f}%", subset=pd.IndexSlice[:, [data_cuadro_9.columns[-1]]])
-
-        st.dataframe(styled_9)
+        st.dataframe(data_cuadro_9)
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_9'.")
 
@@ -222,9 +196,7 @@ def mostrar_consolidado():
     data_cuadro_10 = load_data(excel_file, "Cuadro_10")
     if data_cuadro_10 is not None:
         data_cuadro_10 = data_cuadro_10.reset_index(drop=True)
-        data_cuadro_10 = data_cuadro_10.apply(pd.to_numeric, errors='coerce')
-        styled_10 = data_cuadro_10.style.format("{:.2f}")
-        st.dataframe(styled_10)
+        st.dataframe(data_cuadro_10)
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_10'.")
 
@@ -232,9 +204,7 @@ def mostrar_consolidado():
     data_cuadro_11 = load_data(excel_file, "Cuadro_11")
     if data_cuadro_11 is not None:
         data_cuadro_11 = data_cuadro_11.reset_index(drop=True)
-        data_cuadro_11 = data_cuadro_11.apply(pd.to_numeric, errors='coerce')
-        styled_11 = data_cuadro_11.style.format("{:.2f}")
-        st.dataframe(styled_11)
+        st.dataframe(data_cuadro_11)
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_11'.")
 
@@ -242,9 +212,7 @@ def mostrar_consolidado():
     data_consolidado = load_data(excel_file, "Consolidado")
     if data_consolidado is not None:
         data_consolidado = data_consolidado.reset_index(drop=True)
-        data_consolidado = data_consolidado.apply(pd.to_numeric, errors='coerce')
-        styled_consolidado = data_consolidado.style.format("{:.2f}")
-        st.dataframe(styled_consolidado)
+        st.dataframe(data_consolidado)
     else:
         st.warning("No se pudo cargar la hoja 'Consolidado'.")
 
@@ -352,7 +320,7 @@ def main():
                             mostrar_dpp_2025_editor("VPF_Consultores", montos["VPF"]["Consultores"])
 
                 else:
-                    # VPE sin cambios adicionales
+                    # VPE sin cambios adicionales solicitados
                     if selected_subpage == "Misiones":
                         subsubpage_options = ["Requerimiento de Área", "DPP 2025"]
                         selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Misiones", subsubpage_options)
