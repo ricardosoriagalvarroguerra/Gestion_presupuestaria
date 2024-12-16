@@ -188,19 +188,20 @@ def mostrar_consolidado():
     if data_cuadro_9 is not None:
         data_cuadro_9 = data_cuadro_9.reset_index(drop=True)
         if len(data_cuadro_9) >= 10:
-            # Convertir a numérico la última fila (índice 9) y última columna antes de dividir
+            # Convertir última fila (índice 9) y última columna a numérico
             data_cuadro_9.iloc[9, :] = pd.to_numeric(data_cuadro_9.iloc[9, :], errors='coerce')
             data_cuadro_9.iloc[:, -1] = pd.to_numeric(data_cuadro_9.iloc[:, -1], errors='coerce')
 
-            # Ahora dividimos por 100 para convertir a porcentaje
-            data_cuadro_9.iloc[9, :] = data_cuadro_9.iloc[9, :] / 100.0
-            data_cuadro_9.iloc[:, -1] = data_cuadro_9.iloc[:, -1] / 100.0
+            # Ahora simplemente formateamos la última fila y última columna agregando "%"
+            styled_9 = data_cuadro_9.style
+            # Formato para la fila 10 (índice 9)
+            styled_9 = styled_9.format("{:.2f}%", subset=pd.IndexSlice[[9], :])
+            # Formato para la última columna
+            styled_9 = styled_9.format("{:.2f}%", subset=pd.IndexSlice[:, [data_cuadro_9.columns[-1]]])
 
-            styled_9 = data_cuadro_9.style.format("{:.2%}", subset=pd.IndexSlice[[9], :])
-            styled_9 = styled_9.format("{:.2%}", subset=pd.IndexSlice[:, [data_cuadro_9.columns[-1]]])
             st.dataframe(styled_9)
         else:
-            # Si no hay suficientes filas, sólo mostramos la tabla sin cambios
+            # Si no hay suficientes filas, se muestra la tabla sin cambios
             st.dataframe(data_cuadro_9)
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_9'.")
