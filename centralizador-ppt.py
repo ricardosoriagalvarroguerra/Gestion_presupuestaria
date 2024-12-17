@@ -10,7 +10,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Credenciales globales de acceso a la app (actualizado para múltiples usuarios)
+# Credenciales globales de acceso a la app (incluyendo nuevos usuarios)
 app_credentials = {
     "luciana_botafogo": "fonplata",
     "mcalvino": "2025presupuesto",
@@ -92,7 +92,7 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
         save_data(excel_file, sheet_name, edited_df)
         st.success("Cambios guardados en el archivo Excel.")
         # Limpia la caché de datos para que al reiniciar la app se carguen los datos actualizados del Excel
-        st.cache_data.clear()
+        load_data.clear()
 
     current_df = st.session_state[session_key]
     if "total" in current_df.columns:
@@ -242,7 +242,7 @@ def main():
 
         if selected_page == "Principal":
             st.title("Página Principal - Gestión Presupuestaria")
-            st.write("Bienvenido a la aplicación de Gestión Presupuestaria.")
+            st.write(f"Bienvenido, **{st.session_state.username}** a la aplicación de Gestión Presupuestaria.")
         elif selected_page == "Actualización":
             if not st.session_state.page_authenticated["Actualización"]:
                 password = st.text_input("Contraseña para Actualización", type="password")
