@@ -10,11 +10,10 @@ st.set_page_config(
     layout="wide"
 )
 
-# Credenciales globales de acceso a la app (incluyendo nuevos usuarios)
+# Credenciales globales de acceso a la app
 app_credentials = {
-    "luciana_botafogo": "fonplata",
-    "mcalvino": "2025presupuesto",
-    "ajustinianon": "2025presupuesto"
+    "username": "luciana_botafogo",
+    "password": "fonplata"
 }
 
 # Contraseñas para cada página
@@ -54,10 +53,8 @@ def save_data(filepath, sheet_name, df):
 
 excel_file = "main_bdd.xlsx"
 
-# Inicializar el estado de autenticación si no existe
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
-    st.session_state.username = ""  # Para almacenar el nombre de usuario autenticado
 
 if "page_authenticated" not in st.session_state:
     st.session_state.page_authenticated = {page: False for page in page_passwords if page_passwords[page]}
@@ -92,7 +89,7 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
         save_data(excel_file, sheet_name, edited_df)
         st.success("Cambios guardados en el archivo Excel.")
         # Limpia la caché de datos para que al reiniciar la app se carguen los datos actualizados del Excel
-        load_data.clear()
+        st.cache_data.clear()
 
     current_df = st.session_state[session_key]
     if "total" in current_df.columns:
@@ -229,11 +226,9 @@ def main():
         login_button = st.button("Ingresar", key="login_button")
 
         if login_button:
-            # Verificar si el usuario existe y la contraseña es correcta
-            if username_input in app_credentials and password_input == app_credentials[username_input]:
+            if username_input == app_credentials["username"] and password_input == app_credentials["password"]:
                 st.session_state.authenticated = True
-                st.session_state.username = username_input  # Guardar el nombre de usuario autenticado
-                st.experimental_rerun()
+                st.rerun()
             else:
                 st.error("Usuario o contraseña incorrectos.")
     else:
@@ -242,14 +237,14 @@ def main():
 
         if selected_page == "Principal":
             st.title("Página Principal - Gestión Presupuestaria")
-            st.write(f"Bienvenido, **{st.session_state.username}** a la aplicación de Gestión Presupuestaria.")
+            st.write("Bienvenido a la aplicación de Gestión Presupuestaria.")
         elif selected_page == "Actualización":
             if not st.session_state.page_authenticated["Actualización"]:
                 password = st.text_input("Contraseña para Actualización", type="password")
                 if st.button("Ingresar"):
                     if password == page_passwords["Actualización"]:
                         st.session_state.page_authenticated["Actualización"] = True
-                        st.experimental_rerun()
+                        st.rerun()
                     else:
                         st.error("Contraseña incorrecta.")
             else:
@@ -261,7 +256,7 @@ def main():
                 if st.button("Ingresar"):
                     if password == page_passwords[selected_page]:
                         st.session_state.page_authenticated[selected_page] = True
-                        st.experimental_rerun()
+                        st.rerun()
                     else:
                         st.error("Contraseña incorrecta.")
             else:
@@ -326,8 +321,8 @@ def main():
                         elif selected_subsubpage == "DPP 2025":
                             mostrar_dpp_2025_editor("VPF_Consultores", montos["VPF"]["Consultores"])
 
-                elif selected_page == "VPE":
-                    # VPE
+                else:
+                    # VPE sin cambios adicionales solicitados
                     if selected_subpage == "Misiones":
                         subsubpage_options = ["Requerimiento de Área", "DPP 2025"]
                         selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Misiones", subsubpage_options)
@@ -350,7 +345,7 @@ def main():
                 if st.button("Ingresar"):
                     if password == page_passwords["PRE"]:
                         st.session_state.page_authenticated["PRE"] = True
-                        st.experimental_rerun()
+                        st.rerun()
                     else:
                         st.error("Contraseña incorrecta.")
             else:
@@ -408,7 +403,7 @@ def main():
                 if st.button("Ingresar"):
                     if password == page_passwords["Consolidado"]:
                         st.session_state.page_authenticated["Consolidado"] = True
-                        st.experimental_rerun()
+                        st.rerun()
                     else:
                         st.error("Contraseña incorrecta.")
             else:
