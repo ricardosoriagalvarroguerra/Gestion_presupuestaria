@@ -10,10 +10,11 @@ st.set_page_config(
     layout="wide"
 )
 
-# Credenciales globales de acceso a la app
+# Credenciales globales de acceso a la app (actualizado para múltiples usuarios)
 app_credentials = {
-    "username": "luciana_botafogo",
-    "password": "fonplata"
+    "luciana_botafogo": "fonplata",
+    "mcalvino": "2025presupuesto",
+    "ajustinianon": "2025presupuesto"
 }
 
 # Contraseñas para cada página
@@ -226,8 +227,9 @@ def main():
         login_button = st.button("Ingresar", key="login_button")
 
         if login_button:
-            if username_input == app_credentials["username"] and password_input == app_credentials["password"]:
+            if username_input in app_credentials and password_input == app_credentials[username_input]:
                 st.session_state.authenticated = True
+                st.session_state.current_user = username_input  # Opcional: almacenar el usuario actual
                 st.rerun()
             else:
                 st.error("Usuario o contraseña incorrectos.")
