@@ -29,6 +29,7 @@ page_passwords = {
     "Tablero": "tablero654"
 }
 
+@st.cache_data
 def load_data(filepath, sheet_name):
     """Carga datos de una hoja de Excel sin usar caché."""
     try:
@@ -87,6 +88,8 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
         st.session_state[session_key] = edited_df
         save_data(excel_file, sheet_name, edited_df)
         st.success("Cambios guardados en el archivo Excel.")
+        # Limpia la caché de datos para que al reiniciar la app se carguen los datos actualizados del Excel
+        st.cache_data.clear()
 
     current_df = st.session_state[session_key]
     if "total" in current_df.columns:
@@ -225,7 +228,7 @@ def main():
         if login_button:
             if username_input == app_credentials["username"] and password_input == app_credentials["password"]:
                 st.session_state.authenticated = True
-                st.experimental_rerun()
+                st.rerun()
             else:
                 st.error("Usuario o contraseña incorrectos.")
     else:
@@ -241,7 +244,7 @@ def main():
                 if st.button("Ingresar"):
                     if password == page_passwords["Actualización"]:
                         st.session_state.page_authenticated["Actualización"] = True
-                        st.experimental_rerun()
+                        st.rerun()
                     else:
                         st.error("Contraseña incorrecta.")
             else:
@@ -253,7 +256,7 @@ def main():
                 if st.button("Ingresar"):
                     if password == page_passwords[selected_page]:
                         st.session_state.page_authenticated[selected_page] = True
-                        st.experimental_rerun()
+                        st.rerun()
                     else:
                         st.error("Contraseña incorrecta.")
             else:
@@ -319,7 +322,7 @@ def main():
                             mostrar_dpp_2025_editor("VPF_Consultores", montos["VPF"]["Consultores"])
 
                 else:
-                    # VPE
+                    # VPE sin cambios adicionales solicitados
                     if selected_subpage == "Misiones":
                         subsubpage_options = ["Requerimiento de Área", "DPP 2025"]
                         selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Misiones", subsubpage_options)
@@ -342,7 +345,7 @@ def main():
                 if st.button("Ingresar"):
                     if password == page_passwords["PRE"]:
                         st.session_state.page_authenticated["PRE"] = True
-                        st.experimental_rerun()
+                        st.rerun()
                     else:
                         st.error("Contraseña incorrecta.")
             else:
@@ -400,7 +403,7 @@ def main():
                 if st.button("Ingresar"):
                     if password == page_passwords["Consolidado"]:
                         st.session_state.page_authenticated["Consolidado"] = True
-                        st.experimental_rerun()
+                        st.rerun()
                     else:
                         st.error("Contraseña incorrecta.")
             else:
