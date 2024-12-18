@@ -84,6 +84,21 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
 
     edited_df = st.data_editor(st.session_state[session_key], key=f"editor_{sheet_name}", num_rows="dynamic")
 
+    # Aquí aplicamos la fórmula automáticamente antes de guardar si es la hoja VPD_Consultores
+    if sheet_name == "VPD_Consultores":
+        # Verificamos que las columnas necesarias existan
+        required_cols = ["cantidad_funcionarios", "monto_mensual", "cantidad_meses"]
+        if all(col in edited_df.columns for col in required_cols):
+            # Convertimos a numérico por si hubiese problemas de tipo de dato
+            edited_df["cantidad_funcionarios"] = pd.to_numeric(edited_df["cantidad_funcionarios"], errors="coerce").fillna(0)
+            edited_df["monto_mensual"] = pd.to_numeric(edited_df["monto_mensual"], errors="coerce").fillna(0)
+            edited_df["cantidad_meses"] = pd.to_numeric(edited_df["cantidad_meses"], errors="coerce").fillna(0)
+            
+            # Calculamos el total como producto de las tres columnas
+            edited_df["total"] = edited_df["cantidad_funcionarios"] * edited_df["monto_mensual"] * edited_df["cantidad_meses"]
+        else:
+            st.warning("No se encontraron las columnas necesarias (cantidad_funcionarios, monto_mensual, cantidad_meses) para calcular el total.")
+
     if st.button("Guardar Cambios", key=f"guardar_{sheet_name}"):
         edited_df.columns = edited_df.columns.str.strip().str.lower()
         st.session_state[session_key] = edited_df
@@ -287,6 +302,7 @@ def main():
                         if selected_subsubpage == "Requerimiento de Área":
                             mostrar_requerimiento_area("VPD_Consultores")
                         elif selected_subsubpage == "DPP 2025":
+                            # Aquí se aplicará la fórmula automáticamente.
                             mostrar_dpp_2025_editor("VPD_Consultores", montos["VPD"]["Consultores"])
 
                 elif selected_page == "VPO":
@@ -324,7 +340,7 @@ def main():
                             mostrar_dpp_2025_editor("VPF_Consultores", montos["VPF"]["Consultores"])
 
                 else:
-                    # VPE sin cambios adicionales solicitados
+                    # VPE sin cambios adicionales
                     if selected_subpage == "Misiones":
                         subsubpage_options = ["Requerimiento de Área", "DPP 2025"]
                         selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Misiones", subsubpage_options)
