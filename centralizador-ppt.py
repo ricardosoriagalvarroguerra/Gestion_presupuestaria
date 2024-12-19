@@ -59,8 +59,16 @@ if "page_authenticated" not in st.session_state:
     st.session_state.page_authenticated = {page: False for page in page_passwords if page_passwords[page]}
 
 def mostrar_requerimiento_area(sheet_name):
+    # Se carga la data solo una vez y se guarda en session_state
+    # para que no cambie incluso si cambian los datos en DPP 2025
     st.header(f"Requerimiento de Área - {sheet_name}")
-    data = load_data(excel_file, sheet_name)
+    area_key = f"req_area_data_{sheet_name}"
+    if area_key not in st.session_state:
+        data = load_data(excel_file, sheet_name)
+        st.session_state[area_key] = data
+    else:
+        data = st.session_state[area_key]
+
     if data is not None:
         if "total" in data.columns and pd.api.types.is_numeric_dtype(data["total"]):
             total_sum = data["total"].sum(numeric_only=True)
@@ -223,7 +231,6 @@ def mostrar_actualizacion():
 def mostrar_consolidado():
     st.title("Consolidado")
 
-    # Índices de filas a resaltar
     filas_cuadro_9 = [7]
     filas_cuadro_10 = [0, 7, 14, 21, 24]
 
@@ -236,7 +243,7 @@ def mostrar_consolidado():
             st.warning("No se pudo cargar la tabla.")
             return None
 
-    # Cuadro 9: Título cambiado
+    # Cuadro 9
     st.header("Gastos en Personal 2025 vs 2024 (Cuadro 9 - DPP 2025)")
     data_cuadro_9 = load_data(excel_file, "Cuadro_9")
     if data_cuadro_9 is not None:
@@ -253,7 +260,7 @@ def mostrar_consolidado():
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_9'.")
 
-    # Cuadro 10: Título cambiado
+    # Cuadro 10
     st.header("Análisis de Cambios en Gastos de Personal 2025 vs. 2024 (Cuadro 10 - DPP 2025)")
     data_cuadro_10 = load_data(excel_file, "Cuadro_10")
     if data_cuadro_10 is not None:
@@ -270,7 +277,7 @@ def mostrar_consolidado():
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_10'.")
 
-    # Cuadro 11: Título cambiado
+    # Cuadro 11
     st.header("Gastos Operativos propuestos para 2025 y montos aprobados para 2024 (Cuadro 11 - DPP 2025)")
     data_cuadro_11 = load_data(excel_file, "Cuadro_11")
     if data_cuadro_11 is not None:
@@ -281,7 +288,7 @@ def mostrar_consolidado():
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_11'.")
 
-    # Consolidado DPP 2025 sin cambios de títulos
+    # Consolidado DPP 2025
     st.header("Consolidado DPP 2025")
     data_consolidado = load_data(excel_file, "Consolidado")
     if data_consolidado is not None:
