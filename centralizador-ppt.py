@@ -197,12 +197,12 @@ def mostrar_actualizacion():
 def mostrar_consolidado():
     st.title("Consolidado")
 
-    # Al mostrar las tablas del consolidado, les aplicamos un formato con 2 decimales.
     def mostrar_tabla_formato_dos_decimales(df):
-        # Aplica formato a todas las columnas numéricas con dos decimales
-        # Usamos st.write con el styler
         if df is not None:
-            styled_df = df.style.format("{:.2f}")
+            # Seleccionamos sólo las columnas numéricas
+            numeric_cols = df.select_dtypes(include=["number"]).columns
+            # Aplicamos el formato sólo a las columnas numéricas
+            styled_df = df.style.format("{:.2f}", subset=numeric_cols)
             st.write(styled_df, unsafe_allow_html=True)
         else:
             st.warning("No se pudo cargar la tabla.")
