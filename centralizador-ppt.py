@@ -401,17 +401,19 @@ def main():
 
                     if selected_subpage == "Misiones Personal":
                         mostrar_requerimiento_area("PRE_Misiones_personal")
+                        # Primera fila: VPD (izq), VPO (der)
                         col1, col2 = st.columns(2)
                         with col1:
                             st.metric("Gasto Centralizados VPD", "$35,960")
                         with col2:
                             st.metric("Gasto Centralizados VPO", "$48,158")
-                            # Se agrega el nuevo value box solicitado
-                            st.metric("Gasto Centralizados PRE", "$60,168")
 
-                        col3, _ = st.columns([1,1])
+                        # Segunda fila: VPF (izq), PRE (der)
+                        col3, col4 = st.columns(2)
                         with col3:
                             st.metric("Gasto Centralizados VPF", "$40,960")
+                        with col4:
+                            st.metric("Gasto Centralizados PRE", "$60,168")
 
                     elif selected_subpage == "Misiones Consultores":
                         mostrar_requerimiento_area("PRE_Misiones_consultores")
