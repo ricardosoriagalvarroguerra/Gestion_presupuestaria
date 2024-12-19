@@ -11,6 +11,29 @@ st.set_page_config(
     layout="wide"
 )
 
+# Ruta del logo
+logo_path = "estrellafon_transparente.png"
+
+def titulo_con_logo(titulo, nivel=1):
+    """
+    Muestra un título con el logo al lado.
+    nivel=1 -> título principal (equivalente a st.title)
+    nivel=2 -> encabezado (equivalente a st.header)
+    nivel=3 -> subencabezado (equivalente a st.subheader)
+    """
+    col1, col2 = st.columns([0.1, 1])
+    with col1:
+        st.image(logo_path, width=50)
+    with col2:
+        if nivel == 1:
+            st.markdown(f"# {titulo}")
+        elif nivel == 2:
+            st.markdown(f"## {titulo}")
+        elif nivel == 3:
+            st.markdown(f"### {titulo}")
+        else:
+            st.markdown(f"## {titulo}")  # Por defecto nivel 2
+
 # Credenciales globales de acceso a la app
 app_credentials = {
     "luciana_botafogo": "fonplata",
@@ -59,7 +82,7 @@ if "page_authenticated" not in st.session_state:
     st.session_state.page_authenticated = {page: False for page in page_passwords if page_passwords[page]}
 
 def mostrar_requerimiento_area(sheet_name):
-    st.header(f"Requerimiento de Área - {sheet_name}")
+    titulo_con_logo(f"Requerimiento de Área - {sheet_name}", nivel=2)
     area_key = f"req_area_data_{sheet_name}"
     if area_key not in st.session_state:
         data = load_data(excel_file, sheet_name)
@@ -103,7 +126,7 @@ def recalcular_formulas(sheet_name, df):
     return df
 
 def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
-    st.header(f"DPP 2025 - {sheet_name}")
+    titulo_con_logo(f"DPP 2025 - {sheet_name}", nivel=2)
 
     session_key = f"dpp_2025_{sheet_name}_data"
     if session_key not in st.session_state:
@@ -206,7 +229,7 @@ def aplicar_estilos(df):
     return styled_df
 
 def mostrar_actualizacion():
-    st.title("Actualización - Resumen Consolidado")
+    titulo_con_logo("Actualización - Resumen Consolidado", nivel=1)
     st.write("Estas tablas muestran el monto requerido, DPP 2025, y la diferencia para cada área.")
 
     vicepresidencias = {
@@ -216,18 +239,18 @@ def mostrar_actualizacion():
         "VPE": {"Misiones": 28244, "Consultores": 179446},
     }
 
-    st.subheader("Misiones")
+    titulo_con_logo("Misiones", nivel=3)
     misiones_df = calcular_actualizacion_tabla(vicepresidencias, "Misiones")
     styled_misiones_df = aplicar_estilos(misiones_df)
     st.write(styled_misiones_df, unsafe_allow_html=True)
 
-    st.subheader("Consultores")
+    titulo_con_logo("Consultores", nivel=3)
     consultores_df = calcular_actualizacion_tabla(vicepresidencias, "Consultores")
     styled_consultores_df = aplicar_estilos(consultores_df)
     st.write(styled_consultores_df, unsafe_allow_html=True)
 
 def mostrar_consolidado():
-    st.title("Consolidado")
+    titulo_con_logo("Consolidado", nivel=1)
 
     filas_cuadro_9 = [7]
     filas_cuadro_10 = [0, 7, 14, 21, 24]
@@ -242,7 +265,7 @@ def mostrar_consolidado():
             return None
 
     # Cuadro 9
-    st.header("Gastos en Personal 2025 vs 2024 (Cuadro 9 - DPP 2025)")
+    titulo_con_logo("Gastos en Personal 2025 vs 2024 (Cuadro 9 - DPP 2025)", nivel=2)
     data_cuadro_9 = load_data(excel_file, "Cuadro_9")
     if data_cuadro_9 is not None:
         data_cuadro_9 = data_cuadro_9.reset_index(drop=True)
@@ -259,7 +282,7 @@ def mostrar_consolidado():
         st.warning("No se pudo cargar la hoja 'Cuadro_9'.")
 
     # Cuadro 10
-    st.header("Análisis de Cambios en Gastos de Personal 2025 vs. 2024 (Cuadro 10 - DPP 2025)")
+    titulo_con_logo("Análisis de Cambios en Gastos de Personal 2025 vs. 2024 (Cuadro 10 - DPP 2025)", nivel=2)
     data_cuadro_10 = load_data(excel_file, "Cuadro_10")
     if data_cuadro_10 is not None:
         data_cuadro_10 = data_cuadro_10.reset_index(drop=True)
@@ -276,7 +299,7 @@ def mostrar_consolidado():
         st.warning("No se pudo cargar la hoja 'Cuadro_10'.")
 
     # Cuadro 11
-    st.header("Gastos Operativos propuestos para 2025 y montos aprobados para 2024 (Cuadro 11 - DPP 2025)")
+    titulo_con_logo("Gastos Operativos propuestos para 2025 \ny montos aprobados para 2024 (Cuadro 11 - DPP 2025)", nivel=2)
     data_cuadro_11 = load_data(excel_file, "Cuadro_11")
     if data_cuadro_11 is not None:
         data_cuadro_11 = data_cuadro_11.reset_index(drop=True)
@@ -287,7 +310,7 @@ def mostrar_consolidado():
         st.warning("No se pudo cargar la hoja 'Cuadro_11'.")
 
     # Consolidado DPP 2025
-    st.header("Consolidado DPP 2025")
+    titulo_con_logo("Consolidado DPP 2025", nivel=2)
     data_consolidado = load_data(excel_file, "Consolidado")
     if data_consolidado is not None:
         data_consolidado = data_consolidado.reset_index(drop=True)
@@ -299,7 +322,7 @@ def mostrar_consolidado():
 
 def main():
     if not st.session_state.authenticated:
-        st.title("Gestión Presupuestaria")
+        titulo_con_logo("Página Principal - Gestión Presupuestaria", nivel=1)
         username_input = st.text_input("Usuario", key="login_username")
         password_input = st.text_input("Contraseña", type="password", key="login_password")
         login_button = st.button("Ingresar", key="login_button")
@@ -311,12 +334,24 @@ def main():
                 st.rerun()
             else:
                 st.error("Usuario o contraseña incorrectos.")
+
+        st.write("**Instrucciones de uso:**")
+        st.write("""
+        1. Selecciona la página que deseas visitar desde el menú lateral.
+        2. Ingresa las credenciales si la página lo requiere.
+        3. En las páginas de "Requerimiento de Área" podrás visualizar el total requerido sin que éste cambie luego de modificar datos en las páginas DPP 2025.
+        4. En las páginas DPP 2025 puedes editar las tablas y luego guardar los cambios. También puedes descargar el Excel modificado.
+        5. La página "Actualización" muestra un resumen consolidado, mientras que "Consolidado" presenta distintos cuadros con sus cifras.
+        6. Si en algún momento deseas volver a la página principal, selecciona "Principal" en el menú lateral.
+        """)
+        st.write("**Nota:** Asegúrate de tener las contraseñas correctas para acceder a las páginas protegidas y editar los datos.")
+
     else:
         pages = list(page_passwords.keys())
         selected_page = st.sidebar.selectbox("Selecciona una página", pages)
 
         if selected_page == "Principal":
-            st.title("Página Principal - Gestión Presupuestaria")
+            titulo_con_logo("Página Principal - Gestión Presupuestaria", nivel=1)
             st.write("**Instrucciones de uso:**")
             st.write("""
             1. Selecciona la página que deseas visitar desde el menú lateral.
@@ -326,9 +361,8 @@ def main():
             5. La página "Actualización" muestra un resumen consolidado, mientras que "Consolidado" presenta distintos cuadros con sus cifras.
             6. Si en algún momento deseas volver a la página principal, selecciona "Principal" en el menú lateral.
             """)
-
             st.write("**Nota:** Asegúrate de tener las contraseñas correctas para acceder a las páginas protegidas y editar los datos.")
-        
+
         elif selected_page == "Actualización":
             if not st.session_state.page_authenticated["Actualización"]:
                 password = st.text_input("Contraseña para Actualización", type="password")
@@ -362,6 +396,7 @@ def main():
                 }
 
                 if selected_page == "VPD":
+                    titulo_con_logo("VPD", nivel=1)
                     if selected_subpage == "Misiones":
                         subsubpage_options = ["Requerimiento de Área", "DPP 2025"]
                         selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Misiones", subsubpage_options)
@@ -379,6 +414,7 @@ def main():
                             mostrar_dpp_2025_editor("VPD_Consultores", montos["VPD"]["Consultores"])
 
                 elif selected_page == "VPO":
+                    titulo_con_logo("VPO", nivel=1)
                     if selected_subpage == "Misiones":
                         subsubpage_options = ["Requerimiento de Área", "DPP 2025"]
                         selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Misiones", subsubpage_options)
@@ -396,6 +432,7 @@ def main():
                             mostrar_dpp_2025_editor("VPO_Consultores", montos["VPO"]["Consultores"])
 
                 elif selected_page == "VPF":
+                    titulo_con_logo("VPF", nivel=1)
                     if selected_subpage == "Misiones":
                         subsubpage_options = ["Requerimiento de Área", "DPP 2025"]
                         selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Misiones", subsubpage_options)
@@ -413,6 +450,7 @@ def main():
                             mostrar_dpp_2025_editor("VPF_Consultores", montos["VPF"]["Consultores"])
 
                 else:
+                    titulo_con_logo("VPE", nivel=1)
                     if selected_subpage == "Misiones":
                         subsubpage_options = ["Requerimiento de Área", "DPP 2025"]
                         selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Misiones", subsubpage_options)
@@ -439,7 +477,7 @@ def main():
                     else:
                         st.error("Contraseña incorrecta.")
             else:
-                st.title("PRE")
+                titulo_con_logo("PRE", nivel=1)
                 subpage_options = ["Misiones Personal", "Misiones Consultores", "Servicios Profesionales", "Gastos Centralizados"]
                 selected_subpage = st.sidebar.selectbox("Selecciona una subpágina", subpage_options)
 
