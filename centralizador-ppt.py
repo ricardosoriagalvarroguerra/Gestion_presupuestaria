@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import openpyxl
 import os
+import io
 
 # Configuración de la aplicación
 st.set_page_config(
@@ -145,12 +146,28 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
     else:
         st.error("No se encontró una columna 'total' en los datos.")
 
+    # Botón Guardar Cambios
     if st.button("Guardar Cambios", key=f"guardar_{sheet_name}"):
         df_to_save = st.session_state[session_key].copy()
         df_to_save.columns = df_to_save.columns.str.strip().str.lower()
         save_data(excel_file, sheet_name, df_to_save)
         st.success("Cambios guardados en el archivo Excel.")
         st.cache_data.clear()
+
+    # Botón Descargar Excel
+    # Generamos un archivo Excel en memoria con los datos actuales
+    df_download = st.session_state[session_key].copy()
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df_download.to_excel(writer, index=False, sheet_name=sheet_name)
+    output.seek(0)
+    
+    st.download_button(
+        label="Descargar Excel",
+        data=output.getvalue(),
+        file_name=f"{sheet_name}_modificado.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
 
 def calcular_actualizacion_tabla(vicepresidencias, tipo):
     filas = []
@@ -212,13 +229,11 @@ def mostrar_consolidado():
     filas_cuadro_9 = [7]
 
     # Para Cuadro_10 resaltar fila 1, 8, 15, 22, 25
-    # Índices: fila 1 -> 0, fila 8 -> 7, fila 15 -> 14, fila 22 -> 21, fila 25 -> 24
     filas_cuadro_10 = [0, 7, 14, 21, 24]
 
     def mostrar_tabla_formato_dos_decimales(df):
         if df is not None:
             numeric_cols = df.select_dtypes(include=["number"]).columns
-            # Ahora usamos {:,.2f} para incluir separador de miles
             styled_df = df.style.format("{:,.2f}", subset=numeric_cols)
             return styled_df
         else:
