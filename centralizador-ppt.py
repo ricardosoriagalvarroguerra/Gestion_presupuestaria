@@ -84,17 +84,13 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
 
     edited_df = st.data_editor(st.session_state[session_key], key=f"editor_{sheet_name}", num_rows="dynamic")
 
-    # Aquí aplicamos la fórmula automáticamente antes de guardar si es la hoja VPD_Consultores
+    # Cálculo automático para la hoja VPD_Consultores
     if sheet_name == "VPD_Consultores":
-        # Verificamos que las columnas necesarias existan
         required_cols = ["cantidad_funcionarios", "monto_mensual", "cantidad_meses"]
         if all(col in edited_df.columns for col in required_cols):
-            # Convertimos a numérico por si hubiese problemas de tipo de dato
             edited_df["cantidad_funcionarios"] = pd.to_numeric(edited_df["cantidad_funcionarios"], errors="coerce").fillna(0)
             edited_df["monto_mensual"] = pd.to_numeric(edited_df["monto_mensual"], errors="coerce").fillna(0)
             edited_df["cantidad_meses"] = pd.to_numeric(edited_df["cantidad_meses"], errors="coerce").fillna(0)
-            
-            # Calculamos el total como producto de las tres columnas
             edited_df["total"] = edited_df["cantidad_funcionarios"] * edited_df["monto_mensual"] * edited_df["cantidad_meses"]
         else:
             st.warning("No se encontraron las columnas necesarias (cantidad_funcionarios, monto_mensual, cantidad_meses) para calcular el total.")
@@ -104,7 +100,6 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
         st.session_state[session_key] = edited_df
         save_data(excel_file, sheet_name, edited_df)
         st.success("Cambios guardados en el archivo Excel.")
-        # Limpia la caché de datos para que al reiniciar la app se carguen los datos actualizados del Excel
         st.cache_data.clear()
 
     current_df = st.session_state[session_key]
@@ -202,11 +197,21 @@ def mostrar_actualizacion():
 def mostrar_consolidado():
     st.title("Consolidado")
 
+    # Al mostrar las tablas del consolidado, les aplicamos un formato con 2 decimales.
+    def mostrar_tabla_formato_dos_decimales(df):
+        # Aplica formato a todas las columnas numéricas con dos decimales
+        # Usamos st.write con el styler
+        if df is not None:
+            styled_df = df.style.format("{:.2f}")
+            st.write(styled_df, unsafe_allow_html=True)
+        else:
+            st.warning("No se pudo cargar la tabla.")
+
     st.header("Cuadro 9.")
     data_cuadro_9 = load_data(excel_file, "Cuadro_9")
     if data_cuadro_9 is not None:
         data_cuadro_9 = data_cuadro_9.reset_index(drop=True)
-        st.dataframe(data_cuadro_9)
+        mostrar_tabla_formato_dos_decimales(data_cuadro_9)
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_9'.")
 
@@ -214,7 +219,7 @@ def mostrar_consolidado():
     data_cuadro_10 = load_data(excel_file, "Cuadro_10")
     if data_cuadro_10 is not None:
         data_cuadro_10 = data_cuadro_10.reset_index(drop=True)
-        st.dataframe(data_cuadro_10)
+        mostrar_tabla_formato_dos_decimales(data_cuadro_10)
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_10'.")
 
@@ -222,7 +227,7 @@ def mostrar_consolidado():
     data_cuadro_11 = load_data(excel_file, "Cuadro_11")
     if data_cuadro_11 is not None:
         data_cuadro_11 = data_cuadro_11.reset_index(drop=True)
-        st.dataframe(data_cuadro_11)
+        mostrar_tabla_formato_dos_decimales(data_cuadro_11)
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_11'.")
 
@@ -230,7 +235,7 @@ def mostrar_consolidado():
     data_consolidado = load_data(excel_file, "Consolidado")
     if data_consolidado is not None:
         data_consolidado = data_consolidado.reset_index(drop=True)
-        st.dataframe(data_consolidado)
+        mostrar_tabla_formato_dos_decimales(data_consolidado)
     else:
         st.warning("No se pudo cargar la hoja 'Consolidado'.")
 
@@ -244,7 +249,7 @@ def main():
         if login_button:
             if username_input in app_credentials and password_input == app_credentials[username_input]:
                 st.session_state.authenticated = True
-                st.session_state.current_user = username_input  # Opcional: almacenar el usuario actual
+                st.session_state.current_user = username_input
                 st.rerun()
             else:
                 st.error("Usuario o contraseña incorrectos.")
@@ -302,7 +307,6 @@ def main():
                         if selected_subsubpage == "Requerimiento de Área":
                             mostrar_requerimiento_area("VPD_Consultores")
                         elif selected_subsubpage == "DPP 2025":
-                            # Aquí se aplicará la fórmula automáticamente.
                             mostrar_dpp_2025_editor("VPD_Consultores", montos["VPD"]["Consultores"])
 
                 elif selected_page == "VPO":
@@ -340,7 +344,7 @@ def main():
                             mostrar_dpp_2025_editor("VPF_Consultores", montos["VPF"]["Consultores"])
 
                 else:
-                    # VPE sin cambios adicionales
+                    # VPE
                     if selected_subpage == "Misiones":
                         subsubpage_options = ["Requerimiento de Área", "DPP 2025"]
                         selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Misiones", subsubpage_options)
