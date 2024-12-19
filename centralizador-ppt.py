@@ -72,7 +72,7 @@ def mostrar_requerimiento_area(sheet_name):
         st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
 
 def recalcular_formulas(sheet_name, df):
-    # Esta función recalcula las fórmulas según el sheet_name
+    # Recalcula las fórmulas según el sheet_name
 
     if sheet_name == "VPD_Consultores":
         required_cols = ["cantidad_funcionarios", "monto_mensual", "cantidad_meses"]
@@ -223,21 +223,27 @@ def mostrar_actualizacion():
 def mostrar_consolidado():
     st.title("Consolidado")
 
+    # Índices para colorear (fila 1 -> índice 0, fila 8 -> índice 7, fila 15 -> índice 14, fila 23 -> índice 22)
+    filas_colorear = [0, 7, 14, 22]
+
     def mostrar_tabla_formato_dos_decimales(df):
         if df is not None:
             # Seleccionamos sólo las columnas numéricas
             numeric_cols = df.select_dtypes(include=["number"]).columns
             # Aplicamos el formato sólo a las columnas numéricas
             styled_df = df.style.format("{:.2f}", subset=numeric_cols)
-            st.write(styled_df, unsafe_allow_html=True)
+            return styled_df
         else:
             st.warning("No se pudo cargar la tabla.")
+            return None
 
     st.header("Cuadro 9.")
     data_cuadro_9 = load_data(excel_file, "Cuadro_9")
     if data_cuadro_9 is not None:
         data_cuadro_9 = data_cuadro_9.reset_index(drop=True)
-        mostrar_tabla_formato_dos_decimales(data_cuadro_9)
+        styled_cuadro_9 = mostrar_tabla_formato_dos_decimales(data_cuadro_9)
+        if styled_cuadro_9 is not None:
+            st.write(styled_cuadro_9, unsafe_allow_html=True)
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_9'.")
 
@@ -245,7 +251,21 @@ def mostrar_consolidado():
     data_cuadro_10 = load_data(excel_file, "Cuadro_10")
     if data_cuadro_10 is not None:
         data_cuadro_10 = data_cuadro_10.reset_index(drop=True)
-        mostrar_tabla_formato_dos_decimales(data_cuadro_10)
+        styled_cuadro_10 = mostrar_tabla_formato_dos_decimales(data_cuadro_10)
+        if styled_cuadro_10 is not None:
+            # Aplicamos estilo a las filas 1, 8, 15, 23 (índices 0, 7, 14, 22)
+            def resaltar_filas(df):
+                # Creamos una lista vacía de estilos
+                styles = []
+                for i in range(len(df)):
+                    if i in filas_colorear:
+                        styles.append(['background-color: #9d0208; color: white'] * len(df.columns))
+                    else:
+                        styles.append([''] * len(df.columns))
+                return styles
+
+            styled_cuadro_10 = styled_cuadro_10.apply(resaltar_filas, axis=1)
+            st.write(styled_cuadro_10, unsafe_allow_html=True)
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_10'.")
 
@@ -253,7 +273,9 @@ def mostrar_consolidado():
     data_cuadro_11 = load_data(excel_file, "Cuadro_11")
     if data_cuadro_11 is not None:
         data_cuadro_11 = data_cuadro_11.reset_index(drop=True)
-        mostrar_tabla_formato_dos_decimales(data_cuadro_11)
+        styled_cuadro_11 = mostrar_tabla_formato_dos_decimales(data_cuadro_11)
+        if styled_cuadro_11 is not None:
+            st.write(styled_cuadro_11, unsafe_allow_html=True)
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_11'.")
 
@@ -261,7 +283,9 @@ def mostrar_consolidado():
     data_consolidado = load_data(excel_file, "Consolidado")
     if data_consolidado is not None:
         data_consolidado = data_consolidado.reset_index(drop=True)
-        mostrar_tabla_formato_dos_decimales(data_consolidado)
+        styled_consolidado = mostrar_tabla_formato_dos_decimales(data_consolidado)
+        if styled_consolidado is not None:
+            st.write(styled_consolidado, unsafe_allow_html=True)
     else:
         st.warning("No se pudo cargar la hoja 'Consolidado'.")
 
