@@ -59,8 +59,6 @@ if "page_authenticated" not in st.session_state:
     st.session_state.page_authenticated = {page: False for page in page_passwords if page_passwords[page]}
 
 def mostrar_requerimiento_area(sheet_name):
-    # Se carga la data solo una vez y se guarda en session_state
-    # para que no cambie incluso si cambian los datos en DPP 2025
     st.header(f"Requerimiento de Área - {sheet_name}")
     area_key = f"req_area_data_{sheet_name}"
     if area_key not in st.session_state:
@@ -278,7 +276,7 @@ def mostrar_consolidado():
         st.warning("No se pudo cargar la hoja 'Cuadro_10'.")
 
     # Cuadro 11
-    st.header("Gastos Operativos propuestos para 2025 y montos aprobados para 2024 (Cuadro 11 - DPP 2025)")
+    st.header("Gastos Operativos propuestos para 2025 \ny montos aprobados para 2024 (Cuadro 11 - DPP 2025)")
     data_cuadro_11 = load_data(excel_file, "Cuadro_11")
     if data_cuadro_11 is not None:
         data_cuadro_11 = data_cuadro_11.reset_index(drop=True)
@@ -319,8 +317,18 @@ def main():
 
         if selected_page == "Principal":
             st.title("Página Principal - Gestión Presupuestaria")
-            st.write("Bienvenido a la aplicación de Gestión Presupuestaria.")
+            st.write("**Instrucciones de uso:**")
+            st.write("""
+            1. Selecciona la página que deseas visitar desde el menú lateral.
+            2. Ingresa las credenciales si la página lo requiere.
+            3. En las páginas de "Requerimiento de Área" podrás visualizar el total requerido sin que éste cambie luego de modificar datos en las páginas DPP 2025.
+            4. En las páginas DPP 2025 puedes editar las tablas y luego guardar los cambios. También puedes descargar el Excel modificado.
+            5. La página "Actualización" muestra un resumen consolidado, mientras que "Consolidado" presenta distintos cuadros con sus cifras.
+            6. Si en algún momento deseas volver a la página principal, selecciona "Principal" en el menú lateral.
+            """)
 
+            st.write("**Nota:** Asegúrate de tener las contraseñas correctas para acceder a las páginas protegidas y editar los datos.")
+        
         elif selected_page == "Actualización":
             if not st.session_state.page_authenticated["Actualización"]:
                 password = st.text_input("Contraseña para Actualización", type="password")
