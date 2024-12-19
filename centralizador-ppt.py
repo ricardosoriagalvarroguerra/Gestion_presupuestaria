@@ -406,6 +406,8 @@ def main():
                             st.metric("Gasto Centralizados VPD", "$35,960")
                         with col2:
                             st.metric("Gasto Centralizados VPO", "$48,158")
+                            # Se agrega el nuevo value box solicitado
+                            st.metric("Gasto Centralizados PRE", "$60,168")
 
                         col3, _ = st.columns([1,1])
                         with col3:
