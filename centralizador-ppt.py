@@ -293,7 +293,7 @@ def mostrar_consolidado():
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_10'.")
 
-    st.header("Gastos Operativos propuestos para 2025 \ny montos aprobados para 2024 (Cuadro 11 - DPP 2025)")
+    st.header("Gastos Operativos propuestos para 2025 y montos aprobados para 2024 (Cuadro 11 - DPP 2025)")
     data_cuadro_11 = load_data(excel_file, "Cuadro_11")
     if data_cuadro_11 is not None:
         data_cuadro_11 = data_cuadro_11.reset_index(drop=True)
