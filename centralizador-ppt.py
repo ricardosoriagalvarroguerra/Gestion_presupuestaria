@@ -32,7 +32,7 @@ page_passwords = {
 
 @st.cache_data
 def load_data(filepath, sheet_name):
-    """Carga datos de una hoja de Excel."""
+    """Carga datos de una hoja de Excel sin usar caché."""
     try:
         df = pd.read_excel(filepath, sheet_name=sheet_name, engine='openpyxl')
         return df
@@ -71,42 +71,10 @@ def mostrar_requerimiento_area(sheet_name):
     else:
         st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
 
-def recalcular_formulas(sheet_name, df):
-    # Esta función recalcula las fórmulas según el sheet_name
-    # Ajusta las fórmulas según corresponda a tu lógica
-
-    if sheet_name == "VPD_Consultores":
-        required_cols = ["cantidad_funcionarios", "monto_mensual", "cantidad_meses"]
-        if all(col in df.columns for col in required_cols):
-            df["cantidad_funcionarios"] = pd.to_numeric(df["cantidad_funcionarios"], errors="coerce").fillna(0)
-            df["monto_mensual"] = pd.to_numeric(df["monto_mensual"], errors="coerce").fillna(0)
-            df["cantidad_meses"] = pd.to_numeric(df["cantidad_meses"], errors="coerce").fillna(0)
-            df["total"] = df["cantidad_funcionarios"] * df["monto_mensual"] * df["cantidad_meses"]
-
-    if sheet_name == "VPD_Misiones":
-        required_cols = ["cant_funcionarios", "costo_pasaje", "dias", "alojamiento", "perdiem_otros", "movilidad"]
-        if all(col in df.columns for col in required_cols):
-            df["cant_funcionarios"] = pd.to_numeric(df["cant_funcionarios"], errors="coerce").fillna(0)
-            df["costo_pasaje"] = pd.to_numeric(df["costo_pasaje"], errors="coerce").fillna(0)
-            df["dias"] = pd.to_numeric(df["dias"], errors="coerce").fillna(0)
-            df["alojamiento"] = pd.to_numeric(df["alojamiento"], errors="coerce").fillna(0)
-            df["perdiem_otros"] = pd.to_numeric(df["perdiem_otros"], errors="coerce").fillna(0)
-            df["movilidad"] = pd.to_numeric(df["movilidad"], errors="coerce").fillna(0)
-
-            df["total_pasaje"] = df["cant_funcionarios"] * df["costo_pasaje"]
-            df["total_alojamiento"] = df["dias"] * df["cant_funcionarios"] * df["alojamiento"]
-            df["total_perdiem_otros"] = df["dias"] * df["cant_funcionarios"] * df["perdiem_otros"]
-            df["total_movilidad"] = df["movilidad"] * df["cant_funcionarios"]
-            df["total"] = (df["total_pasaje"] + df["total_alojamiento"] 
-                           + df["total_perdiem_otros"] + df["total_movilidad"])
-
-    return df
-
 def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
     st.header(f"DPP 2025 - {sheet_name}")
 
     session_key = f"dpp_2025_{sheet_name}_data"
-    # Cargar datos la primera vez
     if session_key not in st.session_state:
         data = load_data(excel_file, sheet_name)
         if data is None:
@@ -114,20 +82,53 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
             return
         st.session_state[session_key] = data
 
-    # Mostrar editor
     edited_df = st.data_editor(st.session_state[session_key], key=f"editor_{sheet_name}", num_rows="dynamic")
 
-    # Recalcular fórmulas inmediatamente después de editar
-    edited_df = recalcular_formulas(sheet_name, edited_df.copy())
+    # Cálculo automático para la hoja VPD_Consultores
+    if sheet_name == "VPD_Consultores":
+        required_cols = ["cantidad_funcionarios", "monto_mensual", "cantidad_meses"]
+        if all(col in edited_df.columns for col in required_cols):
+            edited_df["cantidad_funcionarios"] = pd.to_numeric(edited_df["cantidad_funcionarios"], errors="coerce").fillna(0)
+            edited_df["monto_mensual"] = pd.to_numeric(edited_df["monto_mensual"], errors="coerce").fillna(0)
+            edited_df["cantidad_meses"] = pd.to_numeric(edited_df["cantidad_meses"], errors="coerce").fillna(0)
+            edited_df["total"] = edited_df["cantidad_funcionarios"] * edited_df["monto_mensual"] * edited_df["cantidad_meses"]
+        else:
+            st.warning("No se encontraron las columnas necesarias (cantidad_funcionarios, monto_mensual, cantidad_meses) para calcular el total.")
 
-    # Actualizar sesión con el DataFrame recalculado
-    st.session_state[session_key] = edited_df
+    # Cálculo automático para la hoja VPD_Misiones
+    if sheet_name == "VPD_Misiones":
+        required_cols = ["cant_funcionarios", "costo_pasaje", "dias", "alojamiento", "perdiem_otros", "movilidad"]
+        if all(col in edited_df.columns for col in required_cols):
+            # Convertimos a numérico las columnas necesarias
+            edited_df["cant_funcionarios"] = pd.to_numeric(edited_df["cant_funcionarios"], errors="coerce").fillna(0)
+            edited_df["costo_pasaje"] = pd.to_numeric(edited_df["costo_pasaje"], errors="coerce").fillna(0)
+            edited_df["dias"] = pd.to_numeric(edited_df["dias"], errors="coerce").fillna(0)
+            edited_df["alojamiento"] = pd.to_numeric(edited_df["alojamiento"], errors="coerce").fillna(0)
+            edited_df["perdiem_otros"] = pd.to_numeric(edited_df["perdiem_otros"], errors="coerce").fillna(0)
+            edited_df["movilidad"] = pd.to_numeric(edited_df["movilidad"], errors="coerce").fillna(0)
 
-    # Mostrar métricas
-    if "total" in edited_df.columns:
+            # Calculamos las columnas derivadas
+            edited_df["total_pasaje"] = edited_df["cant_funcionarios"] * edited_df["costo_pasaje"]
+            edited_df["total_alojamiento"] = edited_df["dias"] * edited_df["cant_funcionarios"] * edited_df["alojamiento"]
+            edited_df["total_perdiem_otros"] = edited_df["dias"] * edited_df["cant_funcionarios"] * edited_df["perdiem_otros"]
+            edited_df["total_movilidad"] = edited_df["movilidad"] * edited_df["cant_funcionarios"]
+            edited_df["total"] = (edited_df["total_pasaje"] + edited_df["total_alojamiento"] 
+                                  + edited_df["total_perdiem_otros"] + edited_df["total_movilidad"])
+        else:
+            st.warning("No se encontraron las columnas necesarias para calcular el total en VPD_Misiones.")
+
+    if st.button("Guardar Cambios", key=f"guardar_{sheet_name}"):
+        edited_df.columns = edited_df.columns.str.strip().str.lower()
+        st.session_state[session_key] = edited_df
+        save_data(excel_file, sheet_name, edited_df)
+        st.success("Cambios guardados en el archivo Excel.")
+        st.cache_data.clear()
+
+    current_df = st.session_state[session_key]
+    if "total" in current_df.columns:
         try:
-            edited_df["total"] = pd.to_numeric(edited_df["total"], errors="coerce")
-            total_sum = edited_df["total"].sum(numeric_only=True)
+            current_df["total"] = pd.to_numeric(current_df["total"], errors="coerce")
+            total_sum = current_df["total"].sum(numeric_only=True)
             diferencia = total_sum - monto_dpp
 
             col1, col2, col3 = st.columns(3)
@@ -158,15 +159,6 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
             st.warning(f"No se pudo convertir la columna 'total' a un formato numérico: {e}")
     else:
         st.error("No se encontró una columna 'total' en los datos.")
-
-    # Botón para guardar cambios en el archivo
-    if st.button("Guardar Cambios", key=f"guardar_{sheet_name}"):
-        df_to_save = st.session_state[session_key].copy()
-        # Normalizamos nombre de columnas antes de guardar
-        df_to_save.columns = df_to_save.columns.str.strip().str.lower()
-        save_data(excel_file, sheet_name, df_to_save)
-        st.success("Cambios guardados en el archivo Excel.")
-        st.cache_data.clear()
 
 def calcular_actualizacion_tabla(vicepresidencias, tipo):
     filas = []
@@ -277,7 +269,7 @@ def main():
             if username_input in app_credentials and password_input == app_credentials[username_input]:
                 st.session_state.authenticated = True
                 st.session_state.current_user = username_input
-                st.experimental_rerun()
+                st.rerun()
             else:
                 st.error("Usuario o contraseña incorrectos.")
     else:
@@ -287,14 +279,13 @@ def main():
         if selected_page == "Principal":
             st.title("Página Principal - Gestión Presupuestaria")
             st.write("Bienvenido a la aplicación de Gestión Presupuestaria.")
-
         elif selected_page == "Actualización":
             if not st.session_state.page_authenticated["Actualización"]:
                 password = st.text_input("Contraseña para Actualización", type="password")
                 if st.button("Ingresar"):
                     if password == page_passwords["Actualización"]:
                         st.session_state.page_authenticated["Actualización"] = True
-                        st.experimental_rerun()
+                        st.rerun()
                     else:
                         st.error("Contraseña incorrecta.")
             else:
@@ -306,7 +297,7 @@ def main():
                 if st.button("Ingresar"):
                     if password == page_passwords[selected_page]:
                         st.session_state.page_authenticated[selected_page] = True
-                        st.experimental_rerun()
+                        st.rerun()
                     else:
                         st.error("Contraseña incorrecta.")
             else:
@@ -372,6 +363,7 @@ def main():
                             mostrar_dpp_2025_editor("VPF_Consultores", montos["VPF"]["Consultores"])
 
                 else:
+                    # VPE
                     if selected_subpage == "Misiones":
                         subsubpage_options = ["Requerimiento de Área", "DPP 2025"]
                         selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Misiones", subsubpage_options)
@@ -394,7 +386,7 @@ def main():
                 if st.button("Ingresar"):
                     if password == page_passwords["PRE"]:
                         st.session_state.page_authenticated["PRE"] = True
-                        st.experimental_rerun()
+                        st.rerun()
                     else:
                         st.error("Contraseña incorrecta.")
             else:
@@ -452,7 +444,7 @@ def main():
                 if st.button("Ingresar"):
                     if password == page_passwords["Consolidado"]:
                         st.session_state.page_authenticated["Consolidado"] = True
-                        st.experimental_rerun()
+                        st.rerun()
                     else:
                         st.error("Contraseña incorrecta.")
             else:
