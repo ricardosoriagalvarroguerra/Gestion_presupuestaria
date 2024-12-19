@@ -146,7 +146,6 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
     else:
         st.error("No se encontró una columna 'total' en los datos.")
 
-    # Botón Guardar Cambios
     if st.button("Guardar Cambios", key=f"guardar_{sheet_name}"):
         df_to_save = st.session_state[session_key].copy()
         df_to_save.columns = df_to_save.columns.str.strip().str.lower()
@@ -155,7 +154,6 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
         st.cache_data.clear()
 
     # Botón Descargar Excel
-    # Generamos un archivo Excel en memoria con los datos actuales
     df_download = st.session_state[session_key].copy()
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
@@ -225,10 +223,8 @@ def mostrar_actualizacion():
 def mostrar_consolidado():
     st.title("Consolidado")
 
-    # Para Cuadro_9 resaltar fila 8 (índice 7)
+    # Índices de filas a resaltar
     filas_cuadro_9 = [7]
-
-    # Para Cuadro_10 resaltar fila 1, 8, 15, 22, 25
     filas_cuadro_10 = [0, 7, 14, 21, 24]
 
     def mostrar_tabla_formato_dos_decimales(df):
@@ -240,8 +236,8 @@ def mostrar_consolidado():
             st.warning("No se pudo cargar la tabla.")
             return None
 
-    # Cuadro 9
-    st.header("Cuadro 9.")
+    # Cuadro 9: Título cambiado
+    st.header("Gastos en Personal 2025 vs 2024 (Cuadro 9 - DPP 2025)")
     data_cuadro_9 = load_data(excel_file, "Cuadro_9")
     if data_cuadro_9 is not None:
         data_cuadro_9 = data_cuadro_9.reset_index(drop=True)
@@ -257,8 +253,8 @@ def mostrar_consolidado():
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_9'.")
 
-    # Cuadro 10
-    st.header("Cuadro 10.")
+    # Cuadro 10: Título cambiado
+    st.header("Análisis de Cambios en Gastos de Personal 2025 vs. 2024 (Cuadro 10 - DPP 2025)")
     data_cuadro_10 = load_data(excel_file, "Cuadro_10")
     if data_cuadro_10 is not None:
         data_cuadro_10 = data_cuadro_10.reset_index(drop=True)
@@ -274,8 +270,8 @@ def mostrar_consolidado():
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_10'.")
 
-    # Cuadro 11
-    st.header("Cuadro 11.")
+    # Cuadro 11: Título cambiado
+    st.header("Gastos Operativos propuestos para 2025 \ny montos aprobados para 2024 (Cuadro 11 - DPP 2025)")
     data_cuadro_11 = load_data(excel_file, "Cuadro_11")
     if data_cuadro_11 is not None:
         data_cuadro_11 = data_cuadro_11.reset_index(drop=True)
@@ -285,7 +281,7 @@ def mostrar_consolidado():
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_11'.")
 
-    # Consolidado DPP 2025
+    # Consolidado DPP 2025 sin cambios de títulos
     st.header("Consolidado DPP 2025")
     data_consolidado = load_data(excel_file, "Consolidado")
     if data_consolidado is not None:
