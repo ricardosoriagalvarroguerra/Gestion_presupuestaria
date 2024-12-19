@@ -82,7 +82,10 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
             return
         st.session_state[session_key] = data
 
+    # Mostramos el editor con el DataFrame actual de la sesión
     edited_df = st.data_editor(st.session_state[session_key], key=f"editor_{sheet_name}", num_rows="dynamic")
+
+    # Aquí aplicamos las fórmulas inmediatamente después de editar
 
     # Cálculo automático para la hoja VPD_Consultores
     if sheet_name == "VPD_Consultores":
@@ -92,14 +95,11 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
             edited_df["monto_mensual"] = pd.to_numeric(edited_df["monto_mensual"], errors="coerce").fillna(0)
             edited_df["cantidad_meses"] = pd.to_numeric(edited_df["cantidad_meses"], errors="coerce").fillna(0)
             edited_df["total"] = edited_df["cantidad_funcionarios"] * edited_df["monto_mensual"] * edited_df["cantidad_meses"]
-        else:
-            st.warning("No se encontraron las columnas necesarias (cantidad_funcionarios, monto_mensual, cantidad_meses) para calcular el total.")
 
     # Cálculo automático para la hoja VPD_Misiones
     if sheet_name == "VPD_Misiones":
         required_cols = ["cant_funcionarios", "costo_pasaje", "dias", "alojamiento", "perdiem_otros", "movilidad"]
         if all(col in edited_df.columns for col in required_cols):
-            # Convertimos a numérico las columnas necesarias
             edited_df["cant_funcionarios"] = pd.to_numeric(edited_df["cant_funcionarios"], errors="coerce").fillna(0)
             edited_df["costo_pasaje"] = pd.to_numeric(edited_df["costo_pasaje"], errors="coerce").fillna(0)
             edited_df["dias"] = pd.to_numeric(edited_df["dias"], errors="coerce").fillna(0)
@@ -107,28 +107,22 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
             edited_df["perdiem_otros"] = pd.to_numeric(edited_df["perdiem_otros"], errors="coerce").fillna(0)
             edited_df["movilidad"] = pd.to_numeric(edited_df["movilidad"], errors="coerce").fillna(0)
 
-            # Calculamos las columnas derivadas
+            # Recalcular las columnas derivadas
             edited_df["total_pasaje"] = edited_df["cant_funcionarios"] * edited_df["costo_pasaje"]
             edited_df["total_alojamiento"] = edited_df["dias"] * edited_df["cant_funcionarios"] * edited_df["alojamiento"]
             edited_df["total_perdiem_otros"] = edited_df["dias"] * edited_df["cant_funcionarios"] * edited_df["perdiem_otros"]
             edited_df["total_movilidad"] = edited_df["movilidad"] * edited_df["cant_funcionarios"]
-            edited_df["total"] = (edited_df["total_pasaje"] + edited_df["total_alojamiento"] 
+            edited_df["total"] = (edited_df["total_pasaje"] + edited_df["total_alojamiento"]
                                   + edited_df["total_perdiem_otros"] + edited_df["total_movilidad"])
-        else:
-            st.warning("No se encontraron las columnas necesarias para calcular el total en VPD_Misiones.")
 
-    if st.button("Guardar Cambios", key=f"guardar_{sheet_name}"):
-        edited_df.columns = edited_df.columns.str.strip().str.lower()
-        st.session_state[session_key] = edited_df
-        save_data(excel_file, sheet_name, edited_df)
-        st.success("Cambios guardados en el archivo Excel.")
-        st.cache_data.clear()
+    # Actualizamos el DataFrame en la sesión para que los cambios se reflejen inmediatamente
+    st.session_state[session_key] = edited_df
 
-    current_df = st.session_state[session_key]
-    if "total" in current_df.columns:
+    # Ahora mostramos las métricas
+    if "total" in edited_df.columns:
         try:
-            current_df["total"] = pd.to_numeric(current_df["total"], errors="coerce")
-            total_sum = current_df["total"].sum(numeric_only=True)
+            edited_df["total"] = pd.to_numeric(edited_df["total"], errors="coerce")
+            total_sum = edited_df["total"].sum(numeric_only=True)
             diferencia = total_sum - monto_dpp
 
             col1, col2, col3 = st.columns(3)
@@ -159,6 +153,15 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
             st.warning(f"No se pudo convertir la columna 'total' a un formato numérico: {e}")
     else:
         st.error("No se encontró una columna 'total' en los datos.")
+
+    # El botón "Guardar Cambios" sólo se utiliza para escribir los datos en el archivo Excel
+    if st.button("Guardar Cambios", key=f"guardar_{sheet_name}"):
+        df_to_save = st.session_state[session_key]
+        # Normalizamos nombre de columnas antes de guardar
+        df_to_save.columns = df_to_save.columns.str.strip().str.lower()
+        save_data(excel_file, sheet_name, df_to_save)
+        st.success("Cambios guardados en el archivo Excel.")
+        st.cache_data.clear()
 
 def calcular_actualizacion_tabla(vicepresidencias, tipo):
     filas = []
