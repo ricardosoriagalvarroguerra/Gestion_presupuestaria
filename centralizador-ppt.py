@@ -10,7 +10,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Credenciales globales de acceso a la app (actualizado para múltiples usuarios)
+# Credenciales globales de acceso a la app
 app_credentials = {
     "luciana_botafogo": "fonplata",
     "mcalvino": "2025presupuesto",
@@ -32,7 +32,6 @@ page_passwords = {
 
 @st.cache_data
 def load_data(filepath, sheet_name):
-    """Carga datos de una hoja de Excel."""
     try:
         df = pd.read_excel(filepath, sheet_name=sheet_name, engine='openpyxl')
         return df
@@ -41,8 +40,6 @@ def load_data(filepath, sheet_name):
         return None
 
 def save_data(filepath, sheet_name, df):
-    """Guarda el DataFrame en una hoja específica de un archivo Excel existente,
-    reemplazando sólo esa hoja y conservando las demás."""
     try:
         if not os.path.exists(filepath):
             df.to_excel(filepath, sheet_name=sheet_name, index=False)
@@ -72,8 +69,6 @@ def mostrar_requerimiento_area(sheet_name):
         st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
 
 def recalcular_formulas(sheet_name, df):
-    # Recalcula las fórmulas según el sheet_name
-
     if sheet_name == "VPD_Consultores":
         required_cols = ["cantidad_funcionarios", "monto_mensual", "cantidad_meses"]
         if all(col in df.columns for col in required_cols):
@@ -98,14 +93,12 @@ def recalcular_formulas(sheet_name, df):
             df["total_movilidad"] = df["movilidad"] * df["cant_funcionarios"]
             df["total"] = (df["total_pasaje"] + df["total_alojamiento"] 
                            + df["total_perdiem_otros"] + df["total_movilidad"])
-
     return df
 
 def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
     st.header(f"DPP 2025 - {sheet_name}")
 
     session_key = f"dpp_2025_{sheet_name}_data"
-    # Cargar datos la primera vez
     if session_key not in st.session_state:
         data = load_data(excel_file, sheet_name)
         if data is None:
@@ -113,16 +106,11 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
             return
         st.session_state[session_key] = data
 
-    # Mostrar editor
     edited_df = st.data_editor(st.session_state[session_key], key=f"editor_{sheet_name}", num_rows="dynamic")
 
-    # Recalcular fórmulas inmediatamente después de editar
     edited_df = recalcular_formulas(sheet_name, edited_df.copy())
-
-    # Actualizar sesión con el DataFrame recalculado
     st.session_state[session_key] = edited_df
 
-    # Mostrar métricas
     if "total" in edited_df.columns:
         try:
             edited_df["total"] = pd.to_numeric(edited_df["total"], errors="coerce")
@@ -157,10 +145,8 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
     else:
         st.error("No se encontró una columna 'total' en los datos.")
 
-    # Botón para guardar cambios en el archivo
     if st.button("Guardar Cambios", key=f"guardar_{sheet_name}"):
         df_to_save = st.session_state[session_key].copy()
-        # Normalizamos nombre de columnas antes de guardar
         df_to_save.columns = df_to_save.columns.str.strip().str.lower()
         save_data(excel_file, sheet_name, df_to_save)
         st.success("Cambios guardados en el archivo Excel.")
@@ -222,7 +208,12 @@ def mostrar_actualizacion():
 def mostrar_consolidado():
     st.title("Consolidado")
 
-    filas_colorear = [0, 7, 14, 22]
+    # Para Cuadro_9 resaltar fila 8 (índice 7)
+    filas_cuadro_9 = [7]
+
+    # Para Cuadro_10 resaltar fila 1, 8, 15, 22, 25
+    # Índices: fila 1 -> 0, fila 8 -> 7, fila 15 -> 14, fila 22 -> 21, fila 25 -> 24
+    filas_cuadro_10 = [0, 7, 14, 21, 24]
 
     def mostrar_tabla_formato_dos_decimales(df):
         if df is not None:
@@ -233,36 +224,41 @@ def mostrar_consolidado():
             st.warning("No se pudo cargar la tabla.")
             return None
 
+    # Cuadro 9
     st.header("Cuadro 9.")
     data_cuadro_9 = load_data(excel_file, "Cuadro_9")
     if data_cuadro_9 is not None:
         data_cuadro_9 = data_cuadro_9.reset_index(drop=True)
         styled_cuadro_9 = mostrar_tabla_formato_dos_decimales(data_cuadro_9)
         if styled_cuadro_9 is not None:
+            def resaltar_filas_9(row):
+                if row.name in filas_cuadro_9:
+                    return ['background-color: #9d0208; color: white'] * len(row)
+                else:
+                    return [''] * len(row)
+            styled_cuadro_9 = styled_cuadro_9.apply(resaltar_filas_9, axis=1)
             st.write(styled_cuadro_9, unsafe_allow_html=True)
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_9'.")
 
+    # Cuadro 10
     st.header("Cuadro 10.")
     data_cuadro_10 = load_data(excel_file, "Cuadro_10")
     if data_cuadro_10 is not None:
         data_cuadro_10 = data_cuadro_10.reset_index(drop=True)
         styled_cuadro_10 = mostrar_tabla_formato_dos_decimales(data_cuadro_10)
         if styled_cuadro_10 is not None:
-            # Aplicamos estilo a las filas deseadas
-            def resaltar_filas(row):
-                # row es una Serie (una fila)
-                # Si el índice de la fila está en filas_colorear, aplicamos el estilo
-                if row.name in filas_colorear:
+            def resaltar_filas_10(row):
+                if row.name in filas_cuadro_10:
                     return ['background-color: #9d0208; color: white'] * len(row)
                 else:
                     return [''] * len(row)
-
-            styled_cuadro_10 = styled_cuadro_10.apply(resaltar_filas, axis=1)
+            styled_cuadro_10 = styled_cuadro_10.apply(resaltar_filas_10, axis=1)
             st.write(styled_cuadro_10, unsafe_allow_html=True)
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_10'.")
 
+    # Cuadro 11
     st.header("Cuadro 11.")
     data_cuadro_11 = load_data(excel_file, "Cuadro_11")
     if data_cuadro_11 is not None:
@@ -273,6 +269,7 @@ def mostrar_consolidado():
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_11'.")
 
+    # Consolidado DPP 2025
     st.header("Consolidado DPP 2025")
     data_consolidado = load_data(excel_file, "Consolidado")
     if data_consolidado is not None:
