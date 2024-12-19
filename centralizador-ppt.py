@@ -137,7 +137,6 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
             with col3:
                 st.metric(label="Diferencia", value=f"${diferencia:,.0f}")
 
-            # Métricas adicionales según el sheet_name
             if "VPD_Misiones" in sheet_name:
                 st.metric("Gastos Centralizados VPD", "$35,960")
             if "VPD_Consultores" in sheet_name:
@@ -223,14 +222,11 @@ def mostrar_actualizacion():
 def mostrar_consolidado():
     st.title("Consolidado")
 
-    # Índices para colorear (fila 1 -> índice 0, fila 8 -> índice 7, fila 15 -> índice 14, fila 23 -> índice 22)
     filas_colorear = [0, 7, 14, 22]
 
     def mostrar_tabla_formato_dos_decimales(df):
         if df is not None:
-            # Seleccionamos sólo las columnas numéricas
             numeric_cols = df.select_dtypes(include=["number"]).columns
-            # Aplicamos el formato sólo a las columnas numéricas
             styled_df = df.style.format("{:.2f}", subset=numeric_cols)
             return styled_df
         else:
@@ -253,16 +249,14 @@ def mostrar_consolidado():
         data_cuadro_10 = data_cuadro_10.reset_index(drop=True)
         styled_cuadro_10 = mostrar_tabla_formato_dos_decimales(data_cuadro_10)
         if styled_cuadro_10 is not None:
-            # Aplicamos estilo a las filas 1, 8, 15, 23 (índices 0, 7, 14, 22)
-            def resaltar_filas(df):
-                # Creamos una lista vacía de estilos
-                styles = []
-                for i in range(len(df)):
-                    if i in filas_colorear:
-                        styles.append(['background-color: #9d0208; color: white'] * len(df.columns))
-                    else:
-                        styles.append([''] * len(df.columns))
-                return styles
+            # Aplicamos estilo a las filas deseadas
+            def resaltar_filas(row):
+                # row es una Serie (una fila)
+                # Si el índice de la fila está en filas_colorear, aplicamos el estilo
+                if row.name in filas_colorear:
+                    return ['background-color: #9d0208; color: white'] * len(row)
+                else:
+                    return [''] * len(row)
 
             styled_cuadro_10 = styled_cuadro_10.apply(resaltar_filas, axis=1)
             st.write(styled_cuadro_10, unsafe_allow_html=True)
