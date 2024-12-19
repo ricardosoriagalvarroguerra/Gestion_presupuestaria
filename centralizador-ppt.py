@@ -14,27 +14,18 @@ st.set_page_config(
 # Ruta del logo
 logo_path = "estrellafon_transparente.png"
 
-def titulo_con_logo(titulo, nivel=1):
+def titulo_con_logo(titulo):
     """
-    Muestra un título con el logo al lado.
-    nivel=1 -> título principal (equivalente a st.title)
-    nivel=2 -> encabezado (equivalente a st.header)
-    nivel=3 -> subencabezado (equivalente a st.subheader)
+    Muestra un título principal (equivalente a st.title()) con el logo a la izquierda.
+    Solo se usa para los títulos principales de las páginas.
     """
     col1, col2 = st.columns([0.1, 1])
     with col1:
         st.image(logo_path, width=50)
     with col2:
-        if nivel == 1:
-            st.markdown(f"# {titulo}")
-        elif nivel == 2:
-            st.markdown(f"## {titulo}")
-        elif nivel == 3:
-            st.markdown(f"### {titulo}")
-        else:
-            st.markdown(f"## {titulo}")  # Por defecto nivel 2
+        st.title(titulo)
 
-# Credenciales globales de acceso a la app
+# Credenciales globales de acceso
 app_credentials = {
     "luciana_botafogo": "fonplata",
     "mcalvino": "2025presupuesto",
@@ -82,7 +73,8 @@ if "page_authenticated" not in st.session_state:
     st.session_state.page_authenticated = {page: False for page in page_passwords if page_passwords[page]}
 
 def mostrar_requerimiento_area(sheet_name):
-    titulo_con_logo(f"Requerimiento de Área - {sheet_name}", nivel=2)
+    # Subpágina: sin logo
+    st.header(f"Requerimiento de Área - {sheet_name}")
     area_key = f"req_area_data_{sheet_name}"
     if area_key not in st.session_state:
         data = load_data(excel_file, sheet_name)
@@ -126,7 +118,8 @@ def recalcular_formulas(sheet_name, df):
     return df
 
 def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
-    titulo_con_logo(f"DPP 2025 - {sheet_name}", nivel=2)
+    # Subpágina: sin logo
+    st.header(f"DPP 2025 - {sheet_name}")
 
     session_key = f"dpp_2025_{sheet_name}_data"
     if session_key not in st.session_state:
@@ -229,7 +222,8 @@ def aplicar_estilos(df):
     return styled_df
 
 def mostrar_actualizacion():
-    titulo_con_logo("Actualización - Resumen Consolidado", nivel=1)
+    # Página principal "Actualización" con logo
+    titulo_con_logo("Actualización - Resumen Consolidado")
     st.write("Estas tablas muestran el monto requerido, DPP 2025, y la diferencia para cada área.")
 
     vicepresidencias = {
@@ -239,18 +233,20 @@ def mostrar_actualizacion():
         "VPE": {"Misiones": 28244, "Consultores": 179446},
     }
 
-    titulo_con_logo("Misiones", nivel=3)
+    # Subencabezados sin logo
+    st.subheader("Misiones")
     misiones_df = calcular_actualizacion_tabla(vicepresidencias, "Misiones")
     styled_misiones_df = aplicar_estilos(misiones_df)
     st.write(styled_misiones_df, unsafe_allow_html=True)
 
-    titulo_con_logo("Consultores", nivel=3)
+    st.subheader("Consultores")
     consultores_df = calcular_actualizacion_tabla(vicepresidencias, "Consultores")
     styled_consultores_df = aplicar_estilos(consultores_df)
     st.write(styled_consultores_df, unsafe_allow_html=True)
 
 def mostrar_consolidado():
-    titulo_con_logo("Consolidado", nivel=1)
+    # Página principal "Consolidado" con logo
+    titulo_con_logo("Consolidado")
 
     filas_cuadro_9 = [7]
     filas_cuadro_10 = [0, 7, 14, 21, 24]
@@ -264,8 +260,8 @@ def mostrar_consolidado():
             st.warning("No se pudo cargar la tabla.")
             return None
 
-    # Cuadro 9
-    titulo_con_logo("Gastos en Personal 2025 vs 2024 (Cuadro 9 - DPP 2025)", nivel=2)
+    # Estos son sub-encabezados sin logo
+    st.header("Gastos en Personal 2025 vs 2024 (Cuadro 9 - DPP 2025)")
     data_cuadro_9 = load_data(excel_file, "Cuadro_9")
     if data_cuadro_9 is not None:
         data_cuadro_9 = data_cuadro_9.reset_index(drop=True)
@@ -281,8 +277,7 @@ def mostrar_consolidado():
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_9'.")
 
-    # Cuadro 10
-    titulo_con_logo("Análisis de Cambios en Gastos de Personal 2025 vs. 2024 (Cuadro 10 - DPP 2025)", nivel=2)
+    st.header("Análisis de Cambios en Gastos de Personal 2025 vs. 2024 (Cuadro 10 - DPP 2025)")
     data_cuadro_10 = load_data(excel_file, "Cuadro_10")
     if data_cuadro_10 is not None:
         data_cuadro_10 = data_cuadro_10.reset_index(drop=True)
@@ -298,8 +293,7 @@ def mostrar_consolidado():
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_10'.")
 
-    # Cuadro 11
-    titulo_con_logo("Gastos Operativos propuestos para 2025 \ny montos aprobados para 2024 (Cuadro 11 - DPP 2025)", nivel=2)
+    st.header("Gastos Operativos propuestos para 2025 \ny montos aprobados para 2024 (Cuadro 11 - DPP 2025)")
     data_cuadro_11 = load_data(excel_file, "Cuadro_11")
     if data_cuadro_11 is not None:
         data_cuadro_11 = data_cuadro_11.reset_index(drop=True)
@@ -309,8 +303,7 @@ def mostrar_consolidado():
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_11'.")
 
-    # Consolidado DPP 2025
-    titulo_con_logo("Consolidado DPP 2025", nivel=2)
+    st.header("Consolidado DPP 2025")
     data_consolidado = load_data(excel_file, "Consolidado")
     if data_consolidado is not None:
         data_consolidado = data_consolidado.reset_index(drop=True)
@@ -322,7 +315,8 @@ def mostrar_consolidado():
 
 def main():
     if not st.session_state.authenticated:
-        titulo_con_logo("Página Principal - Gestión Presupuestaria", nivel=1)
+        # Página principal con logo
+        titulo_con_logo("Página Principal - Gestión Presupuestaria")
         username_input = st.text_input("Usuario", key="login_username")
         password_input = st.text_input("Contraseña", type="password", key="login_password")
         login_button = st.button("Ingresar", key="login_button")
@@ -351,7 +345,8 @@ def main():
         selected_page = st.sidebar.selectbox("Selecciona una página", pages)
 
         if selected_page == "Principal":
-            titulo_con_logo("Página Principal - Gestión Presupuestaria", nivel=1)
+            # Página principal con logo
+            titulo_con_logo("Página Principal - Gestión Presupuestaria")
             st.write("**Instrucciones de uso:**")
             st.write("""
             1. Selecciona la página que deseas visitar desde el menú lateral.
@@ -375,167 +370,116 @@ def main():
             else:
                 mostrar_actualizacion()
 
-        elif selected_page in ["VPD", "VPF", "VPO", "VPE"]:
-            if not st.session_state.page_authenticated[selected_page]:
-                password = st.text_input(f"Contraseña para {selected_page}", type="password")
-                if st.button("Ingresar"):
-                    if password == page_passwords[selected_page]:
-                        st.session_state.page_authenticated[selected_page] = True
-                        st.rerun()
-                    else:
-                        st.error("Contraseña incorrecta.")
-            else:
-                subpage_options = ["Misiones", "Consultorías"]
-                selected_subpage = st.sidebar.selectbox("Selecciona una subpágina", subpage_options)
-
-                montos = {
-                    "VPD": {"Misiones": 168000, "Consultores": 130000},
-                    "VPF": {"Misiones": 138600, "Consultores": 170000},
-                    "VPO": {"Misiones": 434707, "Consultores": 547700},
-                    "VPE": {"Misiones": 28244, "Consultores": 179446},
-                }
-
-                if selected_page == "VPD":
-                    titulo_con_logo("VPD", nivel=1)
-                    if selected_subpage == "Misiones":
-                        subsubpage_options = ["Requerimiento de Área", "DPP 2025"]
-                        selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Misiones", subsubpage_options)
-                        if selected_subsubpage == "Requerimiento de Área":
-                            mostrar_requerimiento_area("VPD_Misiones")
-                        elif selected_subsubpage == "DPP 2025":
-                            mostrar_dpp_2025_editor("VPD_Misiones", montos["VPD"]["Misiones"])
-
-                    elif selected_subpage == "Consultorías":
-                        subsubpage_options = ["Requerimiento de Área", "DPP 2025"]
-                        selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Consultorías", subsubpage_options)
-                        if selected_subsubpage == "Requerimiento de Área":
-                            mostrar_requerimiento_area("VPD_Consultores")
-                        elif selected_subsubpage == "DPP 2025":
-                            mostrar_dpp_2025_editor("VPD_Consultores", montos["VPD"]["Consultores"])
-
-                elif selected_page == "VPO":
-                    titulo_con_logo("VPO", nivel=1)
-                    if selected_subpage == "Misiones":
-                        subsubpage_options = ["Requerimiento de Área", "DPP 2025"]
-                        selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Misiones", subsubpage_options)
-                        if selected_subsubpage == "Requerimiento de Área":
-                            mostrar_requerimiento_area("VPO_Misiones")
-                        elif selected_subsubpage == "DPP 2025":
-                            mostrar_dpp_2025_editor("VPO_Misiones", montos["VPO"]["Misiones"])
-
-                    elif selected_subpage == "Consultorías":
-                        subsubpage_options = ["Requerimiento de Área", "DPP 2025"]
-                        selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Consultorías", subsubpage_options)
-                        if selected_subsubpage == "Requerimiento de Área":
-                            mostrar_requerimiento_area("VPO_Consultores")
-                        elif selected_subsubpage == "DPP 2025":
-                            mostrar_dpp_2025_editor("VPO_Consultores", montos["VPO"]["Consultores"])
-
-                elif selected_page == "VPF":
-                    titulo_con_logo("VPF", nivel=1)
-                    if selected_subpage == "Misiones":
-                        subsubpage_options = ["Requerimiento de Área", "DPP 2025"]
-                        selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Misiones", subsubpage_options)
-                        if selected_subsubpage == "Requerimiento de Área":
-                            mostrar_requerimiento_area("VPF_Misiones")
-                        elif selected_subsubpage == "DPP 2025":
-                            mostrar_dpp_2025_editor("VPF_Misiones", montos["VPF"]["Misiones"])
-
-                    elif selected_subpage == "Consultorías":
-                        subsubpage_options = ["Requerimiento de Área", "DPP 2025"]
-                        selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Consultorías", subsubpage_options)
-                        if selected_subsubpage == "Requerimiento de Área":
-                            mostrar_requerimiento_area("VPF_Consultores")
-                        elif selected_subsubpage == "DPP 2025":
-                            mostrar_dpp_2025_editor("VPF_Consultores", montos["VPF"]["Consultores"])
-
+        elif selected_page in ["VPD", "VPF", "VPO", "VPE", "PRE", "Consolidado"]:
+            # Estas son páginas principales, se muestra el logo
+            titulo_con_logo(selected_page)
+            
+            if selected_page == "Consolidado":
+                if not st.session_state.page_authenticated["Consolidado"]:
+                    password = st.text_input("Contraseña para Consolidado", type="password")
+                    if st.button("Ingresar"):
+                        if password == page_passwords["Consolidado"]:
+                            st.session_state.page_authenticated["Consolidado"] = True
+                            st.rerun()
+                        else:
+                            st.error("Contraseña incorrecta.")
                 else:
-                    titulo_con_logo("VPE", nivel=1)
+                    mostrar_consolidado()
+
+            elif selected_page == "PRE":
+                if not st.session_state.page_authenticated["PRE"]:
+                    password = st.text_input("Contraseña para PRE", type="password")
+                    if st.button("Ingresar"):
+                        if password == page_passwords["PRE"]:
+                            st.session_state.page_authenticated["PRE"] = True
+                            st.rerun()
+                        else:
+                            st.error("Contraseña incorrecta.")
+                else:
+                    subpage_options = ["Misiones Personal", "Misiones Consultores", "Servicios Profesionales", "Gastos Centralizados"]
+                    selected_subpage = st.sidebar.selectbox("Selecciona una subpágina", subpage_options)
+
+                    if selected_subpage == "Misiones Personal":
+                        mostrar_requerimiento_area("PRE_Misiones_personal")
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.metric("Gasto Centralizados VPD", "$35,960")
+                        with col2:
+                            st.metric("Gasto Centralizados VPO", "$48,158")
+
+                        col3, _ = st.columns([1,1])
+                        with col3:
+                            st.metric("Gasto Centralizados VPF", "$40,960")
+
+                    elif selected_subpage == "Misiones Consultores":
+                        mostrar_requerimiento_area("PRE_Misiones_consultores")
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.metric("Gasto Centralizados VPD", "$13,160")
+                        with col2:
+                            st.metric("Gasto Centralizados VPO", "$13,160")
+
+                        col3, _ = st.columns([1,1])
+                        with col3:
+                            st.metric("Gasto Centralizados VPF", "$13,160")
+
+                    elif selected_subpage == "Servicios Profesionales":
+                        mostrar_requerimiento_area("PRE_servicios_profesionales")
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.metric("Gasto Centralizados VPD", "$180,000")
+                        with col2:
+                            st.metric("Gasto Centralizados VPO", "$144,000")
+
+                        col3, _ = st.columns([1,1])
+                        with col3:
+                            st.metric("Gasto Centralizados VPF", "$140,000")
+
+                    elif selected_subpage == "Gastos Centralizados":
+                        st.write("Sube un archivo para Gastos Centralizados.")
+                        uploaded_file = st.file_uploader("Subir archivo Excel", type=["xlsx", "xls"])
+                        if uploaded_file:
+                            data = pd.read_excel(uploaded_file, engine="openpyxl")
+                            st.write("Archivo cargado:")
+                            st.dataframe(data)
+
+            else:
+                # Para VPD, VPO, VPF, VPE
+                page = selected_page
+                if not st.session_state.page_authenticated[page]:
+                    password = st.text_input(f"Contraseña para {page}", type="password")
+                    if st.button("Ingresar"):
+                        if password == page_passwords[page]:
+                            st.session_state.page_authenticated[page] = True
+                            st.rerun()
+                        else:
+                            st.error("Contraseña incorrecta.")
+                else:
+                    subpage_options = ["Misiones", "Consultorías"]
+                    selected_subpage = st.sidebar.selectbox("Selecciona una subpágina", subpage_options)
+
+                    montos = {
+                        "VPD": {"Misiones": 168000, "Consultores": 130000},
+                        "VPF": {"Misiones": 138600, "Consultores": 170000},
+                        "VPO": {"Misiones": 434707, "Consultores": 547700},
+                        "VPE": {"Misiones": 28244, "Consultores": 179446},
+                    }
+
                     if selected_subpage == "Misiones":
                         subsubpage_options = ["Requerimiento de Área", "DPP 2025"]
                         selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Misiones", subsubpage_options)
                         if selected_subsubpage == "Requerimiento de Área":
-                            mostrar_requerimiento_area("VPE_Misiones")
+                            mostrar_requerimiento_area(f"{page}_Misiones")
                         elif selected_subsubpage == "DPP 2025":
-                            mostrar_dpp_2025_editor("VPE_Misiones", montos["VPE"]["Misiones"])
+                            mostrar_dpp_2025_editor(f"{page}_Misiones", montos[page]["Misiones"])
 
                     elif selected_subpage == "Consultorías":
                         subsubpage_options = ["Requerimiento de Área", "DPP 2025"]
                         selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Consultorías", subsubpage_options)
                         if selected_subsubpage == "Requerimiento de Área":
-                            mostrar_requerimiento_area("VPE_Consultores")
+                            mostrar_requerimiento_area(f"{page}_Consultores")
                         elif selected_subsubpage == "DPP 2025":
-                            mostrar_dpp_2025_editor("VPE_Consultores", montos["VPE"]["Consultores"])
-
-        elif selected_page == "PRE":
-            if not st.session_state.page_authenticated["PRE"]:
-                password = st.text_input("Contraseña para PRE", type="password")
-                if st.button("Ingresar"):
-                    if password == page_passwords["PRE"]:
-                        st.session_state.page_authenticated["PRE"] = True
-                        st.rerun()
-                    else:
-                        st.error("Contraseña incorrecta.")
-            else:
-                titulo_con_logo("PRE", nivel=1)
-                subpage_options = ["Misiones Personal", "Misiones Consultores", "Servicios Profesionales", "Gastos Centralizados"]
-                selected_subpage = st.sidebar.selectbox("Selecciona una subpágina", subpage_options)
-
-                if selected_subpage == "Misiones Personal":
-                    mostrar_requerimiento_area("PRE_Misiones_personal")
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.metric("Gasto Centralizados VPD", "$35,960")
-                    with col2:
-                        st.metric("Gasto Centralizados VPO", "$48,158")
-
-                    col3, _ = st.columns([1,1])
-                    with col3:
-                        st.metric("Gasto Centralizados VPF", "$40,960")
-
-                elif selected_subpage == "Misiones Consultores":
-                    mostrar_requerimiento_area("PRE_Misiones_consultores")
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.metric("Gasto Centralizados VPD", "$13,160")
-                    with col2:
-                        st.metric("Gasto Centralizados VPO", "$13,160")
-
-                    col3, _ = st.columns([1,1])
-                    with col3:
-                        st.metric("Gasto Centralizados VPF", "$13,160")
-
-                elif selected_subpage == "Servicios Profesionales":
-                    mostrar_requerimiento_area("PRE_servicios_profesionales")
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.metric("Gasto Centralizados VPD", "$180,000")
-                    with col2:
-                        st.metric("Gasto Centralizados VPO", "$144,000")
-
-                    col3, _ = st.columns([1,1])
-                    with col3:
-                        st.metric("Gasto Centralizados VPF", "$140,000")
-
-                elif selected_subpage == "Gastos Centralizados":
-                    st.write("Sube un archivo para Gastos Centralizados.")
-                    uploaded_file = st.file_uploader("Subir archivo Excel", type=["xlsx", "xls"])
-                    if uploaded_file:
-                        data = pd.read_excel(uploaded_file, engine="openpyxl")
-                        st.write("Archivo cargado:")
-                        st.dataframe(data)
-
-        elif selected_page == "Consolidado":
-            if not st.session_state.page_authenticated["Consolidado"]:
-                password = st.text_input("Contraseña para Consolidado", type="password")
-                if st.button("Ingresar"):
-                    if password == page_passwords["Consolidado"]:
-                        st.session_state.page_authenticated["Consolidado"] = True
-                        st.rerun()
-                    else:
-                        st.error("Contraseña incorrecta.")
-            else:
-                mostrar_consolidado()
+                            mostrar_dpp_2025_editor(f"{page}_Consultores", montos[page]["Consultores"])
 
 if __name__ == "__main__":
     main()
