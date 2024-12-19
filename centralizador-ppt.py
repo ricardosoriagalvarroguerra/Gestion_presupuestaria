@@ -218,7 +218,8 @@ def mostrar_consolidado():
     def mostrar_tabla_formato_dos_decimales(df):
         if df is not None:
             numeric_cols = df.select_dtypes(include=["number"]).columns
-            styled_df = df.style.format("{:.2f}", subset=numeric_cols)
+            # Ahora usamos {:,.2f} para incluir separador de miles
+            styled_df = df.style.format("{:,.2f}", subset=numeric_cols)
             return styled_df
         else:
             st.warning("No se pudo cargar la tabla.")
