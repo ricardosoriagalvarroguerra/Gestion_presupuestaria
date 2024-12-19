@@ -95,6 +95,28 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
         else:
             st.warning("No se encontraron las columnas necesarias (cantidad_funcionarios, monto_mensual, cantidad_meses) para calcular el total.")
 
+    # Cálculo automático para la hoja VPD_Misiones
+    if sheet_name == "VPD_Misiones":
+        required_cols = ["cant_funcionarios", "costo_pasaje", "dias", "alojamiento", "perdiem_otros", "movilidad"]
+        if all(col in edited_df.columns for col in required_cols):
+            # Convertimos a numérico las columnas necesarias
+            edited_df["cant_funcionarios"] = pd.to_numeric(edited_df["cant_funcionarios"], errors="coerce").fillna(0)
+            edited_df["costo_pasaje"] = pd.to_numeric(edited_df["costo_pasaje"], errors="coerce").fillna(0)
+            edited_df["dias"] = pd.to_numeric(edited_df["dias"], errors="coerce").fillna(0)
+            edited_df["alojamiento"] = pd.to_numeric(edited_df["alojamiento"], errors="coerce").fillna(0)
+            edited_df["perdiem_otros"] = pd.to_numeric(edited_df["perdiem_otros"], errors="coerce").fillna(0)
+            edited_df["movilidad"] = pd.to_numeric(edited_df["movilidad"], errors="coerce").fillna(0)
+
+            # Calculamos las columnas derivadas
+            edited_df["total_pasaje"] = edited_df["cant_funcionarios"] * edited_df["costo_pasaje"]
+            edited_df["total_alojamiento"] = edited_df["dias"] * edited_df["cant_funcionarios"] * edited_df["alojamiento"]
+            edited_df["total_perdiem_otros"] = edited_df["dias"] * edited_df["cant_funcionarios"] * edited_df["perdiem_otros"]
+            edited_df["total_movilidad"] = edited_df["movilidad"] * edited_df["cant_funcionarios"]
+            edited_df["total"] = (edited_df["total_pasaje"] + edited_df["total_alojamiento"] 
+                                  + edited_df["total_perdiem_otros"] + edited_df["total_movilidad"])
+        else:
+            st.warning("No se encontraron las columnas necesarias para calcular el total en VPD_Misiones.")
+
     if st.button("Guardar Cambios", key=f"guardar_{sheet_name}"):
         edited_df.columns = edited_df.columns.str.strip().str.lower()
         st.session_state[session_key] = edited_df
@@ -118,19 +140,16 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
                 st.metric(label="Diferencia", value=f"${diferencia:,.0f}")
 
             # Métricas adicionales según el sheet_name
-            # VPD
             if "VPD_Misiones" in sheet_name:
                 st.metric("Gastos Centralizados VPD", "$35,960")
             if "VPD_Consultores" in sheet_name:
                 st.metric("Gastos Centralizados VPD", "$193,160")
 
-            # VPO
             if "VPO_Misiones" in sheet_name:
                 st.metric("Gastos Centralizados VPO", "$48,158")
             if "VPO_Consultores" in sheet_name:
                 st.metric("Gastos Centralizados VPO", "$33,160")
 
-            # VPF
             if "VPF_Misiones" in sheet_name:
                 st.metric("Gastos Centralizados VPF", "$40,960")
             if "VPF_Consultores" in sheet_name:
