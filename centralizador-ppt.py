@@ -16,7 +16,7 @@ logo_path = "estrellafon_transparente.png"
 
 def titulo_con_logo(titulo):
     """
-    Muestra un título principal (equivalente a st.title()) con el logo a la izquierda.
+    Muestra un título principal con el logo a la izquierda.
     """
     col1, col2 = st.columns([0.1, 1])
     with col1:
@@ -117,8 +117,8 @@ def recalcular_formulas(sheet_name, df):
 
 def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
     st.header(f"DPP 2025 - {sheet_name}")
-
     session_key = f"dpp_2025_{sheet_name}_data"
+
     if session_key not in st.session_state:
         data = load_data(excel_file, sheet_name)
         if data is None:
@@ -240,22 +240,27 @@ def mostrar_actualizacion():
     st.write(styled_consultores_df, unsafe_allow_html=True)
 
 def mostrar_consolidado():
-    # Función de formateo personalizada
+    # Formateador personalizado con 2 decimales, separador de miles y celdas vacías para NaN/None
     def custom_formatter(value):
         if pd.isna(value):
-            return ""  # Celdas vacías se muestran en blanco
+            return ""
         elif isinstance(value, (int, float)):
-            # Mostrar números con 2 decimales y separador de miles
             return f"{value:,.2f}"
         else:
-            # Texto u otros tipos se muestran tal cual
             return value
+
+    # Estilo para celdas vacías: fondo y texto en blanco
+    def empty_style(val):
+        if val == '':
+            return 'background-color: white; color: white;'
+        return ''
 
     titulo_con_logo("Consolidado")
 
     filas_cuadro_9 = [7]
     filas_cuadro_10 = [0, 7, 14, 21, 24]
 
+    # Cuadro 9
     st.header("Gastos en Personal 2025 vs 2024 (Cuadro 9 - DPP 2025)")
     data_cuadro_9 = load_data(excel_file, "Cuadro_9")
     if data_cuadro_9 is not None:
@@ -266,11 +271,15 @@ def mostrar_consolidado():
                 return ['background-color: #9d0208; color: white'] * len(row)
             else:
                 return [''] * len(row)
+        # Aplica resaltado
         styled_cuadro_9 = styled_cuadro_9.apply(resaltar_filas_9, axis=1)
+        # Aplica estilo a celdas vacías
+        styled_cuadro_9 = styled_cuadro_9.applymap(empty_style)
         st.write(styled_cuadro_9, unsafe_allow_html=True)
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_9'.")
 
+    # Cuadro 10
     st.header("Análisis de Cambios en Gastos de Personal 2025 vs. 2024 (Cuadro 10 - DPP 2025)")
     data_cuadro_10 = load_data(excel_file, "Cuadro_10")
     if data_cuadro_10 is not None:
@@ -282,24 +291,29 @@ def mostrar_consolidado():
             else:
                 return [''] * len(row)
         styled_cuadro_10 = styled_cuadro_10.apply(resaltar_filas_10, axis=1)
+        styled_cuadro_10 = styled_cuadro_10.applymap(empty_style)
         st.write(styled_cuadro_10, unsafe_allow_html=True)
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_10'.")
 
+    # Cuadro 11
     st.header("Gastos Operativos propuestos para 2025 y montos aprobados para 2024 (Cuadro 11 - DPP 2025)")
     data_cuadro_11 = load_data(excel_file, "Cuadro_11")
     if data_cuadro_11 is not None:
         data_cuadro_11 = data_cuadro_11.reset_index(drop=True)
         styled_cuadro_11 = data_cuadro_11.style.format(custom_formatter)
+        styled_cuadro_11 = styled_cuadro_11.applymap(empty_style)
         st.write(styled_cuadro_11, unsafe_allow_html=True)
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_11'.")
 
+    # Consolidado
     st.header("Consolidado DPP 2025")
     data_consolidado = load_data(excel_file, "Consolidado")
     if data_consolidado is not None:
         data_consolidado = data_consolidado.reset_index(drop=True)
         styled_consolidado = data_consolidado.style.format(custom_formatter)
+        styled_consolidado = styled_consolidado.applymap(empty_style)
         st.write(styled_consolidado, unsafe_allow_html=True)
     else:
         st.warning("No se pudo cargar la hoja 'Consolidado'.")
