@@ -237,7 +237,6 @@ def mostrar_actualizacion():
 
 def mostrar_consolidado():
     def custom_formatter(value):
-        # Si es NaN/None, mostrar cadena vacía ("") para que no aparezca "None"
         if pd.isna(value):
             return ""
         elif isinstance(value, (int, float)):
@@ -246,6 +245,9 @@ def mostrar_consolidado():
 
     filas_cuadro_9 = [7]
     filas_cuadro_10 = [0, 7, 14, 21, 24]
+
+    # Filas para el consolidado solicitadas: 6, 16, 23, 32, 41, 48, 53 (indexado desde 0)
+    filas_consolidado = [6, 16, 23, 32, 41, 48, 53]
 
     titulo_con_logo("Consolidado")
 
@@ -297,6 +299,15 @@ def mostrar_consolidado():
     if data_consolidado is not None:
         data_consolidado = data_consolidado.reset_index(drop=True)
         styled_consolidado = data_consolidado.style.format(custom_formatter)
+
+        # Función para resaltar las filas solicitadas en el consolidado
+        def resaltar_filas_consolidado(row):
+            if row.name in filas_consolidado:
+                return ['background-color: #9d0208; color: white'] * len(row)
+            else:
+                return [''] * len(row)
+
+        styled_consolidado = styled_consolidado.apply(resaltar_filas_consolidado, axis=1)
         st.write(styled_consolidado, unsafe_allow_html=True)
     else:
         st.warning("No se pudo cargar la hoja 'Consolidado'.")
