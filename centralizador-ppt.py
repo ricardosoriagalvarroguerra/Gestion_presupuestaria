@@ -240,16 +240,16 @@ def mostrar_actualizacion():
     st.write(styled_consultores_df, unsafe_allow_html=True)
 
 def mostrar_consolidado():
-    # Antes de aplicar el formateo, llenamos NaN con ''
-    def mostrar_tabla_sin_none(df):
-        if df is not None:
-            df = df.fillna('')  # Reemplaza NaN con cadena vacía
-            # No es necesario un formato especial, ya que sin NaN, se mostrarán en blanco
-            styled_df = df.style.format(None)  # Sin formato especial, conserva strings vacíos
-            return styled_df
+    # Función de formateo personalizada
+    def custom_formatter(value):
+        if pd.isna(value):
+            return ""  # Celdas vacías se muestran en blanco
+        elif isinstance(value, (int, float)):
+            # Mostrar números con 2 decimales y separador de miles
+            return f"{value:,.2f}"
         else:
-            st.warning("No se pudo cargar la tabla.")
-            return None
+            # Texto u otros tipos se muestran tal cual
+            return value
 
     titulo_con_logo("Consolidado")
 
@@ -260,15 +260,14 @@ def mostrar_consolidado():
     data_cuadro_9 = load_data(excel_file, "Cuadro_9")
     if data_cuadro_9 is not None:
         data_cuadro_9 = data_cuadro_9.reset_index(drop=True)
-        styled_cuadro_9 = mostrar_tabla_sin_none(data_cuadro_9)
-        if styled_cuadro_9 is not None:
-            def resaltar_filas_9(row):
-                if row.name in filas_cuadro_9:
-                    return ['background-color: #9d0208; color: white'] * len(row)
-                else:
-                    return [''] * len(row)
-            styled_cuadro_9 = styled_cuadro_9.apply(resaltar_filas_9, axis=1)
-            st.write(styled_cuadro_9, unsafe_allow_html=True)
+        styled_cuadro_9 = data_cuadro_9.style.format(custom_formatter)
+        def resaltar_filas_9(row):
+            if row.name in filas_cuadro_9:
+                return ['background-color: #9d0208; color: white'] * len(row)
+            else:
+                return [''] * len(row)
+        styled_cuadro_9 = styled_cuadro_9.apply(resaltar_filas_9, axis=1)
+        st.write(styled_cuadro_9, unsafe_allow_html=True)
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_9'.")
 
@@ -276,23 +275,22 @@ def mostrar_consolidado():
     data_cuadro_10 = load_data(excel_file, "Cuadro_10")
     if data_cuadro_10 is not None:
         data_cuadro_10 = data_cuadro_10.reset_index(drop=True)
-        styled_cuadro_10 = mostrar_tabla_sin_none(data_cuadro_10)
-        if styled_cuadro_10 is not None:
-            def resaltar_filas_10(row):
-                if row.name in filas_cuadro_10:
-                    return ['background-color: #9d0208; color: white'] * len(row)
-                else:
-                    return [''] * len(row)
-            styled_cuadro_10 = styled_cuadro_10.apply(resaltar_filas_10, axis=1)
-            st.write(styled_cuadro_10, unsafe_allow_html=True)
+        styled_cuadro_10 = data_cuadro_10.style.format(custom_formatter)
+        def resaltar_filas_10(row):
+            if row.name in filas_cuadro_10:
+                return ['background-color: #9d0208; color: white'] * len(row)
+            else:
+                return [''] * len(row)
+        styled_cuadro_10 = styled_cuadro_10.apply(resaltar_filas_10, axis=1)
+        st.write(styled_cuadro_10, unsafe_allow_html=True)
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_10'.")
 
     st.header("Gastos Operativos propuestos para 2025 y montos aprobados para 2024 (Cuadro 11 - DPP 2025)")
     data_cuadro_11 = load_data(excel_file, "Cuadro_11")
     if data_cuadro_11 is not None:
-        data_cuadro_11 = data_cuadro_11.reset_index(drop=True).fillna('')
-        styled_cuadro_11 = data_cuadro_11.style.format(None)
+        data_cuadro_11 = data_cuadro_11.reset_index(drop=True)
+        styled_cuadro_11 = data_cuadro_11.style.format(custom_formatter)
         st.write(styled_cuadro_11, unsafe_allow_html=True)
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_11'.")
@@ -300,8 +298,8 @@ def mostrar_consolidado():
     st.header("Consolidado DPP 2025")
     data_consolidado = load_data(excel_file, "Consolidado")
     if data_consolidado is not None:
-        data_consolidado = data_consolidado.reset_index(drop=True).fillna('')
-        styled_consolidado = data_consolidado.style.format(None)
+        data_consolidado = data_consolidado.reset_index(drop=True)
+        styled_consolidado = data_consolidado.style.format(custom_formatter)
         st.write(styled_consolidado, unsafe_allow_html=True)
     else:
         st.warning("No se pudo cargar la hoja 'Consolidado'.")
