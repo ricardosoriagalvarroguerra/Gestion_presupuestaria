@@ -248,11 +248,11 @@ def mostrar_consolidado():
     filas_cuadro_9 = [7]
     filas_cuadro_10 = [0, 7, 14, 21, 24]
 
-    # Filas del consolidado con fondo #9d0208 y texto blanco
+    # Filas con fondo rojo (#9d0208) y texto blanco
     filas_consolidado_color = [5, 15, 22, 31, 40, 47, 52]
 
-    # Filas del consolidado con texto color #8d99ae
-    filas_consolidado_color_text = [0, 4, 6, 7, 14, 16, 21, 23, 30, 32, 39, 41, 46, 48]
+    # Filas que deben ser color negro fuerte:
+    filas_negro = [0, 4, 6, 7, 14, 16, 21, 23, 30, 32, 39, 41, 46, 48]
 
     st.header("Gastos en Personal 2025 vs 2024 (Cuadro 9 - DPP 2025)")
     data_cuadro_9 = load_data(excel_file, "Cuadro_9")
@@ -299,22 +299,31 @@ def mostrar_consolidado():
         data_consolidado = data_consolidado.reset_index(drop=True)
         styled_consolidado = data_consolidado.style.format(custom_formatter)
 
-        # Funciones de estilo
+        # Función para poner todas las filas en #8d99ae
+        def color_todas_filas(row):
+            return ['color: #8d99ae;'] * len(row)
+
+        # Función para poner en negro las filas indicadas
+        def color_filas_negro(row):
+            if row.name in filas_negro:
+                return ['color: black;'] * len(row)
+            else:
+                return [''] * len(row)
+
+        # Función para resaltar filas con fondo rojo y texto blanco
         def resaltar_filas_consolidado(row):
             if row.name in filas_consolidado_color:
                 return ['background-color: #9d0208; color: white'] * len(row)
             else:
                 return [''] * len(row)
 
-        def color_filas_consolidado(row):
-            if row.name in filas_consolidado_color_text:
-                return ['color: #8d99ae;'] * len(row)
-            else:
-                return [''] * len(row)
-
-        # Primero el fondo, luego el color del texto para las filas requeridas
+        # Orden de estilo:
+        # 1. Todas las filas a #8d99ae
+        # 2. Filas indicadas a negro (sobrescribe #8d99ae en esas filas)
+        # 3. Filas con fondo rojo y texto blanco (sobrescribe todo en esas filas)
+        styled_consolidado = styled_consolidado.apply(color_todas_filas, axis=1)
+        styled_consolidado = styled_consolidado.apply(color_filas_negro, axis=1)
         styled_consolidado = styled_consolidado.apply(resaltar_filas_consolidado, axis=1)
-        styled_consolidado = styled_consolidado.apply(color_filas_consolidado, axis=1)
 
         st.write(styled_consolidado, unsafe_allow_html=True)
     else:
