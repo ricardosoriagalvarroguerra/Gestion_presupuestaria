@@ -11,7 +11,6 @@ st.set_page_config(
     layout="wide"
 )
 
-# Ruta del logo
 logo_path = "estrellafon_transparente.png"
 
 def titulo_con_logo(titulo):
@@ -21,7 +20,7 @@ def titulo_con_logo(titulo):
     with col2:
         st.title(titulo)
 
-# Credenciales globales de acceso
+# Credenciales globales
 app_credentials = {
     "luciana_botafogo": "fonplata",
     "mcalvino": "2025presupuesto",
@@ -86,9 +85,9 @@ def mostrar_requerimiento_area(sheet_name):
         st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
 
 def recalcular_formulas(sheet_name, df):
-    # Lógica para VPD_Consultores: recalcular 'total'
-    if sheet_name == "VPD_Consultores":
-        required_cols = ["cantidad_funcionarios", "monto_mensual", "cantidad_meses"]
+    required_cols = ["cantidad_funcionarios", "monto_mensual", "cantidad_meses"]
+    # Para VPD_Consultores y VPO_Consultores la lógica es la misma
+    if sheet_name in ["VPD_Consultores", "VPO_Consultores"]:
         if all(col in df.columns for col in required_cols):
             df["cantidad_funcionarios"] = pd.to_numeric(df["cantidad_funcionarios"], errors="coerce").fillna(0)
             df["monto_mensual"] = pd.to_numeric(df["monto_mensual"], errors="coerce").fillna(0)
@@ -107,15 +106,13 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
             return
         st.session_state[session_key] = data
 
-    # Cargar datos desde session_state
     current_df = st.session_state[session_key]
 
-    # Editor interactivo
     edited_df = st.data_editor(current_df, key=f"editor_{sheet_name}", num_rows="dynamic")
 
-    # Recalcular las fórmulas inmediatamente
-    edited_df = recalcular_formulas(sheet_name, edited_df)  # sin copy() para evitar retrasos
-    st.session_state[session_key] = edited_df  # Actualizar el session_state con la versión recalculada
+    # Recalcular inmediatamente
+    edited_df = recalcular_formulas(sheet_name, edited_df)
+    st.session_state[session_key] = edited_df
 
     if "total" in edited_df.columns:
         try:
@@ -132,17 +129,27 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
             with col3:
                 st.metric(label="Diferencia", value=f"${diferencia:,.0f}")
 
-            # Si es VPD_Consultores, colocar GCVPD y GCVPD+Suma debajo
+            # Para VPD_Consultores
             if "VPD_Consultores" in sheet_name:
-                gcvpd = 35960  # Valor Gastos Centralizados VPD
+                gcvpd = 35960
                 suma_comb = gcvpd + total_sum
-                # Segunda fila de métricas (debajo de la primera)
-                # GCVPD debajo de Monto DPP 2025 (col1) y GCVPD+Suma debajo de Suma de Total (col2)
+                # Segunda fila: GCVPD debajo de Monto DPP 2025 (col1) y GCVPD+Suma debajo de Suma de Total (col2)
                 colA, colB, colC = st.columns(3)
                 with colA:
                     st.metric("Gastos Centralizados VPD", f"${gcvpd:,.0f}")
                 with colB:
                     st.metric("GCVPD + Suma de Total", f"${suma_comb:,.0f}")
+
+            # Para VPO_Consultores
+            if "VPO_Consultores" in sheet_name:
+                gcvpo = 48158
+                suma_comb = gcvpo + total_sum
+                # Segunda fila: GCVPO debajo de Monto DPP 2025 (col1) y GCVPO+Suma debajo de Suma de Total (col2)
+                colA, colB, colC = st.columns(3)
+                with colA:
+                    st.metric("Gastos Centralizados VPO", f"${gcvpo:,.0f}")
+                with colB:
+                    st.metric("GCVPO + Suma de Total", f"${suma_comb:,.0f}")
 
         except Exception as e:
             st.warning(f"No se pudo convertir la columna 'total' a formato numérico: {e}")
@@ -179,14 +186,17 @@ def calcular_actualizacion_tabla(vicepresidencias, tipo):
             data = st.session_state[requerimiento_key]
             if "total" in data.columns and pd.api.types.is_numeric_dtype(data["total"]):
                 requerimiento = data["total"].sum(numeric_only=True)
+
         dpp = montos[tipo]
         diferencia = requerimiento - dpp
+
         filas.append({
             "Unidad Organizacional": vpe,
             "Requerimiento Área": int(requerimiento),
             "DPP 2025": int(dpp),
             "Diferencia": int(diferencia)
         })
+
     df = pd.DataFrame(filas)
     return df
 
@@ -196,8 +206,7 @@ def aplicar_estilos(df):
             return "background-color: green; color: white;"
         else:
             return "background-color: yellow; color: black;"
-    styled_df = df.style.applymap(resaltar_diferencia, subset=["Diferencia"])
-    return styled_df
+    return df.style.applymap(resaltar_diferencia, subset=["Diferencia"])
 
 def mostrar_actualizacion():
     titulo_con_logo("Actualización - Resumen Consolidado")
@@ -384,6 +393,7 @@ def main():
                     subpage_options = ["Misiones Personal", "Misiones Consultores", "Servicios Profesionales", "Gastos Centralizados"]
                     selected_subpage = st.sidebar.selectbox("Selecciona una subpágina", subpage_options)
 
+                    # Mismas métricas para PRE (sin cambios)
                     if selected_subpage == "Misiones Personal":
                         mostrar_requerimiento_area("PRE_Misiones_personal")
                         col1, col2 = st.columns(2)
@@ -434,7 +444,7 @@ def main():
                             st.write("Archivo cargado:")
                             st.dataframe(data)
             else:
-                # VPD, VPO, VPF, VPE
+                # Para VPD, VPO, VPF, VPE
                 page = selected_page
                 if not st.session_state.page_authenticated[page]:
                     password = st.text_input(f"Contraseña para {page}", type="password")
@@ -469,7 +479,7 @@ def main():
                         if selected_subsubpage == "Requerimiento de Área":
                             mostrar_requerimiento_area(f"{page}_Consultores")
                         elif selected_subsubpage == "DPP 2025":
-                            # Aquí la lógica recalculada y value boxes con ubicación ajustada
+                            # Aplicar la lógica también para VPO_Consultores
                             mostrar_dpp_2025_editor(f"{page}_Consultores", montos[page]["Consultores"])
 
 if __name__ == "__main__":
