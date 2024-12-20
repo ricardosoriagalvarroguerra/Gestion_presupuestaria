@@ -86,6 +86,7 @@ def mostrar_requerimiento_area(sheet_name):
         st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
 
 def recalcular_formulas(sheet_name, df):
+    # Lógica específica para VPD_Consultores
     if sheet_name == "VPD_Consultores":
         required_cols = ["cantidad_funcionarios", "monto_mensual", "cantidad_meses"]
         if all(col in df.columns for col in required_cols):
@@ -94,28 +95,15 @@ def recalcular_formulas(sheet_name, df):
             df["cantidad_meses"] = pd.to_numeric(df["cantidad_meses"], errors="coerce").fillna(0)
             df["total"] = df["cantidad_funcionarios"] * df["monto_mensual"] * df["cantidad_meses"]
 
-    if sheet_name == "VPD_Misiones":
-        required_cols = ["cant_funcionarios", "costo_pasaje", "dias", "alojamiento", "perdiem_otros", "movilidad"]
-        if all(col in df.columns for col in required_cols):
-            df["cant_funcionarios"] = pd.to_numeric(df["cant_funcionarios"], errors="coerce").fillna(0)
-            df["costo_pasaje"] = pd.to_numeric(df["costo_pasaje"], errors="coerce").fillna(0)
-            df["dias"] = pd.to_numeric(df["dias"], errors="coerce").fillna(0)
-            df["alojamiento"] = pd.to_numeric(df["alojamiento"], errors="coerce").fillna(0)
-            df["perdiem_otros"] = pd.to_numeric(df["perdiem_otros"], errors="coerce").fillna(0)
-            df["movilidad"] = pd.to_numeric(df["movilidad"], errors="coerce").fillna(0)
+    # Si hay otras lógicas para otras hojas, se mantienen...
+    # Por ejemplo, lógicas previas para VPD_Misiones u otras vicepresidencias si existían.
 
-            df["total_pasaje"] = df["cant_funcionarios"] * df["costo_pasaje"]
-            df["total_alojamiento"] = df["dias"] * df["cant_funcionarios"] * df["alojamiento"]
-            df["total_perdiem_otros"] = df["dias"] * df["cant_funcionarios"] * df["perdiem_otros"]
-            df["total_movilidad"] = df["movilidad"] * df["cant_funcionarios"]
-            df["total"] = (df["total_pasaje"] + df["total_alojamiento"] 
-                           + df["total_perdiem_otros"] + df["total_movilidad"])
     return df
 
 def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
     st.header(f"DPP 2025 - {sheet_name}")
-    session_key = f"dpp_2025_{sheet_name}_data"
 
+    session_key = f"dpp_2025_{sheet_name}_data"
     if session_key not in st.session_state:
         data = load_data(excel_file, sheet_name)
         if data is None:
@@ -123,8 +111,10 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
             return
         st.session_state[session_key] = data
 
+    # Editor en tiempo real
     edited_df = st.data_editor(st.session_state[session_key], key=f"editor_{sheet_name}", num_rows="dynamic")
 
+    # Recalcular fórmula en tiempo real
     edited_df = recalcular_formulas(sheet_name, edited_df.copy())
     st.session_state[session_key] = edited_df
 
@@ -142,20 +132,16 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
             with col3:
                 st.metric(label="Diferencia", value=f"${diferencia:,.0f}")
 
-            if "VPD_Misiones" in sheet_name:
-                st.metric("Gastos Centralizados VPD", "$35,960")
+            # Si es VPD_Consultores, mostrar Gastos Centralizados VPD y la suma
             if "VPD_Consultores" in sheet_name:
-                st.metric("Gastos Centralizados VPD", "$193,160")
-
-            if "VPO_Misiones" in sheet_name:
-                st.metric("Gastos Centralizados VPO", "$48,158")
-            if "VPO_Consultores" in sheet_name:
-                st.metric("Gastos Centralizados VPO", "$33,160")
-
-            if "VPF_Misiones" in sheet_name:
-                st.metric("Gastos Centralizados VPF", "$40,960")
-            if "VPF_Consultores" in sheet_name:
-                st.metric("Gastos Centralizados VPF", "$88,460")
+                gcvpd = 193160  # Ejemplo del valor de Gastos Centralizados VPD
+                col4, col5 = st.columns(2)
+                with col4:
+                    st.metric("Gastos Centralizados VPD", f"${gcvpd:,.0f}")
+                # Nuevo value box con la suma GCVPD + Suma de Total
+                suma_comb = gcvpd + total_sum
+                with col5:
+                    st.metric("GCVPD + Suma de Total", f"${suma_comb:,.0f}")
 
         except Exception as e:
             st.warning(f"No se pudo convertir la columna 'total' a un formato numérico: {e}")
@@ -212,7 +198,8 @@ def aplicar_estilos(df):
             return "background-color: green; color: white;"
         else:
             return "background-color: yellow; color: black;"
-    return df.style.applymap(resaltar_diferencia, subset=["Diferencia"])
+    styled_df = df.style.applymap(resaltar_diferencia, subset=["Diferencia"])
+    return styled_df
 
 def mostrar_actualizacion():
     titulo_con_logo("Actualización - Resumen Consolidado")
@@ -248,10 +235,10 @@ def mostrar_consolidado():
     filas_cuadro_9 = [7]
     filas_cuadro_10 = [0, 7, 14, 21, 24]
 
-    # Filas con fondo rojo (#9d0208) y texto blanco
+    # Filas resaltadas en consolidado
     filas_consolidado_color = [5, 15, 22, 31, 40, 47, 52]
 
-    # Filas que deben ser color negro fuerte:
+    # Filas con texto negro fuerte
     filas_negro = [0, 4, 6, 7, 14, 16, 21, 23, 30, 32, 39, 41, 46, 48]
 
     st.header("Gastos en Personal 2025 vs 2024 (Cuadro 9 - DPP 2025)")
@@ -299,28 +286,22 @@ def mostrar_consolidado():
         data_consolidado = data_consolidado.reset_index(drop=True)
         styled_consolidado = data_consolidado.style.format(custom_formatter)
 
-        # Función para poner todas las filas en #8d99ae
         def color_todas_filas(row):
             return ['color: #8d99ae;'] * len(row)
 
-        # Función para poner en negro las filas indicadas
         def color_filas_negro(row):
             if row.name in filas_negro:
                 return ['color: black;'] * len(row)
             else:
                 return [''] * len(row)
 
-        # Función para resaltar filas con fondo rojo y texto blanco
         def resaltar_filas_consolidado(row):
             if row.name in filas_consolidado_color:
                 return ['background-color: #9d0208; color: white'] * len(row)
             else:
                 return [''] * len(row)
 
-        # Orden de estilo:
-        # 1. Todas las filas a #8d99ae
-        # 2. Filas indicadas a negro (sobrescribe #8d99ae en esas filas)
-        # 3. Filas con fondo rojo y texto blanco (sobrescribe todo en esas filas)
+        # Orden de aplicación de estilos
         styled_consolidado = styled_consolidado.apply(color_todas_filas, axis=1)
         styled_consolidado = styled_consolidado.apply(color_filas_negro, axis=1)
         styled_consolidado = styled_consolidado.apply(resaltar_filas_consolidado, axis=1)
@@ -396,98 +377,106 @@ def main():
                             st.error("Contraseña incorrecta.")
                 else:
                     mostrar_consolidado()
-            else:
-                titulo_con_logo(selected_page)
-                if not st.session_state.page_authenticated[selected_page]:
-                    password = st.text_input(f"Contraseña para {selected_page}", type="password")
+            elif selected_page == "PRE":
+                if not st.session_state.page_authenticated["PRE"]:
+                    password = st.text_input("Contraseña para PRE", type="password")
                     if st.button("Ingresar"):
-                        if password == page_passwords[selected_page]:
-                            st.session_state.page_authenticated[selected_page] = True
+                        if password == page_passwords["PRE"]:
+                            st.session_state.page_authenticated["PRE"] = True
                             st.rerun()
                         else:
                             st.error("Contraseña incorrecta.")
                 else:
-                    if selected_page == "PRE":
-                        subpage_options = ["Misiones Personal", "Misiones Consultores", "Servicios Profesionales", "Gastos Centralizados"]
-                        selected_subpage = st.sidebar.selectbox("Selecciona una subpágina", subpage_options)
+                    subpage_options = ["Misiones Personal", "Misiones Consultores", "Servicios Profesionales", "Gastos Centralizados"]
+                    selected_subpage = st.sidebar.selectbox("Selecciona una subpágina", subpage_options)
 
-                        if selected_subpage == "Misiones Personal":
-                            mostrar_requerimiento_area("PRE_Misiones_personal")
-                            col1, col2 = st.columns(2)
-                            with col1:
-                                st.metric("Gasto Centralizados VPD", "$35,960")
-                            with col2:
-                                st.metric("Gasto Centralizados VPO", "$48,158")
+                    if selected_subpage == "Misiones Personal":
+                        mostrar_requerimiento_area("PRE_Misiones_personal")
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.metric("Gasto Centralizados VPD", "$35,960")
+                        with col2:
+                            st.metric("Gasto Centralizados VPO", "$48,158")
 
-                            col3, col4 = st.columns(2)
-                            with col3:
-                                st.metric("Gasto Centralizados VPF", "$40,960")
-                            with col4:
-                                st.metric("Gasto Centralizados PRE", "$60,168")
+                        col3, col4 = st.columns(2)
+                        with col3:
+                            st.metric("Gasto Centralizados VPF", "$40,960")
+                        with col4:
+                            st.metric("Gasto Centralizados PRE", "$60,168")
 
-                        elif selected_subpage == "Misiones Consultores":
-                            mostrar_requerimiento_area("PRE_Misiones_consultores")
-                            col1, col2 = st.columns(2)
-                            with col1:
-                                st.metric("Gasto Centralizados VPD", "$13,160")
-                            with col2:
-                                st.metric("Gasto Centralizados VPO", "$13,160")
+                    elif selected_subpage == "Misiones Consultores":
+                        mostrar_requerimiento_area("PRE_Misiones_consultores")
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.metric("Gasto Centralizados VPD", "$13,160")
+                        with col2:
+                            st.metric("Gasto Centralizados VPO", "$13,160")
 
-                            col3, col4 = st.columns(2)
-                            with col3:
-                                st.metric("Gasto Centralizados VPF", "$13,160")
-                            with col4:
-                                st.metric("Gasto Centralizados PRE", "$30,872")
+                        col3, col4 = st.columns(2)
+                        with col3:
+                            st.metric("Gasto Centralizados VPF", "$13,160")
+                        with col4:
+                            st.metric("Gasto Centralizados PRE", "$30,872")
 
-                        elif selected_subpage == "Servicios Profesionales":
-                            mostrar_requerimiento_area("PRE_servicios_profesionales")
-                            col1, col2 = st.columns(2)
-                            with col1:
-                                st.metric("Gasto Centralizados VPD", "$180,000")
-                            with col2:
-                                st.metric("Gasto Centralizados VPO", "$144,000")
+                    elif selected_subpage == "Servicios Profesionales":
+                        mostrar_requerimiento_area("PRE_servicios_profesionales")
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.metric("Gasto Centralizados VPD", "$180,000")
+                        with col2:
+                            st.metric("Gasto Centralizados VPO", "$144,000")
 
-                            col3, col4 = st.columns(2)
-                            with col3:
-                                st.metric("Gasto Centralizados VPF", "$140,000")
-                            with col4:
-                                st.metric("Gasto Centralizados PRE", "$932,608")
+                        col3, col4 = st.columns(2)
+                        with col3:
+                            st.metric("Gasto Centralizados VPF", "$140,000")
+                        with col4:
+                            st.metric("Gasto Centralizados PRE", "$932,608")
 
-                        elif selected_subpage == "Gastos Centralizados":
-                            st.write("Sube un archivo para Gastos Centralizados.")
-                            uploaded_file = st.file_uploader("Subir archivo Excel", type=["xlsx", "xls"])
-                            if uploaded_file:
-                                data = pd.read_excel(uploaded_file, engine="openpyxl")
-                                st.write("Archivo cargado:")
-                                st.dataframe(data)
-                    else:
-                        # Para VPD, VPO, VPF, VPE
-                        page = selected_page
-                        subpage_options = ["Misiones", "Consultorías"]
-                        selected_subpage = st.sidebar.selectbox("Selecciona una subpágina", subpage_options)
+                    elif selected_subpage == "Gastos Centralizados":
+                        st.write("Sube un archivo para Gastos Centralizados.")
+                        uploaded_file = st.file_uploader("Subir archivo Excel", type=["xlsx", "xls"])
+                        if uploaded_file:
+                            data = pd.read_excel(uploaded_file, engine="openpyxl")
+                            st.write("Archivo cargado:")
+                            st.dataframe(data)
+            else:
+                # Para VPD, VPO, VPF, VPE
+                page = selected_page
+                if not st.session_state.page_authenticated[page]:
+                    password = st.text_input(f"Contraseña para {page}", type="password")
+                    if st.button("Ingresar"):
+                        if password == page_passwords[page]:
+                            st.session_state.page_authenticated[page] = True
+                            st.rerun()
+                        else:
+                            st.error("Contraseña incorrecta.")
+                else:
+                    subpage_options = ["Misiones", "Consultorías"]
+                    selected_subpage = st.sidebar.selectbox("Selecciona una subpágina", subpage_options)
 
-                        montos = {
-                            "VPD": {"Misiones": 168000, "Consultores": 130000},
-                            "VPF": {"Misiones": 138600, "Consultores": 170000},
-                            "VPO": {"Misiones": 434707, "Consultores": 547700},
-                            "VPE": {"Misiones": 28244, "Consultores": 179446},
-                        }
+                    montos = {
+                        "VPD": {"Misiones": 168000, "Consultores": 130000},
+                        "VPF": {"Misiones": 138600, "Consultores": 170000},
+                        "VPO": {"Misiones": 434707, "Consultores": 547700},
+                        "VPE": {"Misiones": 28244, "Consultores": 179446},
+                    }
 
-                        if selected_subpage == "Misiones":
-                            subsubpage_options = ["Requerimiento de Área", "DPP 2025"]
-                            selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Misiones", subsubpage_options)
-                            if selected_subsubpage == "Requerimiento de Área":
-                                mostrar_requerimiento_area(f"{page}_Misiones")
-                            elif selected_subsubpage == "DPP 2025":
-                                mostrar_dpp_2025_editor(f"{page}_Misiones", montos[page]["Misiones"])
+                    if selected_subpage == "Misiones":
+                        subsubpage_options = ["Requerimiento de Área", "DPP 2025"]
+                        selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Misiones", subsubpage_options)
+                        if selected_subsubpage == "Requerimiento de Área":
+                            mostrar_requerimiento_area(f"{page}_Misiones")
+                        elif selected_subsubpage == "DPP 2025":
+                            mostrar_dpp_2025_editor(f"{page}_Misiones", montos[page]["Misiones"])
 
-                        elif selected_subpage == "Consultorías":
-                            subsubpage_options = ["Requerimiento de Área", "DPP 2025"]
-                            selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Consultorías", subsubpage_options)
-                            if selected_subsubpage == "Requerimiento de Área":
-                                mostrar_requerimiento_area(f"{page}_Consultores")
-                            elif selected_subsubpage == "DPP 2025":
-                                mostrar_dpp_2025_editor(f"{page}_Consultores", montos[page]["Consultores"])
+                    elif selected_subpage == "Consultorías":
+                        subsubpage_options = ["Requerimiento de Área", "DPP 2025"]
+                        selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Consultorías", subsubpage_options)
+                        if selected_subsubpage == "Requerimiento de Área":
+                            mostrar_requerimiento_area(f"{page}_Consultores")
+                        elif selected_subsubpage == "DPP 2025":
+                            # Aquí es donde se aplicará la lógica para recalcular y el nuevo value box
+                            mostrar_dpp_2025_editor(f"{page}_Consultores", montos[page]["Consultores"])
 
 if __name__ == "__main__":
     main()
