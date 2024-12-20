@@ -236,7 +236,6 @@ def mostrar_actualizacion():
     st.write(styled_consultores_df, unsafe_allow_html=True)
 
 def mostrar_consolidado():
-    # Agregar el título a la página "Consolidado" con el logo
     titulo_con_logo("Consolidado")
 
     def custom_formatter(value):
@@ -248,7 +247,12 @@ def mostrar_consolidado():
 
     filas_cuadro_9 = [7]
     filas_cuadro_10 = [0, 7, 14, 21, 24]
-    filas_consolidado = [5, 15, 22, 31, 40, 47, 52]
+
+    # Filas del consolidado con fondo #9d0208 y texto blanco
+    filas_consolidado_color = [5, 15, 22, 31, 40, 47, 52]
+
+    # Filas del consolidado con texto en negrita
+    filas_consolidado_negrita = [0, 4, 6, 7, 14, 16, 21, 23, 30, 32, 39, 41, 46, 48]
 
     st.header("Gastos en Personal 2025 vs 2024 (Cuadro 9 - DPP 2025)")
     data_cuadro_9 = load_data(excel_file, "Cuadro_9")
@@ -289,18 +293,29 @@ def mostrar_consolidado():
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_11'.")
 
-    # Agregar el título "Consolidado DPP 2025"
     st.header("Consolidado DPP 2025")
     data_consolidado = load_data(excel_file, "Consolidado")
     if data_consolidado is not None:
         data_consolidado = data_consolidado.reset_index(drop=True)
         styled_consolidado = data_consolidado.style.format(custom_formatter)
+
+        # Funciones de estilo
         def resaltar_filas_consolidado(row):
-            if row.name in filas_consolidado:
+            if row.name in filas_consolidado_color:
                 return ['background-color: #9d0208; color: white'] * len(row)
             else:
                 return [''] * len(row)
+
+        def negrita_filas_consolidado(row):
+            if row.name in filas_consolidado_negrita:
+                return ['font-weight: bold;'] * len(row)
+            else:
+                return [''] * len(row)
+
+        # Aplicar primero el fondo y luego la negrita
         styled_consolidado = styled_consolidado.apply(resaltar_filas_consolidado, axis=1)
+        styled_consolidado = styled_consolidado.apply(negrita_filas_consolidado, axis=1)
+
         st.write(styled_consolidado, unsafe_allow_html=True)
     else:
         st.warning("No se pudo cargar la hoja 'Consolidado'.")
