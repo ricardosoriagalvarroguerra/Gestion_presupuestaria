@@ -21,14 +21,14 @@ def titulo_con_logo(titulo):
     with col2:
         st.title(titulo)
 
-# Credenciales globales de acceso
+# Credenciales globales
 app_credentials = {
     "luciana_botafogo": "fonplata",
     "mcalvino": "2025presupuesto",
     "ajustinianon": "2025presupuesto"
 }
 
-# Contraseñas para cada página
+# Contraseñas por página
 page_passwords = {
     "Principal": None,
     "PRE": "pre456",
@@ -94,10 +94,6 @@ def recalcular_formulas(sheet_name, df):
             df["monto_mensual"] = pd.to_numeric(df["monto_mensual"], errors="coerce").fillna(0)
             df["cantidad_meses"] = pd.to_numeric(df["cantidad_meses"], errors="coerce").fillna(0)
             df["total"] = df["cantidad_funcionarios"] * df["monto_mensual"] * df["cantidad_meses"]
-
-    # Si hay otras lógicas para otras hojas, se mantienen...
-    # Por ejemplo, lógicas previas para VPD_Misiones u otras vicepresidencias si existían.
-
     return df
 
 def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
@@ -111,10 +107,9 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
             return
         st.session_state[session_key] = data
 
-    # Editor en tiempo real
     edited_df = st.data_editor(st.session_state[session_key], key=f"editor_{sheet_name}", num_rows="dynamic")
 
-    # Recalcular fórmula en tiempo real
+    # Recalcular en tiempo real
     edited_df = recalcular_formulas(sheet_name, edited_df.copy())
     st.session_state[session_key] = edited_df
 
@@ -124,6 +119,7 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
             total_sum = edited_df["total"].sum(numeric_only=True)
             diferencia = total_sum - monto_dpp
 
+            # Primera fila de métricas
             col1, col2, col3 = st.columns(3)
             with col1:
                 st.metric(label="Monto DPP 2025", value=f"${monto_dpp:,.0f}")
@@ -132,15 +128,15 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
             with col3:
                 st.metric(label="Diferencia", value=f"${diferencia:,.0f}")
 
-            # Si es VPD_Consultores, mostrar Gastos Centralizados VPD y la suma
+            # Si es VPD_Consultores
             if "VPD_Consultores" in sheet_name:
-                gcvpd = 193160  # Ejemplo del valor de Gastos Centralizados VPD
-                col4, col5 = st.columns(2)
-                with col4:
+                gcvpd = 35960  # Nuevo valor Gasto Centralizado VPD
+                # Segunda fila de métricas, alineada debajo de Suma de Total (col2)
+                colA, colB, colC = st.columns([1,1,1])
+                with colB:
                     st.metric("Gastos Centralizados VPD", f"${gcvpd:,.0f}")
-                # Nuevo value box con la suma GCVPD + Suma de Total
                 suma_comb = gcvpd + total_sum
-                with col5:
+                with colC:
                     st.metric("GCVPD + Suma de Total", f"${suma_comb:,.0f}")
 
         except Exception as e:
@@ -301,7 +297,7 @@ def mostrar_consolidado():
             else:
                 return [''] * len(row)
 
-        # Orden de aplicación de estilos
+        # Orden de estilos
         styled_consolidado = styled_consolidado.apply(color_todas_filas, axis=1)
         styled_consolidado = styled_consolidado.apply(color_filas_negro, axis=1)
         styled_consolidado = styled_consolidado.apply(resaltar_filas_consolidado, axis=1)
@@ -440,7 +436,7 @@ def main():
                             st.write("Archivo cargado:")
                             st.dataframe(data)
             else:
-                # Para VPD, VPO, VPF, VPE
+                # VPD, VPO, VPF, VPE
                 page = selected_page
                 if not st.session_state.page_authenticated[page]:
                     password = st.text_input(f"Contraseña para {page}", type="password")
@@ -475,7 +471,7 @@ def main():
                         if selected_subsubpage == "Requerimiento de Área":
                             mostrar_requerimiento_area(f"{page}_Consultores")
                         elif selected_subsubpage == "DPP 2025":
-                            # Aquí es donde se aplicará la lógica para recalcular y el nuevo value box
+                            # Aquí se aplica la lógica del recalculo y el nuevo value box
                             mostrar_dpp_2025_editor(f"{page}_Consultores", montos[page]["Consultores"])
 
 if __name__ == "__main__":
