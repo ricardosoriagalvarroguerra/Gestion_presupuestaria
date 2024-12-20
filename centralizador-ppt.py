@@ -85,9 +85,9 @@ def mostrar_requerimiento_area(sheet_name):
         st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
 
 def recalcular_formulas(sheet_name, df):
-    required_cols = ["cantidad_funcionarios", "monto_mensual", "cantidad_meses"]
-    # Para VPD_Consultores y VPO_Consultores la lógica es la misma
+    # Para VPD_Consultores y VPO_Consultores
     if sheet_name in ["VPD_Consultores", "VPO_Consultores"]:
+        required_cols = ["cantidad_funcionarios", "monto_mensual", "cantidad_meses"]
         if all(col in df.columns for col in required_cols):
             df["cantidad_funcionarios"] = pd.to_numeric(df["cantidad_funcionarios"], errors="coerce").fillna(0)
             df["monto_mensual"] = pd.to_numeric(df["monto_mensual"], errors="coerce").fillna(0)
@@ -129,9 +129,9 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
             with col3:
                 st.metric(label="Diferencia", value=f"${diferencia:,.0f}")
 
-            # Para VPD_Consultores
+            # VPD_Consultores: Gastos Centralizados VPD = 193,160
             if "VPD_Consultores" in sheet_name:
-                gcvpd = 35960
+                gcvpd = 193160
                 suma_comb = gcvpd + total_sum
                 # Segunda fila: GCVPD debajo de Monto DPP 2025 (col1) y GCVPD+Suma debajo de Suma de Total (col2)
                 colA, colB, colC = st.columns(3)
@@ -140,9 +140,9 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
                 with colB:
                     st.metric("GCVPD + Suma de Total", f"${suma_comb:,.0f}")
 
-            # Para VPO_Consultores
+            # VPO_Consultores: Gastos Centralizados VPO = 33,160
             if "VPO_Consultores" in sheet_name:
-                gcvpo = 48158
+                gcvpo = 33160
                 suma_comb = gcvpo + total_sum
                 # Segunda fila: GCVPO debajo de Monto DPP 2025 (col1) y GCVPO+Suma debajo de Suma de Total (col2)
                 colA, colB, colC = st.columns(3)
@@ -186,17 +186,14 @@ def calcular_actualizacion_tabla(vicepresidencias, tipo):
             data = st.session_state[requerimiento_key]
             if "total" in data.columns and pd.api.types.is_numeric_dtype(data["total"]):
                 requerimiento = data["total"].sum(numeric_only=True)
-
         dpp = montos[tipo]
         diferencia = requerimiento - dpp
-
         filas.append({
             "Unidad Organizacional": vpe,
             "Requerimiento Área": int(requerimiento),
             "DPP 2025": int(dpp),
             "Diferencia": int(diferencia)
         })
-
     df = pd.DataFrame(filas)
     return df
 
@@ -393,7 +390,7 @@ def main():
                     subpage_options = ["Misiones Personal", "Misiones Consultores", "Servicios Profesionales", "Gastos Centralizados"]
                     selected_subpage = st.sidebar.selectbox("Selecciona una subpágina", subpage_options)
 
-                    # Mismas métricas para PRE (sin cambios)
+                    # Métricas para PRE (sin cambios)
                     if selected_subpage == "Misiones Personal":
                         mostrar_requerimiento_area("PRE_Misiones_personal")
                         col1, col2 = st.columns(2)
@@ -444,7 +441,7 @@ def main():
                             st.write("Archivo cargado:")
                             st.dataframe(data)
             else:
-                # Para VPD, VPO, VPF, VPE
+                # VPD, VPO, VPF, VPE
                 page = selected_page
                 if not st.session_state.page_authenticated[page]:
                     password = st.text_input(f"Contraseña para {page}", type="password")
@@ -479,7 +476,7 @@ def main():
                         if selected_subsubpage == "Requerimiento de Área":
                             mostrar_requerimiento_area(f"{page}_Consultores")
                         elif selected_subsubpage == "DPP 2025":
-                            # Aplicar la lógica también para VPO_Consultores
+                            # Aquí se aplica la lógica tanto para VPD_Consultores como para VPO_Consultores
                             mostrar_dpp_2025_editor(f"{page}_Consultores", montos[page]["Consultores"])
 
 if __name__ == "__main__":
