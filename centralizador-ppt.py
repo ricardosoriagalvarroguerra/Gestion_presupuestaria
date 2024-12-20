@@ -417,15 +417,19 @@ def main():
 
                     elif selected_subpage == "Misiones Consultores":
                         mostrar_requerimiento_area("PRE_Misiones_consultores")
+                        # Primera fila: VPD (izq), VPO (der)
                         col1, col2 = st.columns(2)
                         with col1:
                             st.metric("Gasto Centralizados VPD", "$13,160")
                         with col2:
                             st.metric("Gasto Centralizados VPO", "$13,160")
 
-                        col3, _ = st.columns([1,1])
+                        # Segunda fila: VPF (izq), PRE (der)
+                        col3, col4 = st.columns(2)
                         with col3:
                             st.metric("Gasto Centralizados VPF", "$13,160")
+                        with col4:
+                            st.metric("Gasto Centralizados PRE", "$30,872")
 
                     elif selected_subpage == "Servicios Profesionales":
                         mostrar_requerimiento_area("PRE_servicios_profesionales")
