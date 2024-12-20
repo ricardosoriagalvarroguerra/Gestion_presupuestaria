@@ -21,7 +21,7 @@ def titulo_con_logo(titulo):
     with col2:
         st.title(titulo)
 
-# Credenciales globales
+# Credenciales globales de acceso
 app_credentials = {
     "luciana_botafogo": "fonplata",
     "mcalvino": "2025presupuesto",
@@ -86,7 +86,7 @@ def mostrar_requerimiento_area(sheet_name):
         st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
 
 def recalcular_formulas(sheet_name, df):
-    # Lógica específica para VPD_Consultores
+    # Lógica para VPD_Consultores: recalcular 'total'
     if sheet_name == "VPD_Consultores":
         required_cols = ["cantidad_funcionarios", "monto_mensual", "cantidad_meses"]
         if all(col in df.columns for col in required_cols):
@@ -107,11 +107,15 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
             return
         st.session_state[session_key] = data
 
-    edited_df = st.data_editor(st.session_state[session_key], key=f"editor_{sheet_name}", num_rows="dynamic")
+    # Cargar datos desde session_state
+    current_df = st.session_state[session_key]
 
-    # Recalcular en tiempo real
-    edited_df = recalcular_formulas(sheet_name, edited_df.copy())
-    st.session_state[session_key] = edited_df
+    # Editor interactivo
+    edited_df = st.data_editor(current_df, key=f"editor_{sheet_name}", num_rows="dynamic")
+
+    # Recalcular las fórmulas inmediatamente
+    edited_df = recalcular_formulas(sheet_name, edited_df)  # sin copy() para evitar retrasos
+    st.session_state[session_key] = edited_df  # Actualizar el session_state con la versión recalculada
 
     if "total" in edited_df.columns:
         try:
@@ -128,19 +132,20 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
             with col3:
                 st.metric(label="Diferencia", value=f"${diferencia:,.0f}")
 
-            # Si es VPD_Consultores
+            # Si es VPD_Consultores, colocar GCVPD y GCVPD+Suma debajo
             if "VPD_Consultores" in sheet_name:
-                gcvpd = 35960  # Nuevo valor Gasto Centralizado VPD
-                # Segunda fila de métricas, alineada debajo de Suma de Total (col2)
-                colA, colB, colC = st.columns([1,1,1])
-                with colB:
-                    st.metric("Gastos Centralizados VPD", f"${gcvpd:,.0f}")
+                gcvpd = 35960  # Valor Gastos Centralizados VPD
                 suma_comb = gcvpd + total_sum
-                with colC:
+                # Segunda fila de métricas (debajo de la primera)
+                # GCVPD debajo de Monto DPP 2025 (col1) y GCVPD+Suma debajo de Suma de Total (col2)
+                colA, colB, colC = st.columns(3)
+                with colA:
+                    st.metric("Gastos Centralizados VPD", f"${gcvpd:,.0f}")
+                with colB:
                     st.metric("GCVPD + Suma de Total", f"${suma_comb:,.0f}")
 
         except Exception as e:
-            st.warning(f"No se pudo convertir la columna 'total' a un formato numérico: {e}")
+            st.warning(f"No se pudo convertir la columna 'total' a formato numérico: {e}")
     else:
         st.error("No se encontró una columna 'total' en los datos.")
 
@@ -151,13 +156,13 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
         st.success("Cambios guardados en el archivo Excel.")
         st.cache_data.clear()
 
-    # Botón Descargar Excel
+    # Botón para descargar Excel actualizado
     df_download = st.session_state[session_key].copy()
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         df_download.to_excel(writer, index=False, sheet_name=sheet_name)
     output.seek(0)
-    
+
     st.download_button(
         label="Descargar Excel",
         data=output.getvalue(),
@@ -174,17 +179,14 @@ def calcular_actualizacion_tabla(vicepresidencias, tipo):
             data = st.session_state[requerimiento_key]
             if "total" in data.columns and pd.api.types.is_numeric_dtype(data["total"]):
                 requerimiento = data["total"].sum(numeric_only=True)
-
         dpp = montos[tipo]
         diferencia = requerimiento - dpp
-
         filas.append({
             "Unidad Organizacional": vpe,
             "Requerimiento Área": int(requerimiento),
             "DPP 2025": int(dpp),
             "Diferencia": int(diferencia)
         })
-
     df = pd.DataFrame(filas)
     return df
 
@@ -231,10 +233,7 @@ def mostrar_consolidado():
     filas_cuadro_9 = [7]
     filas_cuadro_10 = [0, 7, 14, 21, 24]
 
-    # Filas resaltadas en consolidado
     filas_consolidado_color = [5, 15, 22, 31, 40, 47, 52]
-
-    # Filas con texto negro fuerte
     filas_negro = [0, 4, 6, 7, 14, 16, 21, 23, 30, 32, 39, 41, 46, 48]
 
     st.header("Gastos en Personal 2025 vs 2024 (Cuadro 9 - DPP 2025)")
@@ -297,7 +296,6 @@ def mostrar_consolidado():
             else:
                 return [''] * len(row)
 
-        # Orden de estilos
         styled_consolidado = styled_consolidado.apply(color_todas_filas, axis=1)
         styled_consolidado = styled_consolidado.apply(color_filas_negro, axis=1)
         styled_consolidado = styled_consolidado.apply(resaltar_filas_consolidado, axis=1)
@@ -471,7 +469,7 @@ def main():
                         if selected_subsubpage == "Requerimiento de Área":
                             mostrar_requerimiento_area(f"{page}_Consultores")
                         elif selected_subsubpage == "DPP 2025":
-                            # Aquí se aplica la lógica del recalculo y el nuevo value box
+                            # Aquí la lógica recalculada y value boxes con ubicación ajustada
                             mostrar_dpp_2025_editor(f"{page}_Consultores", montos[page]["Consultores"])
 
 if __name__ == "__main__":
