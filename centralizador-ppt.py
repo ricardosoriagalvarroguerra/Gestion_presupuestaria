@@ -15,9 +15,6 @@ st.set_page_config(
 logo_path = "estrellafon_transparente.png"
 
 def titulo_con_logo(titulo):
-    """
-    Muestra un título principal con el logo a la izquierda.
-    """
     col1, col2 = st.columns([0.1, 1])
     with col1:
         st.image(logo_path, width=50)
@@ -215,8 +212,7 @@ def aplicar_estilos(df):
             return "background-color: green; color: white;"
         else:
             return "background-color: yellow; color: black;"
-    styled_df = df.style.applymap(resaltar_diferencia, subset=["Diferencia"])
-    return styled_df
+    return df.style.applymap(resaltar_diferencia, subset=["Diferencia"])
 
 def mostrar_actualizacion():
     titulo_con_logo("Actualización - Resumen Consolidado")
@@ -240,18 +236,16 @@ def mostrar_actualizacion():
     st.write(styled_consultores_df, unsafe_allow_html=True)
 
 def mostrar_consolidado():
-    # Formateador personalizado con 2 decimales, separador de miles y celdas vacías para NaN/None
     def custom_formatter(value):
-        if pd.isna(value):
-            return ""
-        elif isinstance(value, (int, float)):
+        # Si es numérico, formatea con 2 decimales
+        if isinstance(value, (int, float)) and not pd.isna(value):
             return f"{value:,.2f}"
-        else:
-            return value
+        # Si es NaN o None u otro valor, devuélvelo tal cual (ej. 'nan' o 'None')
+        return value
 
-    # Estilo para celdas vacías: fondo y texto en blanco
-    def empty_style(val):
-        if val == '':
+    def white_invisible_nan(val):
+        # Si el valor es NaN/None, color blanco sobre blanco
+        if pd.isna(val):
             return 'background-color: white; color: white;'
         return ''
 
@@ -271,10 +265,7 @@ def mostrar_consolidado():
                 return ['background-color: #9d0208; color: white'] * len(row)
             else:
                 return [''] * len(row)
-        # Aplica resaltado
-        styled_cuadro_9 = styled_cuadro_9.apply(resaltar_filas_9, axis=1)
-        # Aplica estilo a celdas vacías
-        styled_cuadro_9 = styled_cuadro_9.applymap(empty_style)
+        styled_cuadro_9 = styled_cuadro_9.apply(resaltar_filas_9, axis=1).applymap(white_invisible_nan)
         st.write(styled_cuadro_9, unsafe_allow_html=True)
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_9'.")
@@ -290,8 +281,7 @@ def mostrar_consolidado():
                 return ['background-color: #9d0208; color: white'] * len(row)
             else:
                 return [''] * len(row)
-        styled_cuadro_10 = styled_cuadro_10.apply(resaltar_filas_10, axis=1)
-        styled_cuadro_10 = styled_cuadro_10.applymap(empty_style)
+        styled_cuadro_10 = styled_cuadro_10.apply(resaltar_filas_10, axis=1).applymap(white_invisible_nan)
         st.write(styled_cuadro_10, unsafe_allow_html=True)
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_10'.")
@@ -301,8 +291,7 @@ def mostrar_consolidado():
     data_cuadro_11 = load_data(excel_file, "Cuadro_11")
     if data_cuadro_11 is not None:
         data_cuadro_11 = data_cuadro_11.reset_index(drop=True)
-        styled_cuadro_11 = data_cuadro_11.style.format(custom_formatter)
-        styled_cuadro_11 = styled_cuadro_11.applymap(empty_style)
+        styled_cuadro_11 = data_cuadro_11.style.format(custom_formatter).applymap(white_invisible_nan)
         st.write(styled_cuadro_11, unsafe_allow_html=True)
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_11'.")
@@ -312,8 +301,7 @@ def mostrar_consolidado():
     data_consolidado = load_data(excel_file, "Consolidado")
     if data_consolidado is not None:
         data_consolidado = data_consolidado.reset_index(drop=True)
-        styled_consolidado = data_consolidado.style.format(custom_formatter)
-        styled_consolidado = styled_consolidado.applymap(empty_style)
+        styled_consolidado = data_consolidado.style.format(custom_formatter).applymap(white_invisible_nan)
         st.write(styled_consolidado, unsafe_allow_html=True)
     else:
         st.warning("No se pudo cargar la hoja 'Consolidado'.")
