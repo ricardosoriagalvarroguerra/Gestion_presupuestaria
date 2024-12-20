@@ -237,22 +237,17 @@ def mostrar_actualizacion():
 
 def mostrar_consolidado():
     def custom_formatter(value):
-        # Si es numérico, formatea con 2 decimales
-        if isinstance(value, (int, float)) and not pd.isna(value):
+        # Si es NaN/None, mostrar cadena vacía ("") para que no aparezca "None"
+        if pd.isna(value):
+            return ""
+        elif isinstance(value, (int, float)):
             return f"{value:,.2f}"
-        # Si es NaN o None u otro valor, devuélvelo tal cual (ej. 'nan' o 'None')
-        return value
-
-    def white_invisible_nan(val):
-        # Si el valor es NaN/None, color blanco sobre blanco
-        if pd.isna(val):
-            return 'background-color: white; color: white;'
-        return ''
-
-    titulo_con_logo("Consolidado")
+        return str(value)
 
     filas_cuadro_9 = [7]
     filas_cuadro_10 = [0, 7, 14, 21, 24]
+
+    titulo_con_logo("Consolidado")
 
     # Cuadro 9
     st.header("Gastos en Personal 2025 vs 2024 (Cuadro 9 - DPP 2025)")
@@ -265,7 +260,7 @@ def mostrar_consolidado():
                 return ['background-color: #9d0208; color: white'] * len(row)
             else:
                 return [''] * len(row)
-        styled_cuadro_9 = styled_cuadro_9.apply(resaltar_filas_9, axis=1).applymap(white_invisible_nan)
+        styled_cuadro_9 = styled_cuadro_9.apply(resaltar_filas_9, axis=1)
         st.write(styled_cuadro_9, unsafe_allow_html=True)
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_9'.")
@@ -281,7 +276,7 @@ def mostrar_consolidado():
                 return ['background-color: #9d0208; color: white'] * len(row)
             else:
                 return [''] * len(row)
-        styled_cuadro_10 = styled_cuadro_10.apply(resaltar_filas_10, axis=1).applymap(white_invisible_nan)
+        styled_cuadro_10 = styled_cuadro_10.apply(resaltar_filas_10, axis=1)
         st.write(styled_cuadro_10, unsafe_allow_html=True)
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_10'.")
@@ -291,7 +286,7 @@ def mostrar_consolidado():
     data_cuadro_11 = load_data(excel_file, "Cuadro_11")
     if data_cuadro_11 is not None:
         data_cuadro_11 = data_cuadro_11.reset_index(drop=True)
-        styled_cuadro_11 = data_cuadro_11.style.format(custom_formatter).applymap(white_invisible_nan)
+        styled_cuadro_11 = data_cuadro_11.style.format(custom_formatter)
         st.write(styled_cuadro_11, unsafe_allow_html=True)
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_11'.")
@@ -301,7 +296,7 @@ def mostrar_consolidado():
     data_consolidado = load_data(excel_file, "Consolidado")
     if data_consolidado is not None:
         data_consolidado = data_consolidado.reset_index(drop=True)
-        styled_consolidado = data_consolidado.style.format(custom_formatter).applymap(white_invisible_nan)
+        styled_consolidado = data_consolidado.style.format(custom_formatter)
         st.write(styled_consolidado, unsafe_allow_html=True)
     else:
         st.warning("No se pudo cargar la hoja 'Consolidado'.")
