@@ -17,7 +17,6 @@ logo_path = "estrellafon_transparente.png"
 def titulo_con_logo(titulo):
     """
     Muestra un título principal (equivalente a st.title()) con el logo a la izquierda.
-    Solo se usa para los títulos principales de las páginas.
     """
     col1, col2 = st.columns([0.1, 1])
     with col1:
@@ -73,7 +72,6 @@ if "page_authenticated" not in st.session_state:
     st.session_state.page_authenticated = {page: False for page in page_passwords if page_passwords[page]}
 
 def mostrar_requerimiento_area(sheet_name):
-    # Subpágina: sin logo
     st.header(f"Requerimiento de Área - {sheet_name}")
     area_key = f"req_area_data_{sheet_name}"
     if area_key not in st.session_state:
@@ -118,7 +116,6 @@ def recalcular_formulas(sheet_name, df):
     return df
 
 def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
-    # Subpágina: sin logo
     st.header(f"DPP 2025 - {sheet_name}")
 
     session_key = f"dpp_2025_{sheet_name}_data"
@@ -222,7 +219,6 @@ def aplicar_estilos(df):
     return styled_df
 
 def mostrar_actualizacion():
-    # Página principal "Actualización" con logo
     titulo_con_logo("Actualización - Resumen Consolidado")
     st.write("Estas tablas muestran el monto requerido, DPP 2025, y la diferencia para cada área.")
 
@@ -233,7 +229,6 @@ def mostrar_actualizacion():
         "VPE": {"Misiones": 28244, "Consultores": 179446},
     }
 
-    # Subencabezados sin logo
     st.subheader("Misiones")
     misiones_df = calcular_actualizacion_tabla(vicepresidencias, "Misiones")
     styled_misiones_df = aplicar_estilos(misiones_df)
@@ -244,25 +239,18 @@ def mostrar_actualizacion():
     styled_consultores_df = aplicar_estilos(consultores_df)
     st.write(styled_consultores_df, unsafe_allow_html=True)
 
-
 def mostrar_consolidado():
-    # Función de formateo personalizada para evitar mostrar None/NaN
-    def mostrar_tabla_formato_dos_decimales(df):
+    # Antes de aplicar el formateo, llenamos NaN con ''
+    def mostrar_tabla_sin_none(df):
         if df is not None:
-            def custom_format(v):
-                if pd.isna(v):
-                    return ''
-                elif isinstance(v, (int, float)):
-                    return f"{v:,.2f}"
-                else:
-                    return v
-            styled_df = df.style.format(custom_format)
+            df = df.fillna('')  # Reemplaza NaN con cadena vacía
+            # No es necesario un formato especial, ya que sin NaN, se mostrarán en blanco
+            styled_df = df.style.format(None)  # Sin formato especial, conserva strings vacíos
             return styled_df
         else:
             st.warning("No se pudo cargar la tabla.")
             return None
 
-    # Página principal "Consolidado" con logo
     titulo_con_logo("Consolidado")
 
     filas_cuadro_9 = [7]
@@ -272,7 +260,7 @@ def mostrar_consolidado():
     data_cuadro_9 = load_data(excel_file, "Cuadro_9")
     if data_cuadro_9 is not None:
         data_cuadro_9 = data_cuadro_9.reset_index(drop=True)
-        styled_cuadro_9 = mostrar_tabla_formato_dos_decimales(data_cuadro_9)
+        styled_cuadro_9 = mostrar_tabla_sin_none(data_cuadro_9)
         if styled_cuadro_9 is not None:
             def resaltar_filas_9(row):
                 if row.name in filas_cuadro_9:
@@ -288,7 +276,7 @@ def mostrar_consolidado():
     data_cuadro_10 = load_data(excel_file, "Cuadro_10")
     if data_cuadro_10 is not None:
         data_cuadro_10 = data_cuadro_10.reset_index(drop=True)
-        styled_cuadro_10 = mostrar_tabla_formato_dos_decimales(data_cuadro_10)
+        styled_cuadro_10 = mostrar_tabla_sin_none(data_cuadro_10)
         if styled_cuadro_10 is not None:
             def resaltar_filas_10(row):
                 if row.name in filas_cuadro_10:
@@ -303,26 +291,23 @@ def mostrar_consolidado():
     st.header("Gastos Operativos propuestos para 2025 y montos aprobados para 2024 (Cuadro 11 - DPP 2025)")
     data_cuadro_11 = load_data(excel_file, "Cuadro_11")
     if data_cuadro_11 is not None:
-        data_cuadro_11 = data_cuadro_11.reset_index(drop=True)
-        styled_cuadro_11 = mostrar_tabla_formato_dos_decimales(data_cuadro_11)
-        if styled_cuadro_11 is not None:
-            st.write(styled_cuadro_11, unsafe_allow_html=True)
+        data_cuadro_11 = data_cuadro_11.reset_index(drop=True).fillna('')
+        styled_cuadro_11 = data_cuadro_11.style.format(None)
+        st.write(styled_cuadro_11, unsafe_allow_html=True)
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_11'.")
 
     st.header("Consolidado DPP 2025")
     data_consolidado = load_data(excel_file, "Consolidado")
     if data_consolidado is not None:
-        data_consolidado = data_consolidado.reset_index(drop=True)
-        styled_consolidado = mostrar_tabla_formato_dos_decimales(data_consolidado)
-        if styled_consolidado is not None:
-            st.write(styled_consolidado, unsafe_allow_html=True)
+        data_consolidado = data_consolidado.reset_index(drop=True).fillna('')
+        styled_consolidado = data_consolidado.style.format(None)
+        st.write(styled_consolidado, unsafe_allow_html=True)
     else:
         st.warning("No se pudo cargar la hoja 'Consolidado'.")
 
 def main():
     if not st.session_state.authenticated:
-        # Página principal con logo
         titulo_con_logo("Página Principal - Gestión Presupuestaria")
         username_input = st.text_input("Usuario", key="login_username")
         password_input = st.text_input("Contraseña", type="password", key="login_password")
@@ -352,7 +337,6 @@ def main():
         selected_page = st.sidebar.selectbox("Selecciona una página", pages)
 
         if selected_page == "Principal":
-            # Página principal con logo
             titulo_con_logo("Página Principal - Gestión Presupuestaria")
             st.write("**Instrucciones de uso:**")
             st.write("""
@@ -378,7 +362,6 @@ def main():
                 mostrar_actualizacion()
 
         elif selected_page in ["VPD", "VPF", "VPO", "VPE", "PRE", "Consolidado"]:
-            # Estas son páginas principales, se muestra el logo
             titulo_con_logo(selected_page)
             
             if selected_page == "Consolidado":
@@ -408,14 +391,12 @@ def main():
 
                     if selected_subpage == "Misiones Personal":
                         mostrar_requerimiento_area("PRE_Misiones_personal")
-                        # Primera fila: VPD (izq), VPO (der)
                         col1, col2 = st.columns(2)
                         with col1:
                             st.metric("Gasto Centralizados VPD", "$35,960")
                         with col2:
                             st.metric("Gasto Centralizados VPO", "$48,158")
 
-                        # Segunda fila: VPF (izq), PRE (der)
                         col3, col4 = st.columns(2)
                         with col3:
                             st.metric("Gasto Centralizados VPF", "$40,960")
@@ -424,14 +405,12 @@ def main():
 
                     elif selected_subpage == "Misiones Consultores":
                         mostrar_requerimiento_area("PRE_Misiones_consultores")
-                        # Primera fila: VPD (izq), VPO (der)
                         col1, col2 = st.columns(2)
                         with col1:
                             st.metric("Gasto Centralizados VPD", "$13,160")
                         with col2:
                             st.metric("Gasto Centralizados VPO", "$13,160")
 
-                        # Segunda fila: VPF (izq), PRE (der)
                         col3, col4 = st.columns(2)
                         with col3:
                             st.metric("Gasto Centralizados VPF", "$13,160")
@@ -440,14 +419,12 @@ def main():
 
                     elif selected_subpage == "Servicios Profesionales":
                         mostrar_requerimiento_area("PRE_servicios_profesionales")
-                        # Primera fila: VPD (izq), VPO (der)
                         col1, col2 = st.columns(2)
                         with col1:
                             st.metric("Gasto Centralizados VPD", "$180,000")
                         with col2:
                             st.metric("Gasto Centralizados VPO", "$144,000")
 
-                        # Segunda fila: VPF (izq), PRE (der)
                         col3, col4 = st.columns(2)
                         with col3:
                             st.metric("Gasto Centralizados VPF", "$140,000")
@@ -463,7 +440,6 @@ def main():
                             st.dataframe(data)
 
             else:
-                # Para VPD, VPO, VPF, VPE
                 page = selected_page
                 if not st.session_state.page_authenticated[page]:
                     password = st.text_input(f"Contraseña para {page}", type="password")
