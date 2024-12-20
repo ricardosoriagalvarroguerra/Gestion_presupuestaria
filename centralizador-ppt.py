@@ -244,23 +244,30 @@ def mostrar_actualizacion():
     styled_consultores_df = aplicar_estilos(consultores_df)
     st.write(styled_consultores_df, unsafe_allow_html=True)
 
+
 def mostrar_consolidado():
+    # Función de formateo personalizada para evitar mostrar None/NaN
+    def mostrar_tabla_formato_dos_decimales(df):
+        if df is not None:
+            def custom_format(v):
+                if pd.isna(v):
+                    return ''
+                elif isinstance(v, (int, float)):
+                    return f"{v:,.2f}"
+                else:
+                    return v
+            styled_df = df.style.format(custom_format)
+            return styled_df
+        else:
+            st.warning("No se pudo cargar la tabla.")
+            return None
+
     # Página principal "Consolidado" con logo
     titulo_con_logo("Consolidado")
 
     filas_cuadro_9 = [7]
     filas_cuadro_10 = [0, 7, 14, 21, 24]
 
-    def mostrar_tabla_formato_dos_decimales(df):
-        if df is not None:
-            numeric_cols = df.select_dtypes(include=["number"]).columns
-            styled_df = df.style.format("{:,.2f}", subset=numeric_cols)
-            return styled_df
-        else:
-            st.warning("No se pudo cargar la tabla.")
-            return None
-
-    # Estos son sub-encabezados sin logo
     st.header("Gastos en Personal 2025 vs 2024 (Cuadro 9 - DPP 2025)")
     data_cuadro_9 = load_data(excel_file, "Cuadro_9")
     if data_cuadro_9 is not None:
