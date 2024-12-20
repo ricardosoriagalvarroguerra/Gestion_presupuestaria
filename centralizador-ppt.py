@@ -246,12 +246,13 @@ def mostrar_consolidado():
     filas_cuadro_9 = [7]
     filas_cuadro_10 = [0, 7, 14, 21, 24]
 
-    # Filas para el consolidado solicitadas: 6, 16, 23, 32, 41, 48, 53 (indexado desde 0)
-    filas_consolidado = [6, 16, 23, 32, 41, 48, 53]
+    # Filas del consolidado antes: [6,16,23,32,41,48,53]
+    # Ahora se reducen en 1 cada una:
+    filas_consolidado = [5, 15, 22, 31, 40, 47, 52]
 
-    titulo_con_logo("Consolidado")
+    # Quitar el header de la página de "Consolidado"
+    # Antes: titulo_con_logo("Consolidado") -> Eliminado
 
-    # Cuadro 9
     st.header("Gastos en Personal 2025 vs 2024 (Cuadro 9 - DPP 2025)")
     data_cuadro_9 = load_data(excel_file, "Cuadro_9")
     if data_cuadro_9 is not None:
@@ -267,7 +268,6 @@ def mostrar_consolidado():
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_9'.")
 
-    # Cuadro 10
     st.header("Análisis de Cambios en Gastos de Personal 2025 vs. 2024 (Cuadro 10 - DPP 2025)")
     data_cuadro_10 = load_data(excel_file, "Cuadro_10")
     if data_cuadro_10 is not None:
@@ -283,7 +283,6 @@ def mostrar_consolidado():
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_10'.")
 
-    # Cuadro 11
     st.header("Gastos Operativos propuestos para 2025 y montos aprobados para 2024 (Cuadro 11 - DPP 2025)")
     data_cuadro_11 = load_data(excel_file, "Cuadro_11")
     if data_cuadro_11 is not None:
@@ -293,20 +292,16 @@ def mostrar_consolidado():
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_11'.")
 
-    # Consolidado
-    st.header("Consolidado DPP 2025")
+    # Antes: st.header("Consolidado DPP 2025") -> Eliminado según solicitud
     data_consolidado = load_data(excel_file, "Consolidado")
     if data_consolidado is not None:
         data_consolidado = data_consolidado.reset_index(drop=True)
         styled_consolidado = data_consolidado.style.format(custom_formatter)
-
-        # Función para resaltar las filas solicitadas en el consolidado
         def resaltar_filas_consolidado(row):
             if row.name in filas_consolidado:
                 return ['background-color: #9d0208; color: white'] * len(row)
             else:
                 return [''] * len(row)
-
         styled_consolidado = styled_consolidado.apply(resaltar_filas_consolidado, axis=1)
         st.write(styled_consolidado, unsafe_allow_html=True)
     else:
@@ -314,6 +309,7 @@ def mostrar_consolidado():
 
 def main():
     if not st.session_state.authenticated:
+        # Página principal
         titulo_con_logo("Página Principal - Gestión Presupuestaria")
         username_input = st.text_input("Usuario", key="login_username")
         password_input = st.text_input("Contraseña", type="password", key="login_password")
@@ -368,7 +364,9 @@ def main():
                 mostrar_actualizacion()
 
         elif selected_page in ["VPD", "VPF", "VPO", "VPE", "PRE", "Consolidado"]:
-            titulo_con_logo(selected_page)
+            # Sin encabezado en "Consolidado"
+            if selected_page != "Consolidado":
+                titulo_con_logo(selected_page)
             
             if selected_page == "Consolidado":
                 if not st.session_state.page_authenticated["Consolidado"]:
@@ -446,6 +444,7 @@ def main():
                             st.dataframe(data)
 
             else:
+                # Para VPD, VPO, VPF, VPE
                 page = selected_page
                 if not st.session_state.page_authenticated[page]:
                     password = st.text_input(f"Contraseña para {page}", type="password")
