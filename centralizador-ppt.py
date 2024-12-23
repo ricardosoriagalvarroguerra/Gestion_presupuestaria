@@ -108,12 +108,20 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
 
     current_df = st.session_state[session_key]
 
-    edited_df = st.data_editor(current_df, key=f"editor_{sheet_name}", num_rows="dynamic")
+    # Editor principal
+    edited_df = st.data_editor(
+        current_df, 
+        key=f"editor_{sheet_name}", 
+        num_rows="dynamic"
+    )
 
-    # Recalcular inmediatamente
+    # Recalcular fórmulas si aplica
     edited_df = recalcular_formulas(sheet_name, edited_df)
     st.session_state[session_key] = edited_df
 
+    # ---------------------------------------------
+    # BLOQUE PRINCIPAL PARA CALCULAR Y MOSTRAR LOS TOTALES
+    # ---------------------------------------------
     if "total" in edited_df.columns:
         try:
             edited_df["total"] = pd.to_numeric(edited_df["total"], errors="coerce")
@@ -129,7 +137,7 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
             with col3:
                 st.metric(label="Diferencia", value=f"${diferencia:,.0f}")
 
-            # VPD_Consultores: Gastos Centralizados VPD = 193,160
+            # Ejemplos de gastos centralizados (si aplica):
             if "VPD_Consultores" in sheet_name:
                 gcvpd = 193160
                 suma_comb = gcvpd + total_sum
@@ -139,7 +147,6 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
                 with colB:
                     st.metric("GCVPD + Suma de Total", f"${suma_comb:,.0f}")
 
-            # VPO_Consultores: Gastos Centralizados VPO = 33,160
             if "VPO_Consultores" in sheet_name:
                 gcvpo = 33160
                 suma_comb = gcvpo + total_sum
@@ -149,7 +156,6 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
                 with colB:
                     st.metric("GCVPO + Suma de Total", f"${suma_comb:,.0f}")
 
-            # VPD_Misiones => Gastos Centralizados VPD = 35,960
             if "VPD_Misiones" in sheet_name:
                 gcvpd_misiones = 35960
                 suma_comb_misiones = gcvpd_misiones + total_sum
@@ -159,7 +165,6 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
                 with colB:
                     st.metric("GCVPD + Suma de Total", f"${suma_comb_misiones:,.0f}")
 
-            # VPO_Misiones => Gastos Centralizados VPO = 48,158
             if "VPO_Misiones" in sheet_name:
                 gcvpo_misiones = 48158
                 suma_comb_vpo_misiones = gcvpo_misiones + total_sum
@@ -174,11 +179,45 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
     else:
         st.error("No se encontró una columna 'total' en los datos.")
 
+    # ===============================================
+    # === BLOQUE AGREGADO PARA TABLA DE SUMAS ===
+    # ===============================================
+    ### Solo queremos que aparezca si es "Misiones":
+    if "Misiones" in sheet_name:
+        # Definimos las columnas que deseamos sumar:
+        columnas_de_suma = [
+            "total_pasaje", 
+            "total_alojamiento", 
+            "total_perdiem_otros", 
+            "total_movilidad", 
+            "total"
+        ]
+        # Creamos un diccionario con los nombres de columna y sus sumas
+        suma_dict = {}
+        for col in columnas_de_suma:
+            if col in edited_df.columns:
+                # Convertimos a numérico con fillna(0) para evitar errores
+                edited_df[col] = pd.to_numeric(edited_df[col], errors="coerce").fillna(0)
+                suma_dict[col] = edited_df[col].sum()
+            else:
+                suma_dict[col] = 0
+
+        # Convertimos en dataframe para mostrar como tabla
+        suma_df = pd.DataFrame([suma_dict])
+        
+        st.subheader("Suma por columnas (Misiones)")
+        st.dataframe(suma_df.style.format("{:,.2f}"))
+
+    # ===============================================
+    # Botón para guardar cambios
+    # ===============================================
     if st.button("Guardar Cambios", key=f"guardar_{sheet_name}"):
         df_to_save = st.session_state[session_key].copy()
+        # Normalizamos los nombres de columna
         df_to_save.columns = df_to_save.columns.str.strip().str.lower()
         save_data(excel_file, sheet_name, df_to_save)
         st.success("Cambios guardados en el archivo Excel.")
+        # Borramos la caché para que se recarguen datos
         st.cache_data.clear()
 
     # Botón para descargar Excel actualizado
