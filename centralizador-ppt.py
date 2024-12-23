@@ -159,6 +159,16 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
                 with colB:
                     st.metric("GCVPD + Suma de Total", f"${suma_comb_misiones:,.0f}")
 
+            # VPO_Misiones => Gastos Centralizados VPO = 48,158
+            if "VPO_Misiones" in sheet_name:
+                gcvpo_misiones = 48158
+                suma_comb_vpo_misiones = gcvpo_misiones + total_sum
+                colA, colB, colC = st.columns(3)
+                with colA:
+                    st.metric("Gastos Centralizados VPO", f"${gcvpo_misiones:,.0f}")
+                with colB:
+                    st.metric("GCVPO + Suma de Total", f"${suma_comb_vpo_misiones:,.0f}")
+
         except Exception as e:
             st.warning(f"No se pudo convertir la columna 'total' a formato numérico: {e}")
     else:
@@ -398,7 +408,7 @@ def main():
                     subpage_options = ["Misiones Personal", "Misiones Consultores", "Servicios Profesionales", "Gastos Centralizados"]
                     selected_subpage = st.sidebar.selectbox("Selecciona una subpágina", subpage_options)
 
-                    # Métricas para PRE (ejemplo de uso)
+                    # Ejemplo de uso en PRE
                     if selected_subpage == "Misiones Personal":
                         mostrar_requerimiento_area("PRE_Misiones_personal")
                         col1, col2 = st.columns(2)
