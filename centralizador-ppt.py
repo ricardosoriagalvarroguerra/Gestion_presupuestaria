@@ -114,7 +114,6 @@ def recalcular_formulas(sheet_name, df):
 
     # Convertimos todas las columnas a numéricas por seguridad
     for col in df.columns:
-        # Podrías filtrar columnas específicas si lo deseas
         df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
 
     # VPD - Misiones
@@ -123,10 +122,12 @@ def recalcular_formulas(sheet_name, df):
         df['total_alojamiento'] = df['dias'] * df['cant_funcionarios'] * df['alojamiento']
         df['total_perdiem_otros'] = df['dias'] * df['cant_funcionarios'] * df['perdiem_otros']
         df['total_movilidad'] = df['cant_funcionarios'] * df['movilidad']
-        df['total'] = (df['total_pasaje']
-                       + df['total_alojamiento']
-                       + df['total_perdiem_otros']
-                       + df['total_movilidad'])
+        df['total'] = (
+            df['total_pasaje'] 
+            + df['total_alojamiento'] 
+            + df['total_perdiem_otros'] 
+            + df['total_movilidad']
+        )
 
     # VPO - Misiones (misma lógica que VPD_Misiones)
     elif sheet_name == "VPO_Misiones":
@@ -134,25 +135,22 @@ def recalcular_formulas(sheet_name, df):
         df['total_alojamiento'] = df['dias'] * df['cant_funcionarios'] * df['alojamiento']
         df['total_perdiem_otros'] = df['dias'] * df['cant_funcionarios'] * df['perdiem_otros']
         df['total_movilidad'] = df['cant_funcionarios'] * df['movilidad']
-        df['total'] = (df['total_pasaje']
-                       + df['total_alojamiento']
-                       + df['total_perdiem_otros']
-                       + df['total_movilidad'])
+        df['total'] = (
+            df['total_pasaje'] 
+            + df['total_alojamiento'] 
+            + df['total_perdiem_otros'] 
+            + df['total_movilidad']
+        )
 
     # VPO - Consultores
     elif sheet_name == "VPO_Consultores":
-        # Ejemplo: total = No * Monto mensual * cantidad_meses
-        # Ajusta los nombres de columnas según tu Excel
         df['total'] = df['No'] * df['Monto mensual'] * df['cantidad_meses']
 
-    # VPD_Consultores (o VPO_Consultores) - lógica de ejemplo anterior
-    # Si quieres mantener la fórmula previa en caso de "VPD_Consultores":
+    # VPD_Consultores
     elif sheet_name == "VPD_Consultores":
         df["total"] = df["cantidad_funcionarios"] * df["monto_mensual"] * df["cantidad_meses"]
 
-    # Si quisieras que se aplique la misma lógica a "VPE_Consultores" o "VPF_Consultores", podrías
-    # extender el elif. En caso contrario, quedará sin cambio.
-
+    # (Podrías extender la lógica si hay más casos)
     return df
 
 def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
@@ -196,7 +194,7 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
             with col3:
                 st.metric(label="Diferencia", value=f"${diferencia:,.0f}")
 
-            # Gastos centralizados "por si acaso" (los que ya existían)
+            # Gastos centralizados (si aplica)
             if "VPD_Consultores" in sheet_name:
                 gcvpd = 193160
                 suma_comb = gcvpd + total_sum
@@ -245,7 +243,6 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
         df_to_save.columns = df_to_save.columns.str.strip()
         save_data(excel_file, sheet_name, df_to_save)
         st.success("Cambios guardados en el archivo Excel.")
-        # Opcional: limpiar cache si se desea
         st.cache_data.clear()
 
     # 5) Botón para descargar Excel actualizado (solamente esta hoja)
@@ -298,7 +295,7 @@ def aplicar_estilos(df):
 
 def mostrar_actualizacion():
     """
-    Muestra el resumen de "Misiones" y "Consultores" comparando
+    Muestra el resumen de 'Misiones' y 'Consultores' comparando
     Requerimiento vs. DPP 2025 y la diferencia por cada VP.
     """
     titulo_con_logo("Actualización - Resumen Consolidado")
@@ -429,7 +426,8 @@ def main():
             if username_input in app_credentials and password_input == app_credentials[username_input]:
                 st.session_state.authenticated = True
                 st.session_state.current_user = username_input
-                st.experimental_rerun()
+                # REGRESAMOS a st.rerun
+                st.rerun()
             else:
                 st.error("Usuario o contraseña incorrectos.")
 
@@ -469,7 +467,7 @@ def main():
                 if st.button("Ingresar"):
                     if password == page_passwords["Actualización"]:
                         st.session_state.page_authenticated["Actualización"] = True
-                        st.experimental_rerun()
+                        st.rerun()
                     else:
                         st.error("Contraseña incorrecta.")
             else:
@@ -483,7 +481,7 @@ def main():
                     if st.button("Ingresar"):
                         if password == page_passwords["Consolidado"]:
                             st.session_state.page_authenticated["Consolidado"] = True
-                            st.experimental_rerun()
+                            st.rerun()
                         else:
                             st.error("Contraseña incorrecta.")
                 else:
@@ -495,7 +493,7 @@ def main():
                     if st.button("Ingresar"):
                         if password == page_passwords["PRE"]:
                             st.session_state.page_authenticated["PRE"] = True
-                            st.experimental_rerun()
+                            st.rerun()
                         else:
                             st.error("Contraseña incorrecta.")
                 else:
@@ -561,7 +559,7 @@ def main():
                     if st.button("Ingresar"):
                         if password == page_passwords[page]:
                             st.session_state.page_authenticated[page] = True
-                            st.experimental_rerun()
+                            st.rerun()
                         else:
                             st.error("Contraseña incorrecta.")
                 else:
