@@ -85,7 +85,7 @@ def mostrar_requerimiento_area(sheet_name):
         st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
 
 def recalcular_formulas(sheet_name, df):
-    # Para VPD_Consultores y VPO_Consultores
+    # Para VPD_Consultores y VPO_Consultores (como ejemplo de fórmula)
     if sheet_name in ["VPD_Consultores", "VPO_Consultores"]:
         required_cols = ["cantidad_funcionarios", "monto_mensual", "cantidad_meses"]
         if all(col in df.columns for col in required_cols):
@@ -149,10 +149,9 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
                 with colB:
                     st.metric("GCVPO + Suma de Total", f"${suma_comb:,.0f}")
 
-            # NUEVA SECCIÓN: VPD_Misiones => Gastos Centralizados VPD = 48,158
-            # Mostramos la métrica "Gastos Centralizados VPD" y "GCVPD + Suma de Total"
+            # VPD_Misiones => Gastos Centralizados VPD = 35,960
             if "VPD_Misiones" in sheet_name:
-                gcvpd_misiones = 48158
+                gcvpd_misiones = 35960
                 suma_comb_misiones = gcvpd_misiones + total_sum
                 colA, colB, colC = st.columns(3)
                 with colA:
@@ -399,7 +398,7 @@ def main():
                     subpage_options = ["Misiones Personal", "Misiones Consultores", "Servicios Profesionales", "Gastos Centralizados"]
                     selected_subpage = st.sidebar.selectbox("Selecciona una subpágina", subpage_options)
 
-                    # Métricas para PRE (sin cambios) - Ejemplo
+                    # Métricas para PRE (ejemplo de uso)
                     if selected_subpage == "Misiones Personal":
                         mostrar_requerimiento_area("PRE_Misiones_personal")
                         col1, col2 = st.columns(2)
