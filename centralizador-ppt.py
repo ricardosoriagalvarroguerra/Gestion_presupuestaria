@@ -133,7 +133,6 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
             if "VPD_Consultores" in sheet_name:
                 gcvpd = 193160
                 suma_comb = gcvpd + total_sum
-                # Segunda fila: GCVPD debajo de Monto DPP 2025 (col1) y GCVPD+Suma debajo de Suma de Total (col2)
                 colA, colB, colC = st.columns(3)
                 with colA:
                     st.metric("Gastos Centralizados VPD", f"${gcvpd:,.0f}")
@@ -144,12 +143,22 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
             if "VPO_Consultores" in sheet_name:
                 gcvpo = 33160
                 suma_comb = gcvpo + total_sum
-                # Segunda fila: GCVPO debajo de Monto DPP 2025 (col1) y GCVPO+Suma debajo de Suma de Total (col2)
                 colA, colB, colC = st.columns(3)
                 with colA:
                     st.metric("Gastos Centralizados VPO", f"${gcvpo:,.0f}")
                 with colB:
                     st.metric("GCVPO + Suma de Total", f"${suma_comb:,.0f}")
+
+            # NUEVA SECCIÓN: VPD_Misiones => Gastos Centralizados VPD = 48,158
+            # Mostramos la métrica "Gastos Centralizados VPD" y "GCVPD + Suma de Total"
+            if "VPD_Misiones" in sheet_name:
+                gcvpd_misiones = 48158
+                suma_comb_misiones = gcvpd_misiones + total_sum
+                colA, colB, colC = st.columns(3)
+                with colA:
+                    st.metric("Gastos Centralizados VPD", f"${gcvpd_misiones:,.0f}")
+                with colB:
+                    st.metric("GCVPD + Suma de Total", f"${suma_comb_misiones:,.0f}")
 
         except Exception as e:
             st.warning(f"No se pudo convertir la columna 'total' a formato numérico: {e}")
@@ -390,7 +399,7 @@ def main():
                     subpage_options = ["Misiones Personal", "Misiones Consultores", "Servicios Profesionales", "Gastos Centralizados"]
                     selected_subpage = st.sidebar.selectbox("Selecciona una subpágina", subpage_options)
 
-                    # Métricas para PRE (sin cambios)
+                    # Métricas para PRE (sin cambios) - Ejemplo
                     if selected_subpage == "Misiones Personal":
                         mostrar_requerimiento_area("PRE_Misiones_personal")
                         col1, col2 = st.columns(2)
@@ -476,7 +485,6 @@ def main():
                         if selected_subsubpage == "Requerimiento de Área":
                             mostrar_requerimiento_area(f"{page}_Consultores")
                         elif selected_subsubpage == "DPP 2025":
-                            # Aquí se aplica la lógica tanto para VPD_Consultores como para VPO_Consultores
                             mostrar_dpp_2025_editor(f"{page}_Consultores", montos[page]["Consultores"])
 
 if __name__ == "__main__":
