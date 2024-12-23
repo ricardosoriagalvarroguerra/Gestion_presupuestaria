@@ -205,7 +205,7 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
         # Convertimos en dataframe para mostrar como tabla
         suma_df = pd.DataFrame([suma_dict])
         
-        st.subheader("Suma por columnas (Misiones)")
+        st.subheader("Totales por ítem")
         st.dataframe(suma_df.style.format("{:,.2f}"))
 
     # ===============================================
