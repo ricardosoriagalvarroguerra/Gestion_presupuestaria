@@ -42,9 +42,6 @@ page_passwords = {
 
 @st.cache_data
 def load_data(filepath, sheet_name):
-    """
-    Lee los datos de una hoja de Excel y devuelve un DataFrame.
-    """
     try:
         df = pd.read_excel(filepath, sheet_name=sheet_name, engine='openpyxl')
         return df
@@ -53,10 +50,6 @@ def load_data(filepath, sheet_name):
         return None
 
 def save_data(filepath, sheet_name, df):
-    """
-    Guarda un DataFrame en la hoja correspondiente de un archivo Excel.
-    Si el archivo no existe, lo crea; de lo contrario, sobreescribe la hoja.
-    """
     try:
         if not os.path.exists(filepath):
             df.to_excel(filepath, sheet_name=sheet_name, index=False)
@@ -68,7 +61,6 @@ def save_data(filepath, sheet_name, df):
 
 excel_file = "main_bdd.xlsx"
 
-# Variables de sesión para manejar la autenticación y las páginas protegidas
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
@@ -76,10 +68,6 @@ if "page_authenticated" not in st.session_state:
     st.session_state.page_authenticated = {page: False for page in page_passwords if page_passwords[page]}
 
 def mostrar_requerimiento_area(sheet_name):
-    """
-    Muestra los datos de 'Requerimiento de Área' (solo lectura)
-    y la métrica de la suma de la columna 'total', si existe.
-    """
     st.header(f"Requerimiento de Área - {sheet_name}")
     area_key = f"req_area_data_{sheet_name}"
     if area_key not in st.session_state:
@@ -97,68 +85,17 @@ def mostrar_requerimiento_area(sheet_name):
         st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
 
 def recalcular_formulas(sheet_name, df):
-    """
-    Recalcula las columnas necesarias según la hoja (sheet_name).
-
-    - VPD_Misiones y VPO_Misiones:
-        total_pasaje       = cant_funcionarios * costo_pasaje
-        total_alojamiento  = dias * cant_funcionarios * alojamiento
-        total_perdiem_otros= dias * cant_funcionarios * perdiem_otros
-        total_movilidad    = cant_funcionarios * movilidad
-        total             = sum de las anteriores
-    - VPO_Consultores:
-        total = No * Monto mensual * cantidad_meses
-    - VPD_Consultores (u otros) [ejemplo anterior]:
-        total = cantidad_funcionarios * monto_mensual * cantidad_meses
-    """
-
-    # Convertimos todas las columnas a numéricas por seguridad
-    for col in df.columns:
-        df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
-
-    # VPD - Misiones
-    if sheet_name == "VPD_Misiones":
-        df['total_pasaje'] = df['cant_funcionarios'] * df['costo_pasaje']
-        df['total_alojamiento'] = df['dias'] * df['cant_funcionarios'] * df['alojamiento']
-        df['total_perdiem_otros'] = df['dias'] * df['cant_funcionarios'] * df['perdiem_otros']
-        df['total_movilidad'] = df['cant_funcionarios'] * df['movilidad']
-        df['total'] = (
-            df['total_pasaje'] 
-            + df['total_alojamiento'] 
-            + df['total_perdiem_otros'] 
-            + df['total_movilidad']
-        )
-
-    # VPO - Misiones (misma lógica que VPD_Misiones)
-    elif sheet_name == "VPO_Misiones":
-        df['total_pasaje'] = df['cant_funcionarios'] * df['costo_pasaje']
-        df['total_alojamiento'] = df['dias'] * df['cant_funcionarios'] * df['alojamiento']
-        df['total_perdiem_otros'] = df['dias'] * df['cant_funcionarios'] * df['perdiem_otros']
-        df['total_movilidad'] = df['cant_funcionarios'] * df['movilidad']
-        df['total'] = (
-            df['total_pasaje'] 
-            + df['total_alojamiento'] 
-            + df['total_perdiem_otros'] 
-            + df['total_movilidad']
-        )
-
-    # VPO - Consultores
-    elif sheet_name == "VPO_Consultores":
-        df['total'] = df['No'] * df['Monto mensual'] * df['cantidad_meses']
-
-    # VPD_Consultores
-    elif sheet_name == "VPD_Consultores":
-        df["total"] = df["cantidad_funcionarios"] * df["monto_mensual"] * df["cantidad_meses"]
-
-    # (Podrías extender la lógica si hay más casos)
+    # Para VPD_Consultores y VPO_Consultores (como ejemplo de fórmula)
+    if sheet_name in ["VPD_Consultores", "VPO_Consultores"]:
+        required_cols = ["cantidad_funcionarios", "monto_mensual", "cantidad_meses"]
+        if all(col in df.columns for col in required_cols):
+            df["cantidad_funcionarios"] = pd.to_numeric(df["cantidad_funcionarios"], errors="coerce").fillna(0)
+            df["monto_mensual"] = pd.to_numeric(df["monto_mensual"], errors="coerce").fillna(0)
+            df["cantidad_meses"] = pd.to_numeric(df["cantidad_meses"], errors="coerce").fillna(0)
+            df["total"] = df["cantidad_funcionarios"] * df["monto_mensual"] * df["cantidad_meses"]
     return df
 
 def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
-    """
-    Muestra una tabla editable (DPP 2025) en tiempo real.
-    Recalcula las fórmulas cada vez que hay un cambio en la tabla
-    y al final permite guardar los cambios a Excel.
-    """
     st.header(f"DPP 2025 - {sheet_name}")
 
     session_key = f"dpp_2025_{sheet_name}_data"
@@ -169,20 +106,18 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
             return
         st.session_state[session_key] = data
 
-    # 1) Mostrar tabla editable
-    current_df = st.session_state[session_key].copy()
+    current_df = st.session_state[session_key]
 
-    # Al editar celdas, se almacena en 'edited_df'
     edited_df = st.data_editor(current_df, key=f"editor_{sheet_name}", num_rows="dynamic")
 
-    # 2) Recalcular fórmulas en 'tiempo real' (ocurre en cada rerun)
-    recalculated_df = recalcular_formulas(sheet_name, edited_df.copy())
-    st.session_state[session_key] = recalculated_df  # Guardamos la versión recalculada en la sesión
+    # Recalcular inmediatamente
+    edited_df = recalcular_formulas(sheet_name, edited_df)
+    st.session_state[session_key] = edited_df
 
-    # 3) Cálculo de métricas
-    if "total" in recalculated_df.columns:
+    if "total" in edited_df.columns:
         try:
-            total_sum = pd.to_numeric(recalculated_df["total"], errors="coerce").sum()
+            edited_df["total"] = pd.to_numeric(edited_df["total"], errors="coerce")
+            total_sum = edited_df["total"].sum(numeric_only=True)
             diferencia = total_sum - monto_dpp
 
             # Primera fila de métricas
@@ -194,7 +129,7 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
             with col3:
                 st.metric(label="Diferencia", value=f"${diferencia:,.0f}")
 
-            # Gastos centralizados (si aplica)
+            # VPD_Consultores: Gastos Centralizados VPD = 193,160
             if "VPD_Consultores" in sheet_name:
                 gcvpd = 193160
                 suma_comb = gcvpd + total_sum
@@ -204,6 +139,7 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
                 with colB:
                     st.metric("GCVPD + Suma de Total", f"${suma_comb:,.0f}")
 
+            # VPO_Consultores: Gastos Centralizados VPO = 33,160
             if "VPO_Consultores" in sheet_name:
                 gcvpo = 33160
                 suma_comb = gcvpo + total_sum
@@ -213,6 +149,7 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
                 with colB:
                     st.metric("GCVPO + Suma de Total", f"${suma_comb:,.0f}")
 
+            # VPD_Misiones => Gastos Centralizados VPD = 35,960
             if "VPD_Misiones" in sheet_name:
                 gcvpd_misiones = 35960
                 suma_comb_misiones = gcvpd_misiones + total_sum
@@ -222,6 +159,7 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
                 with colB:
                     st.metric("GCVPD + Suma de Total", f"${suma_comb_misiones:,.0f}")
 
+            # VPO_Misiones => Gastos Centralizados VPO = 48,158
             if "VPO_Misiones" in sheet_name:
                 gcvpo_misiones = 48158
                 suma_comb_vpo_misiones = gcvpo_misiones + total_sum
@@ -232,23 +170,22 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
                     st.metric("GCVPO + Suma de Total", f"${suma_comb_vpo_misiones:,.0f}")
 
         except Exception as e:
-            st.warning(f"Error al convertir la columna 'total': {e}")
+            st.warning(f"No se pudo convertir la columna 'total' a formato numérico: {e}")
     else:
-        st.error("No se encontró una columna 'total' en los datos para calcular métricas.")
+        st.error("No se encontró una columna 'total' en los datos.")
 
-    # 4) Botón para guardar los cambios (ya recalculados) a Excel
     if st.button("Guardar Cambios", key=f"guardar_{sheet_name}"):
         df_to_save = st.session_state[session_key].copy()
-        # Limpieza de nombres de columna (opcional)
-        df_to_save.columns = df_to_save.columns.str.strip()
+        df_to_save.columns = df_to_save.columns.str.strip().str.lower()
         save_data(excel_file, sheet_name, df_to_save)
         st.success("Cambios guardados en el archivo Excel.")
         st.cache_data.clear()
 
-    # 5) Botón para descargar Excel actualizado (solamente esta hoja)
+    # Botón para descargar Excel actualizado
+    df_download = st.session_state[session_key].copy()
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        st.session_state[session_key].to_excel(writer, index=False, sheet_name=sheet_name)
+        df_download.to_excel(writer, index=False, sheet_name=sheet_name)
     output.seek(0)
 
     st.download_button(
@@ -259,10 +196,6 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
     )
 
 def calcular_actualizacion_tabla(vicepresidencias, tipo):
-    """
-    Construye un DataFrame resumen con 'Requerimiento Área', 'DPP 2025' y 'Diferencia'
-    para cada VP en 'vicepresidencias'.
-    """
     filas = []
     for vpe, montos in vicepresidencias.items():
         requerimiento_key = f"dpp_2025_{vpe}_{tipo}_data"
@@ -283,9 +216,6 @@ def calcular_actualizacion_tabla(vicepresidencias, tipo):
     return df
 
 def aplicar_estilos(df):
-    """
-    Aplica un color de fondo verde si la 'Diferencia' es 0, o amarillo si es distinta de 0.
-    """
     def resaltar_diferencia(val):
         if val == 0:
             return "background-color: green; color: white;"
@@ -294,10 +224,6 @@ def aplicar_estilos(df):
     return df.style.applymap(resaltar_diferencia, subset=["Diferencia"])
 
 def mostrar_actualizacion():
-    """
-    Muestra el resumen de 'Misiones' y 'Consultores' comparando
-    Requerimiento vs. DPP 2025 y la diferencia por cada VP.
-    """
     titulo_con_logo("Actualización - Resumen Consolidado")
     st.write("Estas tablas muestran el monto requerido, DPP 2025, y la diferencia para cada área.")
 
@@ -319,10 +245,6 @@ def mostrar_actualizacion():
     st.write(styled_consultores_df, unsafe_allow_html=True)
 
 def mostrar_consolidado():
-    """
-    Muestra diferentes hojas (Cuadro_9, Cuadro_10, Cuadro_11, Consolidado)
-    con estilos o resaltados específicos.
-    """
     titulo_con_logo("Consolidado")
 
     def custom_formatter(value):
@@ -338,7 +260,6 @@ def mostrar_consolidado():
     filas_consolidado_color = [5, 15, 22, 31, 40, 47, 52]
     filas_negro = [0, 4, 6, 7, 14, 16, 21, 23, 30, 32, 39, 41, 46, 48]
 
-    # Cuadro_9
     st.header("Gastos en Personal 2025 vs 2024 (Cuadro 9 - DPP 2025)")
     data_cuadro_9 = load_data(excel_file, "Cuadro_9")
     if data_cuadro_9 is not None:
@@ -354,7 +275,6 @@ def mostrar_consolidado():
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_9'.")
 
-    # Cuadro_10
     st.header("Análisis de Cambios en Gastos de Personal 2025 vs. 2024 (Cuadro 10 - DPP 2025)")
     data_cuadro_10 = load_data(excel_file, "Cuadro_10")
     if data_cuadro_10 is not None:
@@ -370,7 +290,6 @@ def mostrar_consolidado():
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_10'.")
 
-    # Cuadro_11
     st.header("Gastos Operativos propuestos para 2025 y montos aprobados para 2024 (Cuadro 11 - DPP 2025)")
     data_cuadro_11 = load_data(excel_file, "Cuadro_11")
     if data_cuadro_11 is not None:
@@ -380,7 +299,6 @@ def mostrar_consolidado():
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_11'.")
 
-    # Consolidado
     st.header("Consolidado DPP 2025")
     data_consolidado = load_data(excel_file, "Consolidado")
     if data_consolidado is not None:
@@ -411,12 +329,7 @@ def mostrar_consolidado():
         st.warning("No se pudo cargar la hoja 'Consolidado'.")
 
 def main():
-    """
-    Función principal de la aplicación: maneja el login
-    y la navegación entre las diferentes páginas (principal, DPP 2025, etc.).
-    """
     if not st.session_state.authenticated:
-        # Página de Login
         titulo_con_logo("Página Principal - Gestión Presupuestaria")
         username_input = st.text_input("Usuario", key="login_username")
         password_input = st.text_input("Contraseña", type="password", key="login_password")
@@ -426,7 +339,6 @@ def main():
             if username_input in app_credentials and password_input == app_credentials[username_input]:
                 st.session_state.authenticated = True
                 st.session_state.current_user = username_input
-                # REGRESAMOS a st.rerun
                 st.rerun()
             else:
                 st.error("Usuario o contraseña incorrectos.")
@@ -435,15 +347,14 @@ def main():
         st.write("""
         1. Selecciona la página que deseas visitar desde el menú lateral.
         2. Ingresa las credenciales si la página lo requiere.
-        3. En las páginas de 'Requerimiento de Área' podrás visualizar el total requerido sin que éste cambie luego de modificar datos en las páginas DPP 2025.
+        3. En las páginas de "Requerimiento de Área" podrás visualizar el total requerido sin que éste cambie luego de modificar datos en las páginas DPP 2025.
         4. En las páginas DPP 2025 puedes editar las tablas y luego guardar los cambios. También puedes descargar el Excel modificado.
-        5. La página 'Actualización' muestra un resumen consolidado, mientras que 'Consolidado' presenta distintos cuadros con sus cifras.
-        6. Si en algún momento deseas volver a la página principal, selecciona 'Principal' en el menú lateral.
+        5. La página "Actualización" muestra un resumen consolidado, mientras que "Consolidado" presenta distintos cuadros con sus cifras.
+        6. Si en algún momento deseas volver a la página principal, selecciona "Principal" en el menú lateral.
         """)
         st.write("**Nota:** Asegúrate de tener las contraseñas correctas para acceder a las páginas protegidas y editar los datos.")
 
     else:
-        # Menú lateral
         pages = list(page_passwords.keys())
         selected_page = st.sidebar.selectbox("Selecciona una página", pages)
 
@@ -453,15 +364,14 @@ def main():
             st.write("""
             1. Selecciona la página que deseas visitar desde el menú lateral.
             2. Ingresa las credenciales si la página lo requiere.
-            3. En las páginas de 'Requerimiento de Área' podrás visualizar el total requerido sin que éste cambie luego de modificar datos en las páginas DPP 2025.
+            3. En las páginas de "Requerimiento de Área" podrás visualizar el total requerido sin que éste cambie luego de modificar datos en las páginas DPP 2025.
             4. En las páginas DPP 2025 puedes editar las tablas y luego guardar los cambios. También puedes descargar el Excel modificado.
-            5. La página 'Actualización' muestra un resumen consolidado, mientras que 'Consolidado' presenta distintos cuadros con sus cifras.
-            6. Si en algún momento deseas volver a la página principal, selecciona 'Principal' en el menú lateral.
+            5. La página "Actualización" muestra un resumen consolidado, mientras que "Consolidado" presenta distintos cuadros con sus cifras.
+            6. Si en algún momento deseas volver a la página principal, selecciona "Principal" en el menú lateral.
             """)
             st.write("**Nota:** Asegúrate de tener las contraseñas correctas para acceder a las páginas protegidas y editar los datos.")
 
         elif selected_page == "Actualización":
-            # Protegida con contraseña
             if not st.session_state.page_authenticated["Actualización"]:
                 password = st.text_input("Contraseña para Actualización", type="password")
                 if st.button("Ingresar"):
@@ -474,7 +384,6 @@ def main():
                 mostrar_actualizacion()
 
         elif selected_page in ["VPD", "VPF", "VPO", "VPE", "PRE", "Consolidado"]:
-            # Manejo de contraseñas por página
             if selected_page == "Consolidado":
                 if not st.session_state.page_authenticated["Consolidado"]:
                     password = st.text_input("Contraseña para Consolidado", type="password")
@@ -486,7 +395,6 @@ def main():
                             st.error("Contraseña incorrecta.")
                 else:
                     mostrar_consolidado()
-
             elif selected_page == "PRE":
                 if not st.session_state.page_authenticated["PRE"]:
                     password = st.text_input("Contraseña para PRE", type="password")
@@ -500,7 +408,7 @@ def main():
                     subpage_options = ["Misiones Personal", "Misiones Consultores", "Servicios Profesionales", "Gastos Centralizados"]
                     selected_subpage = st.sidebar.selectbox("Selecciona una subpágina", subpage_options)
 
-                    # Ejemplo de métricas en PRE
+                    # Ejemplo de uso en PRE
                     if selected_subpage == "Misiones Personal":
                         mostrar_requerimiento_area("PRE_Misiones_personal")
                         col1, col2 = st.columns(2)
@@ -550,7 +458,6 @@ def main():
                             data = pd.read_excel(uploaded_file, engine="openpyxl")
                             st.write("Archivo cargado:")
                             st.dataframe(data)
-
             else:
                 # VPD, VPO, VPF, VPE
                 page = selected_page
@@ -563,11 +470,9 @@ def main():
                         else:
                             st.error("Contraseña incorrecta.")
                 else:
-                    # Submenú: Misiones o Consultorías
                     subpage_options = ["Misiones", "Consultorías"]
                     selected_subpage = st.sidebar.selectbox("Selecciona una subpágina", subpage_options)
 
-                    # Monto DPP 2025 para cada VP
                     montos = {
                         "VPD": {"Misiones": 168000, "Consultores": 130000},
                         "VPF": {"Misiones": 138600, "Consultores": 170000},
@@ -578,7 +483,6 @@ def main():
                     if selected_subpage == "Misiones":
                         subsubpage_options = ["Requerimiento de Área", "DPP 2025"]
                         selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Misiones", subsubpage_options)
-
                         if selected_subsubpage == "Requerimiento de Área":
                             mostrar_requerimiento_area(f"{page}_Misiones")
                         elif selected_subsubpage == "DPP 2025":
@@ -587,7 +491,6 @@ def main():
                     elif selected_subpage == "Consultorías":
                         subsubpage_options = ["Requerimiento de Área", "DPP 2025"]
                         selected_subsubpage = st.sidebar.radio("Selecciona una subpágina de Consultorías", subsubpage_options)
-
                         if selected_subsubpage == "Requerimiento de Área":
                             mostrar_requerimiento_area(f"{page}_Consultores")
                         elif selected_subsubpage == "DPP 2025":
