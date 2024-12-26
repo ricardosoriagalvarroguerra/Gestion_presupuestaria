@@ -93,7 +93,7 @@ def color_diferencia(val):
     return "background-color: #fb8500; color:white" if val != 0 else "background-color: green; color:white"
 
 # =============================================================================
-# 5. APLICACIÓN PRINCIPAL (Con Login)
+# 5. APLICACIÓN PRINCIPAL (Con Login usando st.rerun)
 # =============================================================================
 def main():
     st.set_page_config(page_title="Aplicación Completa", layout="wide")
@@ -117,7 +117,7 @@ def main():
 
             if username in valid_users and password == valid_password:
                 st.session_state["logged_in"] = True
-                st.experimental_rerun()
+                st.rerun()  # Reemplazamos st.experimental_rerun() por st.rerun()
             else:
                 st.error("Usuario o contraseña incorrectos.")
         return  # si no está logueado, detenemos aquí
@@ -201,7 +201,6 @@ def main():
             if eleccion_sub_sub_vpd == "Requerimiento del Área":
                 st.subheader("VPD > Misiones > Requerimiento del Área")
                 df_req = st.session_state["vpd_misiones"]
-                # Value box
                 sum_total = df_req["total"].sum() if "total" in df_req.columns else 0
                 value_box("Suma del total", f"{sum_total:,.2f}")
                 st.write("")
@@ -541,17 +540,14 @@ def main():
         st.title("Actualización")
 
         # Dos tablas: Misiones y Consultorías
-        # Filas: [VPE, VPD, VPO, VPF]
-        # Columnas: [Unidad Organizacional, Requerimiento del Área, Monto DPP 2025, Diferencia]
-        # Se colorea la celda de Diferencia (#fb8500 si != 0, verde si == 0)
-
         units = ["VPE", "VPD", "VPO", "VPF"]
+
         st.write("### Tabla de Misiones")
         misiones_data = []
         for unit in units:
-            req_area = 0   # Ej. st.session_state.get(f"{unit}_misiones_sum", 0)
-            monto_dpp = 0 # Ej. st.session_state.get(f"{unit}_misiones_dpp", 0)
-            diff = 0      # Ej. st.session_state.get(f"{unit}_misiones_diff", 0)
+            req_area = 0   # Ejemplo: st.session_state.get(...)
+            monto_dpp = 0  # ...
+            diff = 0       # ...
             misiones_data.append({
                 "Unidad Organizacional": unit,
                 "Requerimiento del Área": req_area,
@@ -584,7 +580,7 @@ def main():
             .applymap(color_diferencia, subset=["Diferencia"])
         )
 
-        st.info("Aquí se muestran valores placeholder. Para ver valores reales, guarda en st.session_state al presionar 'Recalcular' en cada DPP 2025.")
+        st.info("Valores de ejemplo en st.session_state. Debes guardar al presionar 'Recalcular' en cada DPP 2025.")
 
     # -------------------------------------------------------------------------
     # 8. CONSOLIDADO
