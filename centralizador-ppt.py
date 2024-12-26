@@ -78,7 +78,7 @@ def value_box(label: str, value, bg_color: str = "#6c757d"):
 # APLICACIÓN PRINCIPAL (Versión A: Botón "Recalcular" = Guardar en Excel)
 # =============================================================================
 def main():
-    st.set_page_config(page_title="Versión A con Value Boxes (VPD, VPO, VPF)", layout="wide")
+    st.set_page_config(page_title="Versión A + Tabla Resumen (Misiones)", layout="wide")
 
     # -------------------------------------------------------------------------
     # LECTURA DE EXCEL (SOLO UNA VEZ, GUARDADO EN session_state)
@@ -152,12 +152,13 @@ def main():
                 st.subheader("VPD > Misiones > Requerimiento de Personal (Solo lectura)")
                 st.dataframe(st.session_state["vpd_misiones"])
 
-            else:  # DPP 2025
+            else:  # DPP 2025 (CON TABLA DE RESUMEN DEBAJO)
                 st.subheader("VPD > Misiones > DPP 2025 (Botón 'Recalcular')")
 
                 df_actual = st.session_state["vpd_misiones"].copy()
                 df_actual = calcular_misiones(df_actual)
 
+                # Value boxes
                 sum_total = df_actual["total"].sum() if "total" in df_actual.columns else 0
                 monto_dpp = 168000
                 diferencia = monto_dpp - sum_total
@@ -183,6 +184,7 @@ def main():
                 st.write("")
                 st.write("")
 
+                # Tabla editable
                 df_editado = st.data_editor(
                     df_actual,
                     use_container_width=True,
@@ -198,6 +200,18 @@ def main():
                 df_final = calcular_misiones(df_editado)
                 st.session_state["vpd_misiones"] = df_final
 
+                # ----------------- TABLA DE RESUMEN DE TOTALES -----------------
+                st.write("**Resumen de totales**")
+                # Creamos un pequeño DataFrame con la suma de cada columna
+                df_resumen = pd.DataFrame({
+                    "Total Pasaje": [df_final["total_pasaje"].sum()],
+                    "Total Alojamiento": [df_final["total_alojamiento"].sum()],
+                    "Total Perdiem/Otros": [df_final["total_perdiem_otros"].sum()],
+                    "Total Movilidad": [df_final["total_movilidad"].sum()],
+                    "Total": [df_final["total"].sum()]
+                })
+                st.table(df_resumen.style.format("{:,.2f}"))
+
                 if st.button("Recalcular"):
                     df_final.to_excel("main_bdd.xlsx", sheet_name="vpd_misiones", index=False)
                     st.success("¡Recalculado y guardado en 'vpd_misiones'!")
@@ -209,7 +223,6 @@ def main():
                 st.dataframe(st.session_state["vpd_consultores"])
             else:
                 st.subheader("VPD > Consultorías > DPP 2025 (Botón 'Recalcular')")
-
                 df_actual = st.session_state["vpd_consultores"].copy()
                 df_actual = calcular_consultores(df_actual)
 
@@ -249,6 +262,9 @@ def main():
                 df_final = calcular_consultores(df_editado)
                 st.session_state["vpd_consultores"] = df_final
 
+                # (No se solicitó tabla de resumen para Consultorías, 
+                #  pero puedes añadirla si lo deseas.)
+
                 if st.button("Recalcular"):
                     df_final.to_excel("main_bdd.xlsx", sheet_name="vpd_consultores", index=False)
                     st.success("¡Recalculado y guardado en 'vpd_consultores'!")
@@ -270,14 +286,14 @@ def main():
                 st.subheader("VPO > Misiones > Requerimiento de Personal (Solo lectura)")
                 st.dataframe(st.session_state["vpo_misiones"])
 
-            else:  # DPP 2025
+            else:  # DPP 2025 (CON TABLA DE RESUMEN DEBAJO)
                 st.subheader("VPO > Misiones > DPP 2025 (Botón 'Recalcular')")
 
                 df_actual = st.session_state["vpo_misiones"].copy()
                 df_actual = calcular_misiones(df_actual)
 
                 sum_total = df_actual["total"].sum() if "total" in df_actual.columns else 0
-                monto_dpp = 434707   # Valor para VPO Misiones
+                monto_dpp = 434707
                 diferencia = monto_dpp - sum_total
                 diff_color = "#fb8500"
                 if diferencia == 0:
@@ -316,6 +332,17 @@ def main():
                 df_final = calcular_misiones(df_editado)
                 st.session_state["vpo_misiones"] = df_final
 
+                # ----------------- TABLA DE RESUMEN DE TOTALES -----------------
+                st.write("**Resumen de totales**")
+                df_resumen = pd.DataFrame({
+                    "Total Pasaje": [df_final["total_pasaje"].sum()],
+                    "Total Alojamiento": [df_final["total_alojamiento"].sum()],
+                    "Total Perdiem/Otros": [df_final["total_perdiem_otros"].sum()],
+                    "Total Movilidad": [df_final["total_movilidad"].sum()],
+                    "Total": [df_final["total"].sum()]
+                })
+                st.table(df_resumen.style.format("{:,.2f}"))
+
                 if st.button("Recalcular"):
                     df_final.to_excel("main_bdd.xlsx", sheet_name="vpo_misiones", index=False)
                     st.success("¡Recalculado y guardado en 'vpo_misiones'!")
@@ -325,15 +352,13 @@ def main():
             if eleccion_sub_sub_vpo == "Requerimiento de Personal":
                 st.subheader("VPO > Consultorías > Requerimiento de Personal (Solo lectura)")
                 st.dataframe(st.session_state["vpo_consultores"])
-
-            else:  # DPP 2025
+            else:
                 st.subheader("VPO > Consultorías > DPP 2025 (Botón 'Recalcular')")
-
                 df_actual = st.session_state["vpo_consultores"].copy()
                 df_actual = calcular_consultores(df_actual)
 
                 sum_total = df_actual["total"].sum() if "total" in df_actual.columns else 0
-                monto_dpp = 547700   # Valor para VPO Consultorías
+                monto_dpp = 547700
                 diferencia = monto_dpp - sum_total
                 diff_color = "#fb8500"
                 if diferencia == 0:
@@ -368,6 +393,9 @@ def main():
                 df_final = calcular_consultores(df_editado)
                 st.session_state["vpo_consultores"] = df_final
 
+                # (No se solicitó tabla de resumen para Consultorías, 
+                #  pero puedes añadirla si lo deseas.)
+
                 if st.button("Recalcular"):
                     df_final.to_excel("main_bdd.xlsx", sheet_name="vpo_consultores", index=False)
                     st.success("¡Recalculado y guardado en 'vpo_consultores'!")
@@ -388,15 +416,15 @@ def main():
             if eleccion_sub_sub_vpf == "Requerimiento de Personal":
                 st.subheader("VPF > Misiones > Requerimiento de Personal (Solo lectura)")
                 st.dataframe(st.session_state["vpf_misiones"])
-            else:  
-                # DPP 2025 con nuevo Monto DPP=138600, Gasto Centralizado=40960
+
+            else:  # DPP 2025 (CON TABLA DE RESUMEN DEBAJO)
                 st.subheader("VPF > Misiones > DPP 2025 (Botón 'Recalcular')")
 
                 df_actual = st.session_state["vpf_misiones"].copy()
                 df_actual = calcular_misiones(df_actual)
 
                 sum_total = df_actual["total"].sum() if "total" in df_actual.columns else 0
-                monto_dpp = 138600   # Valor para VPF Misiones
+                monto_dpp = 138600
                 diferencia = monto_dpp - sum_total
                 diff_color = "#fb8500"
                 if diferencia == 0:
@@ -437,6 +465,17 @@ def main():
                 df_final = calcular_misiones(df_editado)
                 st.session_state["vpf_misiones"] = df_final
 
+                # ----------------- TABLA DE RESUMEN DE TOTALES -----------------
+                st.write("**Resumen de totales**")
+                df_resumen = pd.DataFrame({
+                    "Total Pasaje": [df_final["total_pasaje"].sum()],
+                    "Total Alojamiento": [df_final["total_alojamiento"].sum()],
+                    "Total Perdiem/Otros": [df_final["total_perdiem_otros"].sum()],
+                    "Total Movilidad": [df_final["total_movilidad"].sum()],
+                    "Total": [df_final["total"].sum()]
+                })
+                st.table(df_resumen.style.format("{:,.2f}"))
+
                 if st.button("Recalcular"):
                     df_final.to_excel("main_bdd.xlsx", sheet_name="vpf_misiones", index=False)
                     st.success("¡Recalculado y guardado en 'vpf_misiones'!")
@@ -447,7 +486,6 @@ def main():
                 st.subheader("VPF > Consultorías > Requerimiento de Personal (Solo lectura)")
                 st.dataframe(st.session_state["vpf_consultores"])
             else:
-                # DPP 2025 con Monto DPP=170000, Gasto Centralizado=88480
                 st.subheader("VPF > Consultorías > DPP 2025 (Botón 'Recalcular')")
 
                 df_actual = st.session_state["vpf_consultores"].copy()
@@ -463,7 +501,6 @@ def main():
                 gasto_centralizado = 88480
                 total_gasto_central = sum_total + gasto_centralizado
 
-                # Value boxes
                 col1, col2, col3, col4, col5 = st.columns(5)
                 with col1:
                     value_box("Suma del total", f"{sum_total:,.2f}", "#6c757d")
@@ -479,7 +516,6 @@ def main():
                 st.write("")
                 st.write("")
 
-                # Tabla editable
                 df_editado = st.data_editor(
                     df_actual,
                     use_container_width=True,
@@ -491,6 +527,9 @@ def main():
                 df_final = calcular_consultores(df_editado)
                 st.session_state["vpf_consultores"] = df_final
 
+                # (No se solicitó tabla de resumen para Consultorías, 
+                #  pero puedes añadirla si lo deseas.)
+
                 if st.button("Recalcular"):
                     df_final.to_excel("main_bdd.xlsx", sheet_name="vpf_consultores", index=False)
                     st.success("¡Recalculado y guardado en 'vpf_consultores'!")
@@ -500,7 +539,7 @@ def main():
     # -------------------------------------------------------------------------
     elif eleccion_principal == "VPE":
         st.title("Sección VPE (Versión A)")
-        st.write("Podrías replicar la misma lógica con 'vpe_misiones' y 'vpe_consultores' si los tuvieras.")
+        st.write("Podrías replicar la misma lógica con 'vpe_misiones' y 'vpe_consultores', si tuvieras esas hojas.")
 
     # -------------------------------------------------------------------------
     # 6. ACTUALIZACIÓN
