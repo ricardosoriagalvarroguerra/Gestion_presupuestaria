@@ -14,11 +14,10 @@ def calcular_misiones(df: pd.DataFrame) -> pd.DataFrame:
       total = suma de las anteriores
     """
     df_calc = df.copy()
-    base_cols = ["cant_funcionarios", "costo_pasaje", "dias",
-                 "alojamiento", "perdiem_otros", "movilidad"]
-    for col in base_cols:
+    cols_base = ["cant_funcionarios", "costo_pasaje", "dias", "alojamiento", "perdiem_otros", "movilidad"]
+    for col in cols_base:
         if col not in df_calc.columns:
-            df_calc[col] = 0  # columna base ausente -> llena con 0
+            df_calc[col] = 0
 
     df_calc["total_pasaje"] = df_calc["cant_funcionarios"] * df_calc["costo_pasaje"]
     df_calc["total_alojamiento"] = (
@@ -43,8 +42,8 @@ def calcular_consultores(df: pd.DataFrame) -> pd.DataFrame:
       total = cantidad_funcionarios * cantidad_meses * monto_mensual
     """
     df_calc = df.copy()
-    base_cols = ["cantidad_funcionarios", "cantidad_meses", "monto_mensual"]
-    for col in base_cols:
+    cols_base = ["cantidad_funcionarios", "cantidad_meses", "monto_mensual"]
+    for col in cols_base:
         if col not in df_calc.columns:
             df_calc[col] = 0
 
@@ -72,8 +71,8 @@ def two_decimals_only_numeric(df: pd.DataFrame):
 def value_box(label: str, value, bg_color: str = "#6c757d"):
     """
     Genera un recuadro (value box) con fondo de color y texto blanco.
-    label: etiqueta (p.ej. "Suma del total")
-    value: valor a mostrar (p.ej. 12345.67)
+    label: etiqueta (ej. "Suma del total")
+    value: valor a mostrar
     bg_color: color de fondo (por defecto gris "#6c757d")
     """
     st.markdown(f"""
@@ -84,6 +83,7 @@ def value_box(label: str, value, bg_color: str = "#6c757d"):
     </div>
     """, unsafe_allow_html=True)
 
+
 # =============================================================================
 # 4. APLICACIÓN PRINCIPAL
 # =============================================================================
@@ -91,7 +91,7 @@ def main():
     st.set_page_config(page_title="Aplicación Completa", layout="wide")
 
     # -------------------------------------------------------------------------
-    # LECTURA DE DATOS DESDE EXCEL (SOLO UNA VEZ), GUARDADO EN session_state
+    # A) LECTURA DE DATOS DESDE EXCEL (SOLO 1 VEZ), GUARDADOS EN SESSION_STATE
     # -------------------------------------------------------------------------
     # VPD
     if "vpd_misiones" not in st.session_state:
@@ -117,7 +117,7 @@ def main():
     if "vpe_consultores" not in st.session_state:
         st.session_state["vpe_consultores"] = pd.read_excel("main_bdd.xlsx", sheet_name="vpe_consultores")
 
-    # Consolidado
+    # Consolidado (cuadros 9, 10, 11, consolidado)
     if "cuadro_9" not in st.session_state:
         st.session_state["cuadro_9"] = pd.read_excel("main_bdd.xlsx", sheet_name="cuadro_9")
     if "cuadro_10" not in st.session_state:
@@ -136,10 +136,10 @@ def main():
         st.session_state["pre_consultores"] = pd.read_excel("main_bdd.xlsx", sheet_name="pre_consultores")
 
     # -------------------------------------------------------------------------
-    # MENÚ PRINCIPAL (SIDEBAR)
+    # B) MENÚ PRINCIPAL
     # -------------------------------------------------------------------------
     st.sidebar.title("Navegación principal")
-    secciones = [
+    menu_principal = [
         "Página Principal",
         "VPD",
         "VPO",
@@ -149,7 +149,7 @@ def main():
         "Actualización",
         "Consolidado"
     ]
-    eleccion_principal = st.sidebar.selectbox("Selecciona una sección:", secciones)
+    eleccion_principal = st.sidebar.selectbox("Selecciona una sección:", menu_principal)
 
     # -------------------------------------------------------------------------
     # 1. PÁGINA PRINCIPAL
@@ -159,42 +159,42 @@ def main():
         st.write("Bienvenido a la Página Principal. Aquí puedes colocar información introductoria.")
 
     # -------------------------------------------------------------------------
-    # 2. SECCIÓN VPD
+    # 2. VPD
     # -------------------------------------------------------------------------
     elif eleccion_principal == "VPD":
         st.title("Sección VPD")
-
         sub_vpd = ["Misiones", "Consultorías"]
         eleccion_vpd = st.sidebar.selectbox("Sub-sección de VPD:", sub_vpd)
 
         sub_sub_vpd = ["Requerimiento del Área", "DPP 2025"]
         eleccion_sub_sub_vpd = st.sidebar.selectbox("Tema:", sub_sub_vpd)
 
-        # ---------- VPD > Misiones ----------
+        # ========== VPD > MISIONES ==========
         if eleccion_vpd == "Misiones":
+            # REQUERIMIENTO DEL ÁREA
             if eleccion_sub_sub_vpd == "Requerimiento del Área":
-                st.subheader("VPD > Misiones > Requerimiento del Área (Solo lectura)")
+                st.subheader("VPD > Misiones > Requerimiento del Área")
                 df_req_area = st.session_state["vpd_misiones"]
 
-                # Value box "Suma del total" si existe la columna "total"
-                sum_total = df_req_area["total"].sum() if "total" in df_req_area.columns else 0
-                value_box("Suma del total", f"{sum_total:,.2f}", "#6c757d")
+                # Value Box "Suma del total"
+                total_sum = df_req_area["total"].sum() if "total" in df_req_area.columns else 0
+                value_box("Suma del total", f"{total_sum:,.2f}")
 
                 st.dataframe(df_req_area)
 
-            else:  # DPP 2025 => Ejemplo con tabla editable y value boxes
+            # DPP 2025
+            else:
                 st.subheader("VPD > Misiones > DPP 2025")
-
+                # LÓGICA COMPLETA
                 df_actual = st.session_state["vpd_misiones"].copy()
                 df_actual = calcular_misiones(df_actual)
 
-                # EJEMPLO DE VALUE BOXES BÁSICOS
                 sum_total = df_actual["total"].sum() if "total" in df_actual.columns else 0
                 monto_dpp = 168000
                 diferencia = monto_dpp - sum_total
-                color_diff = "#fb8500"
+                color_dif = "#fb8500"
                 if diferencia == 0:
-                    color_diff = "green"
+                    color_dif = "green"
 
                 col1, col2, col3 = st.columns(3)
                 with col1:
@@ -202,49 +202,40 @@ def main():
                 with col2:
                     value_box("Monto DPP 2025", f"{monto_dpp:,.2f}")
                 with col3:
-                    value_box("Diferencia", f"{diferencia:,.2f}", color_diff)
+                    value_box("Diferencia", f"{diferencia:,.2f}", color_dif)
 
-                # Tabla editable
                 df_editado = st.data_editor(df_actual, use_container_width=True)
                 df_final = calcular_misiones(df_editado)
                 st.session_state["vpd_misiones"] = df_final
 
-                # Resumen
                 st.write("**Resumen de totales**")
-                if "total" in df_final.columns:
-                    sum_total_final = df_final["total"].sum()
-                else:
-                    sum_total_final = 0
-                st.write(f"Total final: {sum_total_final:,.2f}")
+                sum_final = df_final["total"].sum() if "total" in df_final.columns else 0
+                st.write(f"Total final: {sum_final:,.2f}")
 
-                # Botón para guardar en Excel
-                if st.button("Guardar en Excel (vpd_misiones)"):
+                if st.button("Guardar (vpd_misiones)"):
                     df_final.to_excel("main_bdd.xlsx", sheet_name="vpd_misiones", index=False)
-                    st.success("¡Datos guardados en la hoja 'vpd_misiones'!")
+                    st.success("¡Guardado en 'vpd_misiones'!")
 
-        # ---------- VPD > Consultorías ----------
+        # ========== VPD > CONSULTORÍAS ==========
         else:
             if eleccion_sub_sub_vpd == "Requerimiento del Área":
-                st.subheader("VPD > Consultorías > Requerimiento del Área (Solo lectura)")
+                st.subheader("VPD > Consultorías > Requerimiento del Área")
                 df_req_area = st.session_state["vpd_consultores"]
 
-                sum_total = df_req_area["total"].sum() if "total" in df_req_area.columns else 0
-                value_box("Suma del total", f"{sum_total:,.2f}", "#6c757d")
+                total_sum = df_req_area["total"].sum() if "total" in df_req_area.columns else 0
+                value_box("Suma del total", f"{total_sum:,.2f}")
 
                 st.dataframe(df_req_area)
 
-            else:  # DPP 2025
+            else:
                 st.subheader("VPD > Consultorías > DPP 2025")
-
                 df_actual = st.session_state["vpd_consultores"].copy()
                 df_actual = calcular_consultores(df_actual)
 
                 sum_total = df_actual["total"].sum() if "total" in df_actual.columns else 0
                 monto_dpp = 130000
                 diferencia = monto_dpp - sum_total
-                color_diff = "#fb8500"
-                if diferencia == 0:
-                    color_diff = "green"
+                color_dif = "#fb8500" if diferencia != 0 else "green"
 
                 col1, col2, col3 = st.columns(3)
                 with col1:
@@ -252,95 +243,98 @@ def main():
                 with col2:
                     value_box("Monto DPP 2025", f"{monto_dpp:,.2f}")
                 with col3:
-                    value_box("Diferencia", f"{diferencia:,.2f}", color_diff)
+                    value_box("Diferencia", f"{diferencia:,.2f}", color_dif)
 
                 df_editado = st.data_editor(df_actual, use_container_width=True)
                 df_final = calcular_consultores(df_editado)
                 st.session_state["vpd_consultores"] = df_final
 
-                if st.button("Guardar en Excel (vpd_consultores)"):
+                if st.button("Guardar (vpd_consultores)"):
                     df_final.to_excel("main_bdd.xlsx", sheet_name="vpd_consultores", index=False)
-                    st.success("¡Datos guardados en la hoja 'vpd_consultores'!")
+                    st.success("¡Guardado en 'vpd_consultores'!")
+
 
     # -------------------------------------------------------------------------
-    # 3. SECCIÓN VPO
+    # 3. VPO
     # -------------------------------------------------------------------------
     elif eleccion_principal == "VPO":
         st.title("Sección VPO")
-
         sub_vpo = ["Misiones", "Consultorías"]
         eleccion_vpo = st.sidebar.selectbox("Sub-sección de VPO:", sub_vpo)
 
         sub_sub_vpo = ["Requerimiento del Área", "DPP 2025"]
         eleccion_sub_sub_vpo = st.sidebar.selectbox("Tema:", sub_sub_vpo)
 
-        # ---------- VPO > Misiones ----------
+        # VPO > Misiones
         if eleccion_vpo == "Misiones":
             if eleccion_sub_sub_vpo == "Requerimiento del Área":
-                st.subheader("VPO > Misiones > Requerimiento del Área (Solo lectura)")
+                st.subheader("VPO > Misiones > Requerimiento del Área")
                 df_req_area = st.session_state["vpo_misiones"]
 
-                sum_total = df_req_area["total"].sum() if "total" in df_req_area.columns else 0
-                value_box("Suma del total", f"{sum_total:,.2f}")
+                total_sum = df_req_area["total"].sum() if "total" in df_req_area.columns else 0
+                value_box("Suma del total", f"{total_sum:,.2f}")
+
                 st.dataframe(df_req_area)
             else:
                 st.subheader("VPO > Misiones > DPP 2025")
-                # ... Lógica DPP 2025 con value boxes, etc ...
-                st.write("Ejemplo VPO > Misiones > DPP 2025")
+                # LÓGICA DPP 2025 COMPLETA
+                st.write("Ejemplo VPO > Misiones > DPP 2025: edición, value boxes, guardado...")
 
-        # ---------- VPO > Consultorías ----------
+        # VPO > Consultorías
         else:
             if eleccion_sub_sub_vpo == "Requerimiento del Área":
-                st.subheader("VPO > Consultorías > Requerimiento del Área (Solo lectura)")
+                st.subheader("VPO > Consultorías > Requerimiento del Área")
                 df_req_area = st.session_state["vpo_consultores"]
 
-                sum_total = df_req_area["total"].sum() if "total" in df_req_area.columns else 0
-                value_box("Suma del total", f"{sum_total:,.2f}")
+                total_sum = df_req_area["total"].sum() if "total" in df_req_area.columns else 0
+                value_box("Suma del total", f"{total_sum:,.2f}")
+
                 st.dataframe(df_req_area)
             else:
                 st.subheader("VPO > Consultorías > DPP 2025")
-                st.write("Ejemplo VPO > Consultorías > DPP 2025")
+                st.write("Ejemplo VPO > Consultorías > DPP 2025...")
 
     # -------------------------------------------------------------------------
-    # 4. SECCIÓN VPF
+    # 4. VPF
     # -------------------------------------------------------------------------
     elif eleccion_principal == "VPF":
         st.title("Sección VPF")
-
         sub_vpf = ["Misiones", "Consultorías"]
         eleccion_vpf = st.sidebar.selectbox("Sub-sección de VPF:", sub_vpf)
 
         sub_sub_vpf = ["Requerimiento del Área", "DPP 2025"]
         eleccion_sub_sub_vpf = st.sidebar.selectbox("Tema:", sub_sub_vpf)
 
-        # ---------- VPF > Misiones ----------
+        # VPF > Misiones
         if eleccion_vpf == "Misiones":
             if eleccion_sub_sub_vpf == "Requerimiento del Área":
-                st.subheader("VPF > Misiones > Requerimiento del Área (Solo lectura)")
+                st.subheader("VPF > Misiones > Requerimiento del Área")
                 df_req_area = st.session_state["vpf_misiones"]
 
-                sum_total = df_req_area["total"].sum() if "total" in df_req_area.columns else 0
-                value_box("Suma del total", f"{sum_total:,.2f}")
+                total_sum = df_req_area["total"].sum() if "total" in df_req_area.columns else 0
+                value_box("Suma del total", f"{total_sum:,.2f}")
+
                 st.dataframe(df_req_area)
             else:
                 st.subheader("VPF > Misiones > DPP 2025")
-                st.write("Ejemplo VPF > Misiones > DPP 2025")
+                st.write("Ejemplo VPF > Misiones > DPP 2025...")
 
-        # ---------- VPF > Consultorías ----------
+        # VPF > Consultorías
         else:
             if eleccion_sub_sub_vpf == "Requerimiento del Área":
-                st.subheader("VPF > Consultorías > Requerimiento del Área (Solo lectura)")
+                st.subheader("VPF > Consultorías > Requerimiento del Área")
                 df_req_area = st.session_state["vpf_consultores"]
 
-                sum_total = df_req_area["total"].sum() if "total" in df_req_area.columns else 0
-                value_box("Suma del total", f"{sum_total:,.2f}")
+                total_sum = df_req_area["total"].sum() if "total" in df_req_area.columns else 0
+                value_box("Suma del total", f"{total_sum:,.2f}")
+
                 st.dataframe(df_req_area)
             else:
                 st.subheader("VPF > Consultorías > DPP 2025")
-                st.write("Ejemplo VPF > Consultorías > DPP 2025")
+                st.write("Ejemplo VPF > Consultorías > DPP 2025...")
 
     # -------------------------------------------------------------------------
-    # 5. SECCIÓN VPE
+    # 5. VPE
     # -------------------------------------------------------------------------
     elif eleccion_principal == "VPE":
         st.title("Sección VPE")
@@ -352,23 +346,28 @@ def main():
         sub_sub_vpe = ["Requerimiento del Área"]
         eleccion_sub_sub_vpe = st.sidebar.selectbox("Tema:", sub_sub_vpe)
 
+        # VPE > Misiones
         if eleccion_vpe == "Misiones":
             st.subheader("VPE > Misiones > Requerimiento del Área (Solo lectura)")
             df_req_area = st.session_state["vpe_misiones"]
 
-            sum_total = df_req_area["total"].sum() if "total" in df_req_area.columns else 0
-            value_box("Suma del total", f"{sum_total:,.2f}")
+            total_sum = df_req_area["total"].sum() if "total" in df_req_area.columns else 0
+            value_box("Suma del total", f"{total_sum:,.2f}")
+
             st.dataframe(df_req_area)
+
+        # VPE > Consultorías
         else:
             st.subheader("VPE > Consultorías > Requerimiento del Área (Solo lectura)")
             df_req_area = st.session_state["vpe_consultores"]
 
-            sum_total = df_req_area["total"].sum() if "total" in df_req_area.columns else 0
-            value_box("Suma del total", f"{sum_total:,.2f}")
+            total_sum = df_req_area["total"].sum() if "total" in df_req_area.columns else 0
+            value_box("Suma del total", f"{total_sum:,.2f}")
+
             st.dataframe(df_req_area)
 
     # -------------------------------------------------------------------------
-    # 6. SECCIÓN PRE
+    # 6. PRE
     # -------------------------------------------------------------------------
     elif eleccion_principal == "PRE":
         st.title("Sección PRE")
@@ -414,7 +413,7 @@ def main():
     # -------------------------------------------------------------------------
     elif eleccion_principal == "Actualización":
         st.title("Actualización")
-        st.write("Aquí podrías incluir la lógica o formularios para actualizar datos en tu Excel.")
+        st.write("Aquí puedes incluir la lógica o formularios para actualizar datos en tu Excel, etc.")
 
     # -------------------------------------------------------------------------
     # 8. CONSOLIDADO
@@ -422,7 +421,7 @@ def main():
     elif eleccion_principal == "Consolidado":
         st.title("Consolidado")
 
-        # Cuadro 9
+        # ========== CUADRO 9 ==========
         st.write("#### Gasto en personal 2024 Vs 2025")
         df_9 = st.session_state["cuadro_9"]
         st.table(two_decimals_only_numeric(df_9))
@@ -430,7 +429,7 @@ def main():
 
         st.write("---")
 
-        # Cuadro 10
+        # ========== CUADRO 10 ==========
         st.write("#### Análisis de Cambios en Gastos de Personal 2025 vs. 2024")
         df_10 = st.session_state["cuadro_10"]
         st.table(two_decimals_only_numeric(df_10))
@@ -438,7 +437,7 @@ def main():
 
         st.write("---")
 
-        # Cuadro 11
+        # ========== CUADRO 11 ==========
         st.write("#### Gastos Operativos propuestos para 2025 y montos aprobados para 2024")
         df_11 = st.session_state["cuadro_11"]
         st.table(two_decimals_only_numeric(df_11))
@@ -446,10 +445,11 @@ def main():
 
         st.write("---")
 
-        # Consolidado
+        # ========== CONSOLIDADO (HOJA 'consolidado') ==========
         st.write("#### DPP 2025")
         df_cons = st.session_state["consolidado_df"]
         st.table(two_decimals_only_numeric(df_cons))
+
 
 # =============================================================================
 # EJECUCIÓN
