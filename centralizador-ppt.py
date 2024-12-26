@@ -78,7 +78,7 @@ def value_box(label: str, value, bg_color: str = "#6c757d"):
 # APLICACIÓN PRINCIPAL (Versión A: Botón "Recalcular" = Guardar en Excel)
 # =============================================================================
 def main():
-    st.set_page_config(page_title="Versión A con Value Boxes (VPD & VPO)", layout="wide")
+    st.set_page_config(page_title="Versión A con Value Boxes (VPD, VPO, VPF)", layout="wide")
 
     # -------------------------------------------------------------------------
     # LECTURA DE EXCEL (SOLO UNA VEZ, GUARDADO EN session_state)
@@ -158,7 +158,6 @@ def main():
                 df_actual = st.session_state["vpd_misiones"].copy()
                 df_actual = calcular_misiones(df_actual)
 
-                # Value boxes
                 sum_total = df_actual["total"].sum() if "total" in df_actual.columns else 0
                 monto_dpp = 168000
                 diferencia = monto_dpp - sum_total
@@ -214,7 +213,6 @@ def main():
                 df_actual = st.session_state["vpd_consultores"].copy()
                 df_actual = calcular_consultores(df_actual)
 
-                # Value boxes
                 sum_total = df_actual["total"].sum() if "total" in df_actual.columns else 0
                 monto_dpp = 130000
                 diferencia = monto_dpp - sum_total
@@ -278,9 +276,8 @@ def main():
                 df_actual = st.session_state["vpo_misiones"].copy()
                 df_actual = calcular_misiones(df_actual)
 
-                # Value boxes con tus valores:
                 sum_total = df_actual["total"].sum() if "total" in df_actual.columns else 0
-                monto_dpp = 434707   # Valor solicitado
+                monto_dpp = 434707   # Valor para VPO Misiones
                 diferencia = monto_dpp - sum_total
                 diff_color = "#fb8500"
                 if diferencia == 0:
@@ -289,7 +286,6 @@ def main():
                 gasto_centralizado = 48158
                 total_gasto_central = sum_total + gasto_centralizado
 
-                # Mostramos Value Boxes
                 col1, col2, col3, col4, col5 = st.columns(5)
                 with col1:
                     value_box("Suma del total", f"{sum_total:,.2f}", "#6c757d")
@@ -305,7 +301,6 @@ def main():
                 st.write("")
                 st.write("")
 
-                # Tabla editable
                 df_editado = st.data_editor(
                     df_actual,
                     use_container_width=True,
@@ -337,9 +332,8 @@ def main():
                 df_actual = st.session_state["vpo_consultores"].copy()
                 df_actual = calcular_consultores(df_actual)
 
-                # Value boxes con los valores solicitados
                 sum_total = df_actual["total"].sum() if "total" in df_actual.columns else 0
-                monto_dpp = 547700  # Valor solicitado
+                monto_dpp = 547700   # Valor para VPO Consultorías
                 diferencia = monto_dpp - sum_total
                 diff_color = "#fb8500"
                 if diferencia == 0:
@@ -389,16 +383,47 @@ def main():
         menu_sub_sub_vpf = ["Requerimiento de Personal", "DPP 2025"]
         eleccion_sub_sub_vpf = st.sidebar.selectbox("Tema:", menu_sub_sub_vpf)
 
+        # =================== VPF > MISIONES ===================
         if eleccion_vpf == "Misiones":
             if eleccion_sub_sub_vpf == "Requerimiento de Personal":
                 st.subheader("VPF > Misiones > Requerimiento de Personal (Solo lectura)")
                 st.dataframe(st.session_state["vpf_misiones"])
-            else:
+            else:  
+                # DPP 2025 con nuevo Monto DPP=138600, Gasto Centralizado=40960
                 st.subheader("VPF > Misiones > DPP 2025 (Botón 'Recalcular')")
-                df_old = st.session_state["vpf_misiones"].copy()
-                df_recalc = calcular_misiones(df_old)
+
+                df_actual = st.session_state["vpf_misiones"].copy()
+                df_actual = calcular_misiones(df_actual)
+
+                sum_total = df_actual["total"].sum() if "total" in df_actual.columns else 0
+                monto_dpp = 138600   # Valor para VPF Misiones
+                diferencia = monto_dpp - sum_total
+                diff_color = "#fb8500"
+                if diferencia == 0:
+                    diff_color = "green"
+
+                gasto_centralizado = 40960
+                total_gasto_central = sum_total + gasto_centralizado
+
+                # Value boxes
+                col1, col2, col3, col4, col5 = st.columns(5)
+                with col1:
+                    value_box("Suma del total", f"{sum_total:,.2f}", "#6c757d")
+                with col2:
+                    value_box("Monto DPP 2025", f"{monto_dpp:,.2f}", "#6c757d")
+                with col3:
+                    value_box("Diferencia", f"{diferencia:,.2f}", diff_color)
+                with col4:
+                    value_box("Gasto Centralizado", f"{gasto_centralizado:,.2f}", "#6c757d")
+                with col5:
+                    value_box("Total + Gasto Centralizado", f"{total_gasto_central:,.2f}", "#6c757d")
+
+                st.write("")
+                st.write("")
+
+                # Tabla editable
                 df_editado = st.data_editor(
-                    df_recalc,
+                    df_actual,
                     use_container_width=True,
                     key="vpf_misiones_dpp2025",
                     column_config={
@@ -416,16 +441,47 @@ def main():
                     df_final.to_excel("main_bdd.xlsx", sheet_name="vpf_misiones", index=False)
                     st.success("¡Recalculado y guardado en 'vpf_misiones'!")
 
-        else:  # VPF > Consultorías
+        # =================== VPF > CONSULTORÍAS ===================
+        else:  # "Consultorías"
             if eleccion_sub_sub_vpf == "Requerimiento de Personal":
                 st.subheader("VPF > Consultorías > Requerimiento de Personal (Solo lectura)")
                 st.dataframe(st.session_state["vpf_consultores"])
             else:
+                # DPP 2025 con Monto DPP=170000, Gasto Centralizado=88480
                 st.subheader("VPF > Consultorías > DPP 2025 (Botón 'Recalcular')")
-                df_old = st.session_state["vpf_consultores"].copy()
-                df_recalc = calcular_consultores(df_old)
+
+                df_actual = st.session_state["vpf_consultores"].copy()
+                df_actual = calcular_consultores(df_actual)
+
+                sum_total = df_actual["total"].sum() if "total" in df_actual.columns else 0
+                monto_dpp = 170000
+                diferencia = monto_dpp - sum_total
+                diff_color = "#fb8500"
+                if diferencia == 0:
+                    diff_color = "green"
+
+                gasto_centralizado = 88480
+                total_gasto_central = sum_total + gasto_centralizado
+
+                # Value boxes
+                col1, col2, col3, col4, col5 = st.columns(5)
+                with col1:
+                    value_box("Suma del total", f"{sum_total:,.2f}", "#6c757d")
+                with col2:
+                    value_box("Monto DPP 2025", f"{monto_dpp:,.2f}", "#6c757d")
+                with col3:
+                    value_box("Diferencia", f"{diferencia:,.2f}", diff_color)
+                with col4:
+                    value_box("Gasto Centralizado", f"{gasto_centralizado:,.2f}", "#6c757d")
+                with col5:
+                    value_box("Total + Gasto Centralizado", f"{total_gasto_central:,.2f}", "#6c757d")
+
+                st.write("")
+                st.write("")
+
+                # Tabla editable
                 df_editado = st.data_editor(
-                    df_recalc,
+                    df_actual,
                     use_container_width=True,
                     key="vpf_consultores_dpp2025",
                     column_config={
