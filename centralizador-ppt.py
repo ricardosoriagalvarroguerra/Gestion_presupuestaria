@@ -47,7 +47,7 @@ page_passwords = {
 }
 
 # --------------------------------------------------
-# Función para cargar datos
+# Función para cargar datos (se hace una sola vez)
 # --------------------------------------------------
 def load_data(filepath, sheet_name):
     try:
@@ -75,14 +75,16 @@ def save_data(filepath, sheet_name, df):
 # --------------------------------------------------
 excel_file = "main_bdd.xlsx"
 
+# Control de autenticación global
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
+# Control de autenticación por página
 if "page_authenticated" not in st.session_state:
     st.session_state.page_authenticated = {page: False for page in page_passwords if page_passwords[page]}
 
 # --------------------------------------------------
-# Función para mostrar el requerimiento de área
+# Función para mostrar "Requerimiento de Área"
 # --------------------------------------------------
 def mostrar_requerimiento_area(sheet_name):
     st.header(f"Requerimiento de Área - {sheet_name}")
@@ -103,9 +105,13 @@ def mostrar_requerimiento_area(sheet_name):
         st.warning(f"No se pudo cargar la tabla para {sheet_name}.")
 
 # --------------------------------------------------
-# Recalcular fórmulas
+# Función para recalcular fórmulas
 # --------------------------------------------------
 def recalcular_formulas(sheet_name, df):
+    """
+    Ejemplo: para 'VPD_Consultores' o 'VPO_Consultores':
+    total = cantidad_funcionarios * monto_mensual * cantidad_meses
+    """
     if sheet_name in ["VPD_Consultores", "VPO_Consultores"]:
         required_cols = ["cantidad_funcionarios", "monto_mensual", "cantidad_meses"]
         if all(col in df.columns for col in required_cols):
@@ -116,14 +122,14 @@ def recalcular_formulas(sheet_name, df):
     return df
 
 # --------------------------------------------------
-# Función para mostrar DPP 2025 Editor (con el ajuste)
+# Función para mostrar DPP 2025 (tabla editable)
+# INCORPORAMOS LOS 5 PASOS RECOMENDADOS
 # --------------------------------------------------
 def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
     st.header(f"DPP 2025 - {sheet_name}")
 
+    # 1) Cargamos el DF si no está en session_state
     session_key = f"dpp_2025_{sheet_name}_data"
-
-    # 1) Cargar DF si no está
     if session_key not in st.session_state:
         data = load_data(excel_file, sheet_name)
         if data is None:
@@ -131,23 +137,31 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
             return
         st.session_state[session_key] = data
 
-    # 2) Usamos directamente session_state[session_key]
-    df_edited = st.data_editor(
+    # 2) Usamos st.data_editor(...) -> Recibimos edited_df
+    # - Desactivamos num_rows="dynamic" mientras depuramos
+    edited_df = st.data_editor(
         data=st.session_state[session_key],
-        key=f"editor_{sheet_name}"
+        key=f"editor_{sheet_name}",
+        # num_rows="dynamic",  # DESACTIVADO para descartar problemas
     )
 
-    # 3) Recalcular
-    df_edited = recalcular_formulas(sheet_name, df_edited)
+    # 3) Guardamos ese edited_df en session_state (inicial)
+    st.session_state[session_key] = edited_df
 
-    # 4) Guardar en session_state el DF recalculado
-    st.session_state[session_key] = df_edited
+    # 4) Recalcula 'total' y vuelve a asignar a session_state
+    recalculated_df = recalcular_formulas(sheet_name, edited_df)
+    st.session_state[session_key] = recalculated_df
 
-    # 5) Mostrar métricas
-    if "total" in df_edited.columns:
+    # 5) Monitoreamos st.session_state para diagnosticar
+    #    (Opcional, se puede comentar si ya no se necesita)
+    st.write("**DEBUG** - Estado actual de la hoja:", sheet_name)
+    st.write(st.session_state[session_key])
+
+    # -- Métricas de la columna 'total' --
+    if "total" in recalculated_df.columns:
         try:
-            df_edited["total"] = pd.to_numeric(df_edited["total"], errors="coerce")
-            total_sum = df_edited["total"].sum(numeric_only=True)
+            recalculated_df["total"] = pd.to_numeric(recalculated_df["total"], errors="coerce")
+            total_sum = recalculated_df["total"].sum(numeric_only=True)
             diferencia = total_sum - monto_dpp
 
             col1, col2, col3 = st.columns(3)
@@ -158,6 +172,7 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
             with col3:
                 st.metric("Diferencia", f"${diferencia:,.0f}")
 
+            # Ejemplos de gastos centralizados
             if "VPD_Consultores" in sheet_name:
                 gcvpd = 193160
                 suma_comb = gcvpd + total_sum
@@ -199,7 +214,7 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
     else:
         st.error("No se encontró una columna 'total' en los datos.")
 
-    # 6) Totales por ítem (Misiones)
+    # -- Totales por ítem (sólo para Misiones) --
     if "Misiones" in sheet_name:
         columnas_de_suma = [
             "total_pasaje",
@@ -210,23 +225,23 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
         ]
         suma_dict = {}
         for col in columnas_de_suma:
-            if col in df_edited.columns:
-                df_edited[col] = pd.to_numeric(df_edited[col], errors="coerce").fillna(0)
-                suma_dict[col] = df_edited[col].sum()
+            if col in recalculated_df.columns:
+                recalculated_df[col] = pd.to_numeric(recalculated_df[col], errors="coerce").fillna(0)
+                suma_dict[col] = recalculated_df[col].sum()
             else:
                 suma_dict[col] = 0
         suma_df = pd.DataFrame([suma_dict])
         st.subheader("Totales por ítem")
         st.dataframe(suma_df.style.format("{:,.2f}"))
 
-    # 7) Botón para guardar en Excel
+    # -- Botón para Guardar Cambios en el Excel --
     if st.button("Guardar Cambios", key=f"guardar_{sheet_name}"):
         df_to_save = st.session_state[session_key].copy()
         df_to_save.columns = df_to_save.columns.str.strip().str.lower()
         save_data(excel_file, sheet_name, df_to_save)
         st.success("Cambios guardados en el archivo Excel.")
 
-    # 8) Botón para descargar
+    # -- Botón para descargar Excel del DF actual --
     df_download = st.session_state[session_key].copy()
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
@@ -241,7 +256,7 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
     )
 
 # --------------------------------------------------
-# Actualización
+# Funciones para la página "Actualización"
 # --------------------------------------------------
 def calcular_actualizacion_tabla(vicepresidencias, tipo):
     filas = []
@@ -279,7 +294,7 @@ def mostrar_actualizacion():
         "VPD": {"Misiones": 168000, "Consultores": 130000},
         "VPF": {"Misiones": 138600, "Consultores": 170000},
         "VPO": {"Misiones": 434707, "Consultores": 547700},
-        "VPE": {"Misiones": 28244, "Consultores": 179446},
+        "VPE": {"Misiones": 28244,  "Consultores": 179446},
     }
 
     st.subheader("Misiones")
@@ -293,7 +308,7 @@ def mostrar_actualizacion():
     st.write(styled_consultores_df, unsafe_allow_html=True)
 
 # --------------------------------------------------
-# Consolidado
+# Función para mostrar el Consolidado
 # --------------------------------------------------
 def mostrar_consolidado():
     titulo_con_logo("Consolidado")
@@ -310,7 +325,7 @@ def mostrar_consolidado():
     filas_consolidado_color = [5, 15, 22, 31, 40, 47, 52]
     filas_negro              = [0, 4, 6, 7, 14, 16, 21, 23, 30, 32, 39, 41, 46, 48]
 
-    # Cuadro 9
+    # --- Cuadro 9 ---
     st.header("Gastos en Personal 2025 vs 2024 (Cuadro 9 - DPP 2025)")
     data_cuadro_9 = load_data(excel_file, "Cuadro_9")
     if data_cuadro_9 is not None:
@@ -326,7 +341,7 @@ def mostrar_consolidado():
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_9'.")
 
-    # Cuadro 10
+    # --- Cuadro 10 ---
     st.header("Análisis de Cambios en Gastos de Personal 2025 vs. 2024 (Cuadro 10 - DPP 2025)")
     data_cuadro_10 = load_data(excel_file, "Cuadro_10")
     if data_cuadro_10 is not None:
@@ -342,7 +357,7 @@ def mostrar_consolidado():
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_10'.")
 
-    # Cuadro 11
+    # --- Cuadro 11 ---
     st.header("Gastos Operativos propuestos para 2025 y montos aprobados para 2024 (Cuadro 11 - DPP 2025)")
     data_cuadro_11 = load_data(excel_file, "Cuadro_11")
     if data_cuadro_11 is not None:
@@ -352,33 +367,38 @@ def mostrar_consolidado():
     else:
         st.warning("No se pudo cargar la hoja 'Cuadro_11'.")
 
-    # Consolidado
+    # --- Hoja "Consolidado" ---
     st.header("Consolidado DPP 2025")
     data_consolidado = load_data(excel_file, "Consolidado")
     if data_consolidado is not None:
         data_consolidado = data_consolidado.reset_index(drop=True)
         styled_consolidado = data_consolidado.style.format(custom_formatter)
+
         def color_todas_filas(row):
             return ['color: #8d99ae;'] * len(row)
+
         def color_filas_negro(row):
             if row.name in filas_negro:
                 return ['color: black;'] * len(row)
             else:
                 return [''] * len(row)
+
         def resaltar_filas_consolidado(row):
             if row.name in filas_consolidado_color:
                 return ['background-color: #9d0208; color: white'] * len(row)
             else:
                 return [''] * len(row)
+
         styled_consolidado = styled_consolidado.apply(color_todas_filas, axis=1)
         styled_consolidado = styled_consolidado.apply(color_filas_negro, axis=1)
         styled_consolidado = styled_consolidado.apply(resaltar_filas_consolidado, axis=1)
+
         st.write(styled_consolidado, unsafe_allow_html=True)
     else:
         st.warning("No se pudo cargar la hoja 'Consolidado'.")
 
 # --------------------------------------------------
-# main
+# Función principal (main)
 # --------------------------------------------------
 def main():
     if not st.session_state.authenticated:
@@ -391,7 +411,7 @@ def main():
             if username_input in app_credentials and password_input == app_credentials[username_input]:
                 st.session_state.authenticated = True
                 st.session_state.current_user = username_input
-                st.rerun()
+                st.rerun()  # Requiere Streamlit >= 1.27.0
             else:
                 st.error("Usuario o contraseña incorrectos.")
 
@@ -399,12 +419,12 @@ def main():
         st.write("""
         1. Selecciona la página que deseas visitar desde el menú lateral.
         2. Ingresa las credenciales si la página lo requiere.
-        3. En las páginas de "Requerimiento de Área" podrás visualizar el total requerido sin que éste cambie luego de modificar datos en las páginas DPP 2025.
+        3. En las páginas de 'Requerimiento de Área' podrás visualizar el total requerido sin que éste cambie luego de modificar datos en las páginas DPP 2025.
         4. En las páginas DPP 2025 puedes editar las tablas y luego guardar los cambios. También puedes descargar el Excel modificado.
-        5. La página "Actualización" muestra un resumen consolidado, mientras que "Consolidado" presenta distintos cuadros con sus cifras.
-        6. Si en algún momento deseas volver a la página principal, selecciona "Principal" en el menú lateral.
+        5. La página 'Actualización' muestra un resumen consolidado, mientras que 'Consolidado' presenta distintos cuadros con sus cifras.
+        6. Si en algún momento deseas volver a la página principal, selecciona 'Principal' en el menú lateral.
         """)
-        st.write("**Nota:** Asegúrate de tener las contraseñas correctas para acceder a las páginas protegidas y editar los datos.")
+        st.write("**Nota:** Presiona Enter o haz clic fuera de la celda para confirmar cada edición antes de pasar a la siguiente.")
 
     else:
         pages = list(page_passwords.keys())
@@ -416,10 +436,11 @@ def main():
             st.write("""
             1. Selecciona la página que deseas visitar desde el menú lateral.
             2. Ingresa las credenciales si la página lo requiere.
-            3. En las páginas de "Requerimiento de Área" podrás visualizar el total requerido sin que éste cambie luego de modificar datos en las páginas DPP 2025.
+            3. En las páginas de 'Requerimiento de Área' podrás visualizar el total requerido sin que éste cambie luego de modificar datos en las páginas DPP 2025.
             4. En las páginas DPP 2025 puedes editar las tablas y luego guardar los cambios. También puedes descargar el Excel modificado.
-            5. La página "Actualización" muestra un resumen consolidado, mientras que "Consolidado" presenta distintos cuadros con sus cifras.
+            5. La página 'Actualización' muestra un resumen consolidado, mientras que 'Consolidado' presenta distintos cuadros con sus cifras.
             """)
+            st.write("**Recuerda:** Cada celda se edita y se confirma con Enter o haciendo clic fuera de la celda.")
 
         elif selected_page == "Actualización":
             if not st.session_state.page_authenticated["Actualización"]:
@@ -555,9 +576,10 @@ def main():
                     if selected_subsubpage == "Requerimiento de Área":
                         mostrar_requerimiento_area(f"{selected_page}_Consultores")
                     elif selected_subsubpage == "DPP 2025":
-                        # Aquí está el caso "VPD_Consultores" con los ajustes
                         mostrar_dpp_2025_editor(f"{selected_page}_Consultores", montos[selected_page]["Consultores"])
 
-
+# --------------------------------------------------
+# Ejecución
+# --------------------------------------------------
 if __name__ == "__main__":
     main()
