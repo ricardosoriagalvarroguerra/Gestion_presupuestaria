@@ -62,8 +62,8 @@ def calcular_consultores(df: pd.DataFrame) -> pd.DataFrame:
 # =============================================================================
 def two_decimals_only_numeric(df: pd.DataFrame):
     """
-    Devuelve un Styler que formatea SOLO las columnas numéricas (float, int)
-    a "{:,.2f}" y deja intactas las columnas de texto/fecha/etc.
+    Devuelve un Styler que aplica "{:,.2f}" sólo a columnas numéricas (float, int).
+    Evita errores si hay columnas de texto o fechas.
     """
     numeric_cols = df.select_dtypes(include=["float", "int"]).columns
     return df.style.format("{:,.2f}", subset=numeric_cols, na_rep="")
@@ -75,9 +75,6 @@ def two_decimals_only_numeric(df: pd.DataFrame):
 def value_box(label: str, value, bg_color: str = "#6c757d"):
     """
     Genera un recuadro (value box) con fondo de color y texto en blanco.
-    - label: texto descriptivo (p.ej. "Suma del total")
-    - value: valor a mostrar (p.ej. "12345.67")
-    - bg_color: color de fondo (p.ej. "#fb8500", "green", etc.)
     """
     st.markdown(f"""
     <div style="display:inline-block; background-color:{bg_color}; 
@@ -95,7 +92,7 @@ def main():
     st.set_page_config(page_title="Aplicación Completa", layout="wide")
 
     # -------------------------------------------------------------------------
-    # A) LECTURA DE DATOS DESDE EXCEL (SOLO 1 VEZ). Guardado en session_state.
+    # LECTURA DE DATOS (SOLO 1 VEZ). Guardado en session_state.
     # -------------------------------------------------------------------------
     # VPD
     if "vpd_misiones" not in st.session_state:
@@ -115,13 +112,13 @@ def main():
     if "vpf_consultores" not in st.session_state:
         st.session_state["vpf_consultores"] = pd.read_excel("main_bdd.xlsx", sheet_name="vpf_consultores")
 
-    # VPE -> Si tuvieras esas hojas
-    # if "vpe_misiones" not in st.session_state:
-    #     st.session_state["vpe_misiones"] = pd.read_excel("main_bdd.xlsx", sheet_name="vpe_misiones")
-    # if "vpe_consultores" not in st.session_state:
-    #     st.session_state["vpe_consultores"] = pd.read_excel("main_bdd.xlsx", sheet_name="vpe_consultores")
+    # VPE (nuevo)
+    if "vpe_misiones" not in st.session_state:
+        st.session_state["vpe_misiones"] = pd.read_excel("main_bdd.xlsx", sheet_name="vpe_misiones")
+    if "vpe_consultores" not in st.session_state:
+        st.session_state["vpe_consultores"] = pd.read_excel("main_bdd.xlsx", sheet_name="vpe_consultores")
 
-    # Datos para consolidado
+    # Hojas de Consolidado
     if "cuadro_9" not in st.session_state:
         st.session_state["cuadro_9"] = pd.read_excel("main_bdd.xlsx", sheet_name="cuadro_9")
     if "cuadro_10" not in st.session_state:
@@ -132,7 +129,7 @@ def main():
         st.session_state["consolidado_df"] = pd.read_excel("main_bdd.xlsx", sheet_name="consolidado")
 
     # -------------------------------------------------------------------------
-    # B) MENÚ PRINCIPAL (SIDEBAR)
+    # MENÚ PRINCIPAL (SIDEBAR)
     # -------------------------------------------------------------------------
     st.sidebar.title("Navegación principal")
     secciones = [
@@ -151,26 +148,28 @@ def main():
     # -------------------------------------------------------------------------
     if eleccion_principal == "Página Principal":
         st.title("Página Principal")
-        st.write("Bienvenido a la Página Principal.")
+        st.write("Bienvenido a la Página Principal. Aquí puedes colocar información introductoria.")
 
     # -------------------------------------------------------------------------
     # 2. VPD
     # -------------------------------------------------------------------------
     elif eleccion_principal == "VPD":
         st.title("Sección VPD")
+
+        # Sub-secciones
         sub_vpd = ["Misiones", "Consultorías"]
         eleccion_vpd = st.sidebar.selectbox("Sub-sección de VPD:", sub_vpd)
 
+        # Sub-sub-secciones
         sub_sub_vpd = ["Requerimiento del Área", "DPP 2025"]
         eleccion_sub_sub_vpd = st.sidebar.selectbox("Tema:", sub_sub_vpd)
 
-        # VPD > Misiones
+        # ----- VPD > Misiones -----
         if eleccion_vpd == "Misiones":
             if eleccion_sub_sub_vpd == "Requerimiento del Área":
                 st.subheader("VPD > Misiones > Requerimiento del Área (Solo lectura)")
                 st.dataframe(st.session_state["vpd_misiones"])
-
-            else:  # DPP 2025 (editable)
+            else:
                 st.subheader("VPD > Misiones > DPP 2025")
 
                 df_actual = st.session_state["vpd_misiones"].copy()
@@ -186,7 +185,6 @@ def main():
                 gasto_centralizado = 35960
                 total_gasto_central = sum_total + gasto_centralizado
 
-                # Muestra value boxes
                 col1, col2, col3, col4, col5 = st.columns(5)
                 with col1:
                     value_box("Suma del total", f"{sum_total:,.2f}", "#6c757d")
@@ -218,7 +216,7 @@ def main():
                 df_final = calcular_misiones(df_editado)
                 st.session_state["vpd_misiones"] = df_final
 
-                # Resumen
+                # Resumen de totales
                 st.write("**Resumen de totales**")
                 df_resumen = pd.DataFrame({
                     "Total Pasaje": [df_final["total_pasaje"].sum()],
@@ -233,13 +231,12 @@ def main():
                     df_final.to_excel("main_bdd.xlsx", sheet_name="vpd_misiones", index=False)
                     st.success("¡Datos guardados en 'vpd_misiones' del Excel!")
 
-        # VPD > Consultorías
+        # ----- VPD > Consultorías -----
         else:
             if eleccion_sub_sub_vpd == "Requerimiento del Área":
                 st.subheader("VPD > Consultorías > Requerimiento del Área (Solo lectura)")
                 st.dataframe(st.session_state["vpd_consultores"])
-
-            else:  # DPP 2025
+            else:
                 st.subheader("VPD > Consultorías > DPP 2025")
 
                 df_actual = st.session_state["vpd_consultores"].copy()
@@ -289,6 +286,7 @@ def main():
     # -------------------------------------------------------------------------
     elif eleccion_principal == "VPO":
         st.title("Sección VPO")
+
         sub_vpo = ["Misiones", "Consultorías"]
         eleccion_vpo = st.sidebar.selectbox("Sub-sección de VPO:", sub_vpo)
 
@@ -300,8 +298,7 @@ def main():
             if eleccion_sub_sub_vpo == "Requerimiento del Área":
                 st.subheader("VPO > Misiones > Requerimiento del Área (Solo lectura)")
                 st.dataframe(st.session_state["vpo_misiones"])
-
-            else:  # DPP 2025
+            else:
                 st.subheader("VPO > Misiones > DPP 2025")
 
                 df_actual = st.session_state["vpo_misiones"].copy()
@@ -416,6 +413,7 @@ def main():
     # -------------------------------------------------------------------------
     elif eleccion_principal == "VPF":
         st.title("Sección VPF")
+
         sub_vpf = ["Misiones", "Consultorías"]
         eleccion_vpf = st.sidebar.selectbox("Sub-sección de VPF:", sub_vpf)
 
@@ -538,18 +536,36 @@ def main():
                     st.success("¡Datos guardados en 'vpf_consultores' del Excel!")
 
     # -------------------------------------------------------------------------
-    # 5. VPE
+    # 5. VPE (NUEVO)
     # -------------------------------------------------------------------------
     elif eleccion_principal == "VPE":
         st.title("Sección VPE")
-        st.write("Aquí podrías replicar la misma lógica si tuvieras 'vpe_misiones' y 'vpe_consultores'.")
+        # Sub-secciones: Misiones, Consultorías
+        sub_vpe = ["Misiones", "Consultorías"]
+        eleccion_vpe = st.sidebar.selectbox("Sub-sección de VPE:", sub_vpe)
+
+        # Solo Requerimiento del Área (sin DPP 2025)
+        sub_sub_vpe = ["Requerimiento del Área"]
+        eleccion_sub_sub_vpe = st.sidebar.selectbox("Tema:", sub_sub_vpe)
+
+        # VPE > Misiones
+        if eleccion_vpe == "Misiones":
+            if eleccion_sub_sub_vpe == "Requerimiento del Área":
+                st.subheader("VPE > Misiones > Requerimiento del Área (Solo lectura)")
+                st.dataframe(st.session_state["vpe_misiones"])
+
+        # VPE > Consultorías
+        else:
+            if eleccion_sub_sub_vpe == "Requerimiento del Área":
+                st.subheader("VPE > Consultorías > Requerimiento del Área (Solo lectura)")
+                st.dataframe(st.session_state["vpe_consultores"])
 
     # -------------------------------------------------------------------------
     # 6. ACTUALIZACIÓN
     # -------------------------------------------------------------------------
     elif eleccion_principal == "Actualización":
         st.title("Actualización")
-        st.write("Aquí podrías incluir formularios o lógica para actualizar datos.")
+        st.write("Aquí puedes incluir la lógica o formularios para actualizar datos.")
 
     # -------------------------------------------------------------------------
     # 7. CONSOLIDADO
@@ -588,7 +604,7 @@ def main():
 
 
 # =============================================================================
-# 5. EJECUCIÓN
+# EJECUCIÓN
 # =============================================================================
 if __name__ == "__main__":
     main()
