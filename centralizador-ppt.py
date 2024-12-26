@@ -21,15 +21,9 @@ def calcular_misiones(df: pd.DataFrame) -> pd.DataFrame:
             df_calc[col] = 0
 
     df_calc["total_pasaje"] = df_calc["cant_funcionarios"] * df_calc["costo_pasaje"]
-    df_calc["total_alojamiento"] = (
-        df_calc["cant_funcionarios"] * df_calc["dias"] * df_calc["alojamiento"]
-    )
-    df_calc["total_perdiem_otros"] = (
-        df_calc["cant_funcionarios"] * df_calc["dias"] * df_calc["perdiem_otros"]
-    )
-    df_calc["total_movilidad"] = (
-        df_calc["cant_funcionarios"] * df_calc["movilidad"]
-    )
+    df_calc["total_alojamiento"] = df_calc["cant_funcionarios"] * df_calc["dias"] * df_calc["alojamiento"]
+    df_calc["total_perdiem_otros"] = df_calc["cant_funcionarios"] * df_calc["dias"] * df_calc["perdiem_otros"]
+    df_calc["total_movilidad"] = df_calc["cant_funcionarios"] * df_calc["movilidad"]
 
     df_calc["total"] = (
         df_calc["total_pasaje"]
@@ -63,9 +57,9 @@ def calcular_consultores(df: pd.DataFrame) -> pd.DataFrame:
 def value_box(label: str, value, bg_color: str = "#6c757d"):
     """
     Genera un recuadro (value box) con fondo de color y texto en blanco.
-    - label: texto descriptivo del box (ej. "Suma del total")
-    - value: valor a mostrar (ej. "15000")
-    - bg_color: color de fondo (hex o nombre, ej. "#fb8500", "green")
+    - label: texto descriptivo (ej. "Suma del total")
+    - value: valor a mostrar (ej. "12345.67")
+    - bg_color: color de fondo (ej. "#fb8500" o "green")
     """
     st.markdown(f"""
     <div style="display:inline-block; background-color:{bg_color}; 
@@ -79,7 +73,7 @@ def value_box(label: str, value, bg_color: str = "#6c757d"):
 # APLICACIÓN PRINCIPAL (Versión A: Botón "Recalcular" = Guardar en Excel)
 # =============================================================================
 def main():
-    st.set_page_config(page_title="Versión A con Value Boxes arriba + Espacio", layout="wide")
+    st.set_page_config(page_title="Versión A con Value Boxes", layout="wide")
 
     # -------------------------------------------------------------------------
     # LECTURA DE EXCEL (SOLO UNA VEZ, GUARDADO EN session_state)
@@ -166,7 +160,7 @@ def main():
                 sum_total = df_actual["total"].sum() if "total" in df_actual.columns else 0
                 monto_dpp = 168000
                 diferencia = monto_dpp - sum_total
-                diff_color = "#fb8500"  # color por defecto
+                diff_color = "#fb8500"
                 if diferencia == 0:
                     diff_color = "green"
 
@@ -186,11 +180,11 @@ def main():
                 with col5:
                     value_box("Total + Gasto Centralizado", f"{total_gasto_central:,.2f}", "#6c757d")
 
-                # 4) Dejamos un espacio entre los value boxes y la tabla
-                st.write("")  
-                st.write("")  # Puedes añadir más si quieres más espacio
+                # Espacio entre value boxes y tabla
+                st.write("")
+                st.write("")
 
-                # 5) Mostramos la tabla editable
+                # 4) Mostramos la tabla editable
                 df_editado = st.data_editor(
                     df_actual,
                     use_container_width=True,
@@ -204,11 +198,11 @@ def main():
                     }
                 )
 
-                # 6) Recalcular tras edición y guardar en session_state
+                # 5) Recalcular tras edición y guardar en session_state
                 df_final = calcular_misiones(df_editado)
                 st.session_state["vpd_misiones"] = df_final
 
-                # 7) Botón "Recalcular" (que en realidad guarda en Excel)
+                # 6) Botón "Recalcular" (que en realidad guarda en Excel)
                 if st.button("Recalcular"):
                     df_final.to_excel("main_bdd.xlsx", sheet_name="vpd_misiones", index=False)
                     st.success("¡Recalculado y guardado en 'vpd_misiones' del Excel!")
@@ -220,23 +214,57 @@ def main():
                 st.dataframe(st.session_state["vpd_consultores"])
             else:
                 st.subheader("VPD > Consultorías > DPP 2025 (Botón 'Recalcular')")
-                df_old = st.session_state["vpd_consultores"].copy()
-                df_recalc = calcular_consultores(df_old)
+
+                # 1) Obtenemos el DF actual y recalculamos
+                df_actual = st.session_state["vpd_consultores"].copy()
+                df_actual = calcular_consultores(df_actual)
+
+                # 2) Calculamos los value boxes (nuevos valores solicitados)
+                sum_total = df_actual["total"].sum() if "total" in df_actual.columns else 0
+                monto_dpp = 130000  # Valor específico para Consultorías
+                diferencia = monto_dpp - sum_total
+                diff_color = "#fb8500"
+                if diferencia == 0:
+                    diff_color = "green"
+
+                gasto_centralizado = 193160
+                total_gasto_central = sum_total + gasto_centralizado
+
+                # 3) Mostramos los value boxes ARRIBA
+                col1, col2, col3, col4, col5 = st.columns(5)
+                with col1:
+                    value_box("Suma del total", f"{sum_total:,.2f}", "#6c757d")
+                with col2:
+                    value_box("Monto DPP 2025", f"{monto_dpp:,.2f}", "#6c757d")
+                with col3:
+                    value_box("Diferencia", f"{diferencia:,.2f}", diff_color)
+                with col4:
+                    value_box("Gasto Centralizado", f"{gasto_centralizado:,.2f}", "#6c757d")
+                with col5:
+                    value_box("Total + Gasto Centralizado", f"{total_gasto_central:,.2f}", "#6c757d")
+
+                # Espacio entre boxes y tabla
+                st.write("")
+                st.write("")
+
+                # 4) Tabla editable
                 df_editado = st.data_editor(
-                    df_recalc,
+                    df_actual,
                     use_container_width=True,
                     key="vpd_consultores_dpp2025",
                     column_config={
                         "total": st.column_config.NumberColumn(disabled=True)
                     }
                 )
+
+                # 5) Recalcular y guardar en session_state
                 df_final = calcular_consultores(df_editado)
                 st.session_state["vpd_consultores"] = df_final
 
-                # (Aquí no se pidieron value boxes, pero podrías replicarlos si gustas)
+                # 6) Botón "Recalcular" => Guardar en Excel
                 if st.button("Recalcular"):
                     df_final.to_excel("main_bdd.xlsx", sheet_name="vpd_consultores", index=False)
-                    st.success("¡Recalculado y guardado en 'vpd_consultores'!")
+                    st.success("¡Recalculado y guardado en 'vpd_consultores' del Excel!")
 
     # -------------------------------------------------------------------------
     # 3. VPO
@@ -372,15 +400,14 @@ def main():
     # -------------------------------------------------------------------------
     elif eleccion_principal == "Actualización":
         st.title("Actualización (Versión A)")
-        st.write("Aquí podrías colocar formularios o lógica adicional de actualización.")
+        st.write("Aquí podrías implementar lógica adicional para actualizar datos.")
 
     # -------------------------------------------------------------------------
     # 7. CONSOLIDADO
     # -------------------------------------------------------------------------
     elif eleccion_principal == "Consolidado":
         st.title("Consolidado (Versión A)")
-        st.write("Aquí podrías mostrar la información global consolidada.")
-
+        st.write("Aquí podrías mostrar un resumen global.")
 
 # -----------------------------------------------------------------------------
 # PUNTO DE ENTRADA
