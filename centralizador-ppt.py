@@ -2,10 +2,11 @@ import streamlit as st
 import pandas as pd
 
 def main():
-    # Configuración de la página
     st.set_page_config(page_title="Aplicación multi-página", layout="wide")
 
-    # Lectura de la BDD (main_bdd.xlsx) y cada hoja relevante
+    # -------------------------------------------------------------------------
+    # LECTURA DE DATOS DESDE EXCEL
+    # -------------------------------------------------------------------------
     df_vpd_misiones = pd.read_excel("main_bdd.xlsx", sheet_name="vpd_misiones")
     df_vpd_consultores = pd.read_excel("main_bdd.xlsx", sheet_name="vpd_consultores")
 
@@ -15,9 +16,13 @@ def main():
     df_vpf_misiones = pd.read_excel("main_bdd.xlsx", sheet_name="vpf_misiones")
     df_vpf_consultores = pd.read_excel("main_bdd.xlsx", sheet_name="vpf_consultores")
 
-    # --------------------------------------------------------------------------------
-    # Barra lateral para la navegación principal
-    # --------------------------------------------------------------------------------
+    # Si tuvieras sheets para VPE, podrías leerlos aquí:
+    # df_vpe_misiones = pd.read_excel("main_bdd.xlsx", sheet_name="vpe_misiones")
+    # df_vpe_consultores = pd.read_excel("main_bdd.xlsx", sheet_name="vpe_consultores")
+
+    # -------------------------------------------------------------------------
+    # BARRA LATERAL - MENÚ PRINCIPAL
+    # -------------------------------------------------------------------------
     st.sidebar.title("Navegación principal")
     menu_principal = [
         "Página Principal",
@@ -30,153 +35,246 @@ def main():
     ]
     eleccion_principal = st.sidebar.selectbox("Selecciona una sección:", menu_principal)
 
-    # --------------------------------------------------------------------------------
-    # 1. Página Principal
-    # --------------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
+    # FUNCIONES AUXILIARES PARA CÁLCULO DE FÓRMULAS
+    # -------------------------------------------------------------------------
+    def calcular_misiones(df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Calcula las columnas derivadas para Misiones, en base a:
+          total_pasaje = cant_funcionarios * costo_pasaje
+          total_alojamiento = dias * cant_funcionarios * alojamiento
+          total_perdiem_otros = dias * cant_funcionarios * perdiem_otros
+          total_movilidad = cant_funcionarios * movilidad
+          total = suma de las anteriores
+        Devuelve un DataFrame con las columnas calculadas.
+        """
+        df_calc = df.copy()
+        # Nos aseguramos de que las columnas existan antes de multiplicar
+        columnas_base = ["cant_funcionarios", "costo_pasaje", "dias", "alojamiento",
+                         "perdiem_otros", "movilidad"]
+        for col in columnas_base:
+            if col not in df_calc.columns:
+                df_calc[col] = 0  # crea la columna si no existe
+
+        df_calc["total_pasaje"] = df_calc["cant_funcionarios"] * df_calc["costo_pasaje"]
+        df_calc["total_alojamiento"] = (
+            df_calc["dias"] * df_calc["cant_funcionarios"] * df_calc["alojamiento"]
+        )
+        df_calc["total_perdiem_otros"] = (
+            df_calc["dias"] * df_calc["cant_funcionarios"] * df_calc["perdiem_otros"]
+        )
+        df_calc["total_movilidad"] = df_calc["cant_funcionarios"] * df_calc["movilidad"]
+
+        df_calc["total"] = (
+            df_calc["total_pasaje"]
+            + df_calc["total_alojamiento"]
+            + df_calc["total_perdiem_otros"]
+            + df_calc["total_movilidad"]
+        )
+        return df_calc
+
+    def calcular_consultores(df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Para Consultorías en DPP 2025:
+          total = cantidad_funcionarios * cantidad_meses * monto_mensual
+        """
+        df_calc = df.copy()
+        # Verificamos que las columnas base existan
+        cols_base = ["cantidad_funcionarios", "cantidad_meses", "monto_mensual"]
+        for col in cols_base:
+            if col not in df_calc.columns:
+                df_calc[col] = 0
+
+        df_calc["total"] = (
+            df_calc["cantidad_funcionarios"]
+            * df_calc["cantidad_meses"]
+            * df_calc["monto_mensual"]
+        )
+        return df_calc
+
+    # -------------------------------------------------------------------------
+    # 1. PÁGINA PRINCIPAL
+    # -------------------------------------------------------------------------
     if eleccion_principal == "Página Principal":
         st.title("Página Principal")
         st.write("Bienvenido a la Página Principal. Aquí puedes colocar la información introductoria.")
 
-    # --------------------------------------------------------------------------------
-    # 2. VPD
-    # --------------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
+    # 2. SECCIÓN VPD
+    # -------------------------------------------------------------------------
     elif eleccion_principal == "VPD":
         st.title("Sección VPD")
         st.write("Selecciona las subpáginas en la barra lateral para explorar los contenidos.")
 
-        # Subpáginas de VPD (Misiones, Consultorías)
+        # Subpáginas de VPD
         menu_sub_vpd = ["Misiones", "Consultorías"]
         eleccion_vpd = st.sidebar.selectbox("Selecciona la sub-sección de VPD:", menu_sub_vpd)
 
-        # Sub-subpáginas (Requerimiento de Personal, DPP 2025)
+        # Sub-subpáginas
         menu_sub_sub_vpd = ["Requerimiento de Personal", "DPP 2025"]
         eleccion_sub_sub_vpd = st.sidebar.selectbox("Selecciona el tema:", menu_sub_sub_vpd)
 
-        # ----- VPD > Misiones -----
+        # ---------------- VPD > MISIONES ----------------
         if eleccion_vpd == "Misiones":
             if eleccion_sub_sub_vpd == "Requerimiento de Personal":
+                # Tabla en modo lectura
                 st.subheader("VPD > Misiones > Requerimiento de Personal")
-                st.write("**Tabla (solo lectura) - Hoja: vpd_misiones**")
-                st.dataframe(df_vpd_misiones)  # Tabla en modo lectura
+                st.dataframe(df_vpd_misiones)
             else:
+                # Tabla editable + fórmulas
                 st.subheader("VPD > Misiones > DPP 2025")
-                st.write("**Tabla editable - Hoja: vpd_misiones**")
-                edited_vpd_misiones = st.data_editor(df_vpd_misiones)
-                # Aquí podrías agregar la lógica para guardar los cambios si lo deseas
+                st.write("**Edita los valores base y se recalcularán las columnas de Totales.**")
 
-        # ----- VPD > Consultorías -----
-        else:  # Consultorías
+                # 1) Editor
+                df_edit = st.data_editor(
+                    df_vpd_misiones,
+                    key="vpd_misiones_dpp2025_editor",
+                    use_container_width=True
+                )
+                # 2) Cálculo de columnas
+                df_calc = calcular_misiones(df_edit)
+                # 3) Mostrar el resultado con totales recalculados
+                st.write("**Resultado con columnas calculadas:**")
+                st.dataframe(df_calc, use_container_width=True)
+
+        # ---------------- VPD > CONSULTORÍAS ----------------
+        else:  # "Consultorías"
             if eleccion_sub_sub_vpd == "Requerimiento de Personal":
                 st.subheader("VPD > Consultorías > Requerimiento de Personal")
-                st.write("**Tabla (solo lectura) - Hoja: vpd_consultores**")
                 st.dataframe(df_vpd_consultores)
             else:
                 st.subheader("VPD > Consultorías > DPP 2025")
-                st.write("**Tabla editable - Hoja: vpd_consultores**")
-                edited_vpd_consultores = st.data_editor(df_vpd_consultores)
-                # Aquí podrías agregar la lógica para guardar los cambios si lo deseas
+                st.write("**Edita los valores base y se recalculará la columna total.**")
 
-    # --------------------------------------------------------------------------------
-    # 3. VPO
-    # --------------------------------------------------------------------------------
+                # 1) Editor
+                df_edit = st.data_editor(
+                    df_vpd_consultores,
+                    key="vpd_consultores_dpp2025_editor",
+                    use_container_width=True
+                )
+                # 2) Cálculo de columnas
+                df_calc = calcular_consultores(df_edit)
+                # 3) Mostrar el resultado
+                st.write("**Resultado con columna total calculada:**")
+                st.dataframe(df_calc, use_container_width=True)
+
+    # -------------------------------------------------------------------------
+    # 3. SECCIÓN VPO
+    # -------------------------------------------------------------------------
     elif eleccion_principal == "VPO":
         st.title("Sección VPO")
         st.write("Selecciona las subpáginas en la barra lateral para explorar los contenidos.")
 
-        # Subpáginas de VPO (Misiones, Consultorías)
         menu_sub_vpo = ["Misiones", "Consultorías"]
         eleccion_vpo = st.sidebar.selectbox("Selecciona la sub-sección de VPO:", menu_sub_vpo)
 
-        # Sub-subpáginas (Requerimiento de Personal, DPP 2025)
         menu_sub_sub_vpo = ["Requerimiento de Personal", "DPP 2025"]
         eleccion_sub_sub_vpo = st.sidebar.selectbox("Selecciona el tema:", menu_sub_sub_vpo)
 
-        # ----- VPO > Misiones -----
+        # ---------------- VPO > MISIONES ----------------
         if eleccion_vpo == "Misiones":
             if eleccion_sub_sub_vpo == "Requerimiento de Personal":
                 st.subheader("VPO > Misiones > Requerimiento de Personal")
-                st.write("**Tabla (solo lectura) - Hoja: vpo_misiones**")
                 st.dataframe(df_vpo_misiones)
             else:
                 st.subheader("VPO > Misiones > DPP 2025")
-                st.write("**Tabla editable - Hoja: vpo_misiones**")
-                edited_vpo_misiones = st.data_editor(df_vpo_misiones)
-                # Lógica de guardado si se desea
+                st.write("**Edita los valores base y se recalcularán las columnas de Totales.**")
 
-        # ----- VPO > Consultorías -----
-        else:  # Consultorías
+                df_edit = st.data_editor(
+                    df_vpo_misiones,
+                    key="vpo_misiones_dpp2025_editor",
+                    use_container_width=True
+                )
+                df_calc = calcular_misiones(df_edit)
+                st.dataframe(df_calc, use_container_width=True)
+
+        # ---------------- VPO > CONSULTORÍAS ----------------
+        else:  # "Consultorías"
             if eleccion_sub_sub_vpo == "Requerimiento de Personal":
                 st.subheader("VPO > Consultorías > Requerimiento de Personal")
-                st.write("**Tabla (solo lectura) - Hoja: vpo_consultores**")
                 st.dataframe(df_vpo_consultores)
             else:
                 st.subheader("VPO > Consultorías > DPP 2025")
-                st.write("**Tabla editable - Hoja: vpo_consultores**")
-                edited_vpo_consultores = st.data_editor(df_vpo_consultores)
-                # Lógica de guardado si se desea
+                st.write("**Edita los valores base y se recalculará la columna total.**")
 
-    # --------------------------------------------------------------------------------
-    # 4. VPF
-    # --------------------------------------------------------------------------------
+                df_edit = st.data_editor(
+                    df_vpo_consultores,
+                    key="vpo_consultores_dpp2025_editor",
+                    use_container_width=True
+                )
+                df_calc = calcular_consultores(df_edit)
+                st.dataframe(df_calc, use_container_width=True)
+
+    # -------------------------------------------------------------------------
+    # 4. SECCIÓN VPF
+    # -------------------------------------------------------------------------
     elif eleccion_principal == "VPF":
         st.title("Sección VPF")
         st.write("Selecciona las subpáginas en la barra lateral para explorar los contenidos.")
 
-        # Subpáginas de VPF (Misiones, Consultorías)
         menu_sub_vpf = ["Misiones", "Consultorías"]
         eleccion_vpf = st.sidebar.selectbox("Selecciona la sub-sección de VPF:", menu_sub_vpf)
 
-        # Sub-subpáginas (Requerimiento de Personal, DPP 2025)
         menu_sub_sub_vpf = ["Requerimiento de Personal", "DPP 2025"]
         eleccion_sub_sub_vpf = st.sidebar.selectbox("Selecciona el tema:", menu_sub_sub_vpf)
 
-        # ----- VPF > Misiones -----
+        # ---------------- VPF > MISIONES ----------------
         if eleccion_vpf == "Misiones":
             if eleccion_sub_sub_vpf == "Requerimiento de Personal":
                 st.subheader("VPF > Misiones > Requerimiento de Personal")
-                st.write("**Tabla (solo lectura) - Hoja: vpf_misiones**")
                 st.dataframe(df_vpf_misiones)
             else:
                 st.subheader("VPF > Misiones > DPP 2025")
-                st.write("**Tabla editable - Hoja: vpf_misiones**")
-                edited_vpf_misiones = st.data_editor(df_vpf_misiones)
+                st.write("**Edita los valores base y se recalcularán las columnas de Totales.**")
 
-        # ----- VPF > Consultorías -----
-        else:  # Consultorías
+                df_edit = st.data_editor(
+                    df_vpf_misiones,
+                    key="vpf_misiones_dpp2025_editor",
+                    use_container_width=True
+                )
+                df_calc = calcular_misiones(df_edit)
+                st.dataframe(df_calc, use_container_width=True)
+
+        # ---------------- VPF > CONSULTORÍAS ----------------
+        else:  # "Consultorías"
             if eleccion_sub_sub_vpf == "Requerimiento de Personal":
                 st.subheader("VPF > Consultorías > Requerimiento de Personal")
-                st.write("**Tabla (solo lectura) - Hoja: vpf_consultores**")
                 st.dataframe(df_vpf_consultores)
             else:
                 st.subheader("VPF > Consultorías > DPP 2025")
-                st.write("**Tabla editable - Hoja: vpf_consultores**")
-                edited_vpf_consultores = st.data_editor(df_vpf_consultores)
+                st.write("**Edita los valores base y se recalculará la columna total.**")
 
-    # --------------------------------------------------------------------------------
-    # 5. VPE
-    # --------------------------------------------------------------------------------
+                df_edit = st.data_editor(
+                    df_vpf_consultores,
+                    key="vpf_consultores_dpp2025_editor",
+                    use_container_width=True
+                )
+                df_calc = calcular_consultores(df_edit)
+                st.dataframe(df_calc, use_container_width=True)
+
+    # -------------------------------------------------------------------------
+    # 5. SECCIÓN VPE
+    # -------------------------------------------------------------------------
     elif eleccion_principal == "VPE":
         st.title("Sección VPE")
         st.write("Aquí podrías agregar la lógica de lectura/edición de tu Excel si tuvieras las hojas correspondientes para VPE.")
-        # Ejemplo:
-        # df_vpe_misiones = pd.read_excel("main_bdd.xlsx", sheet_name="vpe_misiones")
-        # df_vpe_consultores = pd.read_excel("main_bdd.xlsx", sheet_name="vpe_consultores")
-        # Y replicar la lógica anterior para Requerimiento de Personal y DPP 2025
+        # Podrías replicar exactamente la misma estructura de VPD, VPO y VPF
+        # si en 'main_bdd.xlsx' tuvieras sheets como 'vpe_misiones' o 'vpe_consultores'.
 
-    # --------------------------------------------------------------------------------
-    # 6. Actualización
-    # --------------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
+    # 6. ACTUALIZACIÓN
+    # -------------------------------------------------------------------------
     elif eleccion_principal == "Actualización":
         st.title("Actualización")
         st.write("Aquí puedes incluir información o formularios para la actualización de datos.")
 
-    # --------------------------------------------------------------------------------
-    # 7. Consolidado
-    # --------------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
+    # 7. CONSOLIDADO
+    # -------------------------------------------------------------------------
     elif eleccion_principal == "Consolidado":
         st.title("Consolidado")
         st.write("Aquí puedes mostrar la información consolidada de todas las secciones.")
 
-# Punto de entrada de la app
+# Punto de entrada
 if __name__ == "__main__":
     main()
