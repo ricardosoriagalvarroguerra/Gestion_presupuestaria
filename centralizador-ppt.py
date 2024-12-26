@@ -61,8 +61,8 @@ def calcular_consultores(df: pd.DataFrame) -> pd.DataFrame:
 def value_box(label: str, value, bg_color: str = "#6c757d"):
     """
     Genera un recuadro (value box) con fondo de color y texto en blanco.
-    - label: texto descriptivo (ej. "Suma del total")
-    - value: valor a mostrar (ej. "12345.67")
+    - label: texto descriptivo
+    - value: valor a mostrar
     - bg_color: color de fondo (ej. "#fb8500" o "green")
     """
     st.markdown(f"""
@@ -73,12 +73,11 @@ def value_box(label: str, value, bg_color: str = "#6c757d"):
     </div>
     """, unsafe_allow_html=True)
 
-
 # =============================================================================
 # APLICACIÓN PRINCIPAL (Versión A: Botón "Recalcular" = Guardar en Excel)
 # =============================================================================
 def main():
-    st.set_page_config(page_title="Versión A + Tabla Resumen (Misiones)", layout="wide")
+    st.set_page_config(page_title="Versión A (Requerimiento del Área)", layout="wide")
 
     # -------------------------------------------------------------------------
     # LECTURA DE EXCEL (SOLO UNA VEZ, GUARDADO EN session_state)
@@ -143,16 +142,16 @@ def main():
         sub_vpd = ["Misiones", "Consultorías"]
         eleccion_vpd = st.sidebar.selectbox("Sub-sección de VPD:", sub_vpd)
 
-        sub_sub_vpd = ["Requerimiento de Personal", "DPP 2025"]
+        sub_sub_vpd = ["Requerimiento del Área", "DPP 2025"]
         eleccion_sub_sub_vpd = st.sidebar.selectbox("Tema:", sub_sub_vpd)
 
         # =================== VPD > MISIONES ===================
         if eleccion_vpd == "Misiones":
-            if eleccion_sub_sub_vpd == "Requerimiento de Personal":
-                st.subheader("VPD > Misiones > Requerimiento de Personal (Solo lectura)")
+            if eleccion_sub_sub_vpd == "Requerimiento del Área":
+                st.subheader("VPD > Misiones > Requerimiento del Área (Solo lectura)")
                 st.dataframe(st.session_state["vpd_misiones"])
 
-            else:  # DPP 2025 (CON TABLA DE RESUMEN DEBAJO)
+            else:  # DPP 2025
                 st.subheader("VPD > Misiones > DPP 2025 (Botón 'Recalcular')")
 
                 df_actual = st.session_state["vpd_misiones"].copy()
@@ -184,7 +183,6 @@ def main():
                 st.write("")
                 st.write("")
 
-                # Tabla editable
                 df_editado = st.data_editor(
                     df_actual,
                     use_container_width=True,
@@ -200,9 +198,8 @@ def main():
                 df_final = calcular_misiones(df_editado)
                 st.session_state["vpd_misiones"] = df_final
 
-                # ----------------- TABLA DE RESUMEN DE TOTALES -----------------
+                # Tabla de resumen de totales (solo para Misiones DPP 2025)
                 st.write("**Resumen de totales**")
-                # Creamos un pequeño DataFrame con la suma de cada columna
                 df_resumen = pd.DataFrame({
                     "Total Pasaje": [df_final["total_pasaje"].sum()],
                     "Total Alojamiento": [df_final["total_alojamiento"].sum()],
@@ -218,8 +215,8 @@ def main():
 
         # =================== VPD > CONSULTORÍAS ===================
         else:
-            if eleccion_sub_sub_vpd == "Requerimiento de Personal":
-                st.subheader("VPD > Consultorías > Requerimiento de Personal (Solo lectura)")
+            if eleccion_sub_sub_vpd == "Requerimiento del Área":
+                st.subheader("VPD > Consultorías > Requerimiento del Área (Solo lectura)")
                 st.dataframe(st.session_state["vpd_consultores"])
             else:
                 st.subheader("VPD > Consultorías > DPP 2025 (Botón 'Recalcular')")
@@ -259,11 +256,10 @@ def main():
                         "total": st.column_config.NumberColumn(disabled=True)
                     }
                 )
-                df_final = calcular_consultores(df_editado)
-                st.session_state["vpd_consultores"] = df_final
+                st.session_state["vpd_consultores"] = df_editado
 
-                # (No se solicitó tabla de resumen para Consultorías, 
-                #  pero puedes añadirla si lo deseas.)
+                # (En Consultorías no se solicitó tabla de resumen, 
+                #  pero puedes agregarla si lo deseas.)
 
                 if st.button("Recalcular"):
                     df_final.to_excel("main_bdd.xlsx", sheet_name="vpd_consultores", index=False)
@@ -277,16 +273,16 @@ def main():
         menu_sub_vpo = ["Misiones", "Consultorías"]
         eleccion_vpo = st.sidebar.selectbox("Sub-sección de VPO:", menu_sub_vpo)
 
-        menu_sub_sub_vpo = ["Requerimiento de Personal", "DPP 2025"]
-        eleccion_sub_sub_vpo = st.sidebar.selectbox("Tema:", menu_sub_sub_vpo)
+        sub_sub_vpo = ["Requerimiento del Área", "DPP 2025"]
+        eleccion_sub_sub_vpo = st.sidebar.selectbox("Tema:", sub_sub_vpo)
 
         # =================== VPO > MISIONES ===================
         if eleccion_vpo == "Misiones":
-            if eleccion_sub_sub_vpo == "Requerimiento de Personal":
-                st.subheader("VPO > Misiones > Requerimiento de Personal (Solo lectura)")
+            if eleccion_sub_sub_vpo == "Requerimiento del Área":
+                st.subheader("VPO > Misiones > Requerimiento del Área (Solo lectura)")
                 st.dataframe(st.session_state["vpo_misiones"])
 
-            else:  # DPP 2025 (CON TABLA DE RESUMEN DEBAJO)
+            else:  # DPP 2025
                 st.subheader("VPO > Misiones > DPP 2025 (Botón 'Recalcular')")
 
                 df_actual = st.session_state["vpo_misiones"].copy()
@@ -332,7 +328,7 @@ def main():
                 df_final = calcular_misiones(df_editado)
                 st.session_state["vpo_misiones"] = df_final
 
-                # ----------------- TABLA DE RESUMEN DE TOTALES -----------------
+                # Tabla de resumen
                 st.write("**Resumen de totales**")
                 df_resumen = pd.DataFrame({
                     "Total Pasaje": [df_final["total_pasaje"].sum()],
@@ -349,8 +345,8 @@ def main():
 
         # =================== VPO > CONSULTORÍAS ===================
         else:
-            if eleccion_sub_sub_vpo == "Requerimiento de Personal":
-                st.subheader("VPO > Consultorías > Requerimiento de Personal (Solo lectura)")
+            if eleccion_sub_sub_vpo == "Requerimiento del Área":
+                st.subheader("VPO > Consultorías > Requerimiento del Área (Solo lectura)")
                 st.dataframe(st.session_state["vpo_consultores"])
             else:
                 st.subheader("VPO > Consultorías > DPP 2025 (Botón 'Recalcular')")
@@ -393,7 +389,7 @@ def main():
                 df_final = calcular_consultores(df_editado)
                 st.session_state["vpo_consultores"] = df_final
 
-                # (No se solicitó tabla de resumen para Consultorías, 
+                # (En Consultorías no se solicitó tabla de resumen, 
                 #  pero puedes añadirla si lo deseas.)
 
                 if st.button("Recalcular"):
@@ -408,16 +404,16 @@ def main():
         menu_sub_vpf = ["Misiones", "Consultorías"]
         eleccion_vpf = st.sidebar.selectbox("Sub-sección de VPF:", menu_sub_vpf)
 
-        menu_sub_sub_vpf = ["Requerimiento de Personal", "DPP 2025"]
-        eleccion_sub_sub_vpf = st.sidebar.selectbox("Tema:", menu_sub_sub_vpf)
+        sub_sub_vpf = ["Requerimiento del Área", "DPP 2025"]
+        eleccion_sub_sub_vpf = st.sidebar.selectbox("Tema:", sub_sub_vpf)
 
         # =================== VPF > MISIONES ===================
         if eleccion_vpf == "Misiones":
-            if eleccion_sub_sub_vpf == "Requerimiento de Personal":
-                st.subheader("VPF > Misiones > Requerimiento de Personal (Solo lectura)")
+            if eleccion_sub_sub_vpf == "Requerimiento del Área":
+                st.subheader("VPF > Misiones > Requerimiento del Área (Solo lectura)")
                 st.dataframe(st.session_state["vpf_misiones"])
 
-            else:  # DPP 2025 (CON TABLA DE RESUMEN DEBAJO)
+            else:  # DPP 2025
                 st.subheader("VPF > Misiones > DPP 2025 (Botón 'Recalcular')")
 
                 df_actual = st.session_state["vpf_misiones"].copy()
@@ -433,7 +429,6 @@ def main():
                 gasto_centralizado = 40960
                 total_gasto_central = sum_total + gasto_centralizado
 
-                # Value boxes
                 col1, col2, col3, col4, col5 = st.columns(5)
                 with col1:
                     value_box("Suma del total", f"{sum_total:,.2f}", "#6c757d")
@@ -449,7 +444,6 @@ def main():
                 st.write("")
                 st.write("")
 
-                # Tabla editable
                 df_editado = st.data_editor(
                     df_actual,
                     use_container_width=True,
@@ -465,7 +459,7 @@ def main():
                 df_final = calcular_misiones(df_editado)
                 st.session_state["vpf_misiones"] = df_final
 
-                # ----------------- TABLA DE RESUMEN DE TOTALES -----------------
+                # Tabla de resumen
                 st.write("**Resumen de totales**")
                 df_resumen = pd.DataFrame({
                     "Total Pasaje": [df_final["total_pasaje"].sum()],
@@ -481,13 +475,12 @@ def main():
                     st.success("¡Recalculado y guardado en 'vpf_misiones'!")
 
         # =================== VPF > CONSULTORÍAS ===================
-        else:  # "Consultorías"
-            if eleccion_sub_sub_vpf == "Requerimiento de Personal":
-                st.subheader("VPF > Consultorías > Requerimiento de Personal (Solo lectura)")
+        else:
+            if eleccion_sub_sub_vpf == "Requerimiento del Área":
+                st.subheader("VPF > Consultorías > Requerimiento del Área (Solo lectura)")
                 st.dataframe(st.session_state["vpf_consultores"])
             else:
                 st.subheader("VPF > Consultorías > DPP 2025 (Botón 'Recalcular')")
-
                 df_actual = st.session_state["vpf_consultores"].copy()
                 df_actual = calcular_consultores(df_actual)
 
@@ -524,10 +517,9 @@ def main():
                         "total": st.column_config.NumberColumn(disabled=True)
                     }
                 )
-                df_final = calcular_consultores(df_editado)
-                st.session_state["vpf_consultores"] = df_final
+                st.session_state["vpf_consultores"] = df_editado
 
-                # (No se solicitó tabla de resumen para Consultorías, 
+                # (En Consultorías no se solicitó tabla de resumen, 
                 #  pero puedes añadirla si lo deseas.)
 
                 if st.button("Recalcular"):
@@ -539,7 +531,7 @@ def main():
     # -------------------------------------------------------------------------
     elif eleccion_principal == "VPE":
         st.title("Sección VPE (Versión A)")
-        st.write("Podrías replicar la misma lógica con 'vpe_misiones' y 'vpe_consultores', si tuvieras esas hojas.")
+        st.write("Podrías replicar la misma lógica con 'vpe_misiones' y 'vpe_consultores' si tuvieras esas hojas.")
 
     # -------------------------------------------------------------------------
     # 6. ACTUALIZACIÓN
