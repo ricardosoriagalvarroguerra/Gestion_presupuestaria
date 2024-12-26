@@ -40,13 +40,13 @@ def calcular_consultores(df: pd.DataFrame) -> pd.DataFrame:
     return df_calc
 
 # =============================================================================
-# APLICACIÓN PRINCIPAL (VERSIÓN B: SIN BOTÓN, GUARDADO AUTOMÁTICO)
+# APLICACIÓN PRINCIPAL (VERSIÓN A: BOTÓN "RECALCULAR")
 # =============================================================================
 def main():
-    st.set_page_config(page_title="App Sin Botón (Guardado automático)", layout="wide")
+    st.set_page_config(page_title="App con Botón 'Recalcular'", layout="wide")
 
     # -------------------------------------------------------------------------
-    # LECTURA INICIAL DE EXCEL (SOLO UNA VEZ)
+    # LECTURA DE EXCEL SOLO SI NO ESTÁ EN SESSION_STATE
     # -------------------------------------------------------------------------
     if "vpd_misiones" not in st.session_state:
         df = pd.read_excel("main_bdd.xlsx", sheet_name="vpd_misiones")
@@ -66,7 +66,7 @@ def main():
     if "vpf_consultores" not in st.session_state:
         df = pd.read_excel("main_bdd.xlsx", sheet_name="vpf_consultores")
         st.session_state["vpf_consultores"] = df.copy()
-    # Igualmente para VPE si tuvieras
+    # Si tuvieras VPE, replicarías aquí
 
     # -------------------------------------------------------------------------
     # MENÚ PRINCIPAL
@@ -84,34 +84,32 @@ def main():
     eleccion_principal = st.sidebar.selectbox("Selecciona una sección:", menu_principal)
 
     # -------------------------------------------------------------------------
-    # PÁGINA PRINCIPAL
+    # 1. PÁGINA PRINCIPAL
     # -------------------------------------------------------------------------
     if eleccion_principal == "Página Principal":
-        st.title("Página Principal (Versión B)")
-        st.write("Bienvenido. Aquí no hay botón, se guardan cambios automáticamente.")
+        st.title("Página Principal (Versión A)")
+        st.write("Bienvenido a la Página Principal. Aquí puedes colocar la información introductoria.")
 
     # -------------------------------------------------------------------------
-    # VPD
+    # 2. VPD
     # -------------------------------------------------------------------------
     elif eleccion_principal == "VPD":
-        st.title("Sección VPD (Versión B) - Guardado automático")
+        st.title("Sección VPD (Versión A)")
         menu_sub_vpd = ["Misiones", "Consultorías"]
         eleccion_vpd = st.sidebar.selectbox("Sub-sección de VPD:", menu_sub_vpd)
 
         menu_sub_sub_vpd = ["Requerimiento de Personal", "DPP 2025"]
         eleccion_sub_sub_vpd = st.sidebar.selectbox("Tema:", menu_sub_sub_vpd)
 
-        # 1) VPD > MISIONES
+        # VPD > MISIONES
         if eleccion_vpd == "Misiones":
             if eleccion_sub_sub_vpd == "Requerimiento de Personal":
-                st.subheader("VPD > Misiones > Requerimiento de Personal (Solo lectura)")
+                st.subheader("VPD > Misiones > Requerimiento de Personal")
                 st.dataframe(st.session_state["vpd_misiones"])
             else:  # DPP 2025
-                st.subheader("VPD > Misiones > DPP 2025 (Sin botón, guardado automático)")
+                st.subheader("VPD > Misiones > DPP 2025 (Botón llamado 'Recalcular')")
                 df_old = st.session_state["vpd_misiones"].copy()
                 df_recalc = calcular_misiones(df_old)
-
-                # Un solo data_editor
                 df_editado = st.data_editor(
                     df_recalc,
                     use_container_width=True,
@@ -127,20 +125,20 @@ def main():
                 df_final = calcular_misiones(df_editado)
                 st.session_state["vpd_misiones"] = df_final
 
-                # Guardado automático
-                df_final.to_excel("main_bdd.xlsx", sheet_name="vpd_misiones", index=False)
-                st.info("Cambios guardados automáticamente en la hoja 'vpd_misiones'.")
+                # Aquí, el botón se llama "Recalcular" pero sigue guardando en Excel
+                if st.button("Recalcular"):
+                    df_final.to_excel("main_bdd.xlsx", sheet_name="vpd_misiones", index=False)
+                    st.success("¡Tabla recalculada y guardada en Excel!")
 
-        # 2) VPD > CONSULTORÍAS
+        # VPD > CONSULTORÍAS
         else:
             if eleccion_sub_sub_vpd == "Requerimiento de Personal":
-                st.subheader("VPD > Consultorías > Requerimiento de Personal (Solo lectura)")
+                st.subheader("VPD > Consultorías > Requerimiento de Personal")
                 st.dataframe(st.session_state["vpd_consultores"])
-            else:
-                st.subheader("VPD > Consultorías > DPP 2025 (Sin botón, guardado automático)")
+            else:  # DPP 2025
+                st.subheader("VPD > Consultorías > DPP 2025 (Botón 'Recalcular')")
                 df_old = st.session_state["vpd_consultores"].copy()
                 df_recalc = calcular_consultores(df_old)
-
                 df_editado = st.data_editor(
                     df_recalc,
                     use_container_width=True,
@@ -152,26 +150,28 @@ def main():
                 df_final = calcular_consultores(df_editado)
                 st.session_state["vpd_consultores"] = df_final
 
-                df_final.to_excel("main_bdd.xlsx", sheet_name="vpd_consultores", index=False)
-                st.info("Cambios guardados automáticamente en 'vpd_consultores'.")
+                if st.button("Recalcular"):
+                    df_final.to_excel("main_bdd.xlsx", sheet_name="vpd_consultores", index=False)
+                    st.success("¡Tabla recalculada y guardada en Excel!")
 
     # -------------------------------------------------------------------------
-    # 3) VPO
+    # 3. VPO
     # -------------------------------------------------------------------------
     elif eleccion_principal == "VPO":
-        st.title("Sección VPO (Versión B) - Guardado automático")
+        st.title("Sección VPO (Versión A)")
         menu_sub_vpo = ["Misiones", "Consultorías"]
         eleccion_vpo = st.sidebar.selectbox("Sub-sección de VPO:", menu_sub_vpo)
 
         menu_sub_sub_vpo = ["Requerimiento de Personal", "DPP 2025"]
         eleccion_sub_sub_vpo = st.sidebar.selectbox("Tema:", menu_sub_sub_vpo)
 
+        # VPO > MISIONES
         if eleccion_vpo == "Misiones":
             if eleccion_sub_sub_vpo == "Requerimiento de Personal":
-                st.subheader("VPO > Misiones > Requerimiento de Personal (Solo lectura)")
+                st.subheader("VPO > Misiones > Requerimiento de Personal")
                 st.dataframe(st.session_state["vpo_misiones"])
             else:
-                st.subheader("VPO > Misiones > DPP 2025 (Sin botón, guardado automático)")
+                st.subheader("VPO > Misiones > DPP 2025 (Botón 'Recalcular')")
                 df_old = st.session_state["vpo_misiones"].copy()
                 df_recalc = calcular_misiones(df_old)
                 df_editado = st.data_editor(
@@ -189,15 +189,17 @@ def main():
                 df_final = calcular_misiones(df_editado)
                 st.session_state["vpo_misiones"] = df_final
 
-                df_final.to_excel("main_bdd.xlsx", sheet_name="vpo_misiones", index=False)
-                st.info("Cambios guardados en 'vpo_misiones'.")
+                if st.button("Recalcular"):
+                    df_final.to_excel("main_bdd.xlsx", sheet_name="vpo_misiones", index=False)
+                    st.success("¡Tabla recalculada y guardada en Excel!")
 
-        else:  # VPO > CONSULTORÍAS
+        # VPO > CONSULTORÍAS
+        else:
             if eleccion_sub_sub_vpo == "Requerimiento de Personal":
-                st.subheader("VPO > Consultorías > Requerimiento de Personal (Solo lectura)")
+                st.subheader("VPO > Consultorías > Requerimiento de Personal")
                 st.dataframe(st.session_state["vpo_consultores"])
             else:
-                st.subheader("VPO > Consultorías > DPP 2025 (Sin botón, guardado automático)")
+                st.subheader("VPO > Consultorías > DPP 2025 (Botón 'Recalcular')")
                 df_old = st.session_state["vpo_consultores"].copy()
                 df_recalc = calcular_consultores(df_old)
                 df_editado = st.data_editor(
@@ -211,26 +213,28 @@ def main():
                 df_final = calcular_consultores(df_editado)
                 st.session_state["vpo_consultores"] = df_final
 
-                df_final.to_excel("main_bdd.xlsx", sheet_name="vpo_consultores", index=False)
-                st.info("Cambios guardados automáticamente en 'vpo_consultores'.")
+                if st.button("Recalcular"):
+                    df_final.to_excel("main_bdd.xlsx", sheet_name="vpo_consultores", index=False)
+                    st.success("¡Tabla recalculada y guardada en Excel!")
 
     # -------------------------------------------------------------------------
-    # 4) VPF
+    # 4. VPF
     # -------------------------------------------------------------------------
     elif eleccion_principal == "VPF":
-        st.title("Sección VPF (Versión B) - Guardado automático")
+        st.title("Sección VPF (Versión A)")
         menu_sub_vpf = ["Misiones", "Consultorías"]
         eleccion_vpf = st.sidebar.selectbox("Sub-sección de VPF:", menu_sub_vpf)
 
         menu_sub_sub_vpf = ["Requerimiento de Personal", "DPP 2025"]
         eleccion_sub_sub_vpf = st.sidebar.selectbox("Tema:", menu_sub_sub_vpf)
 
+        # VPF > MISIONES
         if eleccion_vpf == "Misiones":
             if eleccion_sub_sub_vpf == "Requerimiento de Personal":
-                st.subheader("VPF > Misiones > Requerimiento de Personal (Solo lectura)")
+                st.subheader("VPF > Misiones > Requerimiento de Personal")
                 st.dataframe(st.session_state["vpf_misiones"])
             else:
-                st.subheader("VPF > Misiones > DPP 2025 (Sin botón, guardado automático)")
+                st.subheader("VPF > Misiones > DPP 2025 (Botón 'Recalcular')")
                 df_old = st.session_state["vpf_misiones"].copy()
                 df_recalc = calcular_misiones(df_old)
                 df_editado = st.data_editor(
@@ -248,15 +252,17 @@ def main():
                 df_final = calcular_misiones(df_editado)
                 st.session_state["vpf_misiones"] = df_final
 
-                df_final.to_excel("main_bdd.xlsx", sheet_name="vpf_misiones", index=False)
-                st.info("Cambios guardados automáticamente en 'vpf_misiones'.")
+                if st.button("Recalcular"):
+                    df_final.to_excel("main_bdd.xlsx", sheet_name="vpf_misiones", index=False)
+                    st.success("¡Tabla recalculada y guardada en Excel!")
 
-        else:  # VPF > Consultorías
+        # VPF > CONSULTORÍAS
+        else:
             if eleccion_sub_sub_vpf == "Requerimiento de Personal":
-                st.subheader("VPF > Consultorías > Requerimiento de Personal (Solo lectura)")
+                st.subheader("VPF > Consultorías > Requerimiento de Personal")
                 st.dataframe(st.session_state["vpf_consultores"])
             else:
-                st.subheader("VPF > Consultorías > DPP 2025 (Sin botón, guardado automático)")
+                st.subheader("VPF > Consultorías > DPP 2025 (Botón 'Recalcular')")
                 df_old = st.session_state["vpf_consultores"].copy()
                 df_recalc = calcular_consultores(df_old)
                 df_editado = st.data_editor(
@@ -270,29 +276,30 @@ def main():
                 df_final = calcular_consultores(df_editado)
                 st.session_state["vpf_consultores"] = df_final
 
-                df_final.to_excel("main_bdd.xlsx", sheet_name="vpf_consultores", index=False)
-                st.info("Cambios guardados automáticamente en 'vpf_consultores'.")
+                if st.button("Recalcular"):
+                    df_final.to_excel("main_bdd.xlsx", sheet_name="vpf_consultores", index=False)
+                    st.success("¡Tabla recalculada y guardada en Excel!")
 
     # -------------------------------------------------------------------------
-    # 5) VPE
+    # 5. VPE
     # -------------------------------------------------------------------------
     elif eleccion_principal == "VPE":
-        st.title("Sección VPE (Versión B) - Sin botón, guardado automático")
-        st.write("Si tuvieras vpe_misiones / vpe_consultores, podrías replicar aquí la misma lógica.")
+        st.title("Sección VPE (Versión A)")
+        st.write("Podrías replicar la misma lógica con 'vpe_misiones' y 'vpe_consultores'.")
 
     # -------------------------------------------------------------------------
-    # 6) ACTUALIZACIÓN
+    # 6. ACTUALIZACIÓN
     # -------------------------------------------------------------------------
     elif eleccion_principal == "Actualización":
-        st.title("Actualización (Versión B)")
-        st.write("Implementa aquí la lógica de actualización adicional.")
+        st.title("Actualización (Versión A)")
+        st.write("Aquí puedes implementar lógica adicional para actualizar datos.")
 
     # -------------------------------------------------------------------------
-    # 7) CONSOLIDADO
+    # 7. CONSOLIDADO
     # -------------------------------------------------------------------------
     elif eleccion_principal == "Consolidado":
-        st.title("Consolidado (Versión B)")
-        st.write("Aquí podrías mostrar un resumen global.")
+        st.title("Consolidado (Versión A)")
+        st.write("Aquí puedes mostrar la información consolidada.")
 
 if __name__ == "__main__":
     main()
