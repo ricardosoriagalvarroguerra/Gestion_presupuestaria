@@ -47,7 +47,7 @@ page_passwords = {
 }
 
 # --------------------------------------------------
-# Función para cargar datos (SIN uso de st.cache_data)
+# Función para cargar datos (sin uso de st.cache_data)
 # --------------------------------------------------
 def load_data(filepath, sheet_name):
     """
@@ -197,7 +197,7 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
                 with colA:
                     st.metric("Gastos Centralizados VPO", f"${gcvpo:,.0f}")
                 with colB:
-                    st.metric("GCVPO + Suma de Total", f="${:,.0f}".format(suma_comb))
+                    st.metric("GCVPO + Suma de Total", f"${suma_comb:,.0f}")
 
             if "VPD_Misiones" in sheet_name:
                 gcvpd_misiones = 35960
@@ -251,15 +251,14 @@ def mostrar_dpp_2025_editor(sheet_name, monto_dpp):
     # --------------------------------------------------
     if st.button("Guardar Cambios", key=f"guardar_{sheet_name}"):
         df_to_save = st.session_state[session_key].copy()
-        # Normalizamos los nombres de columna (no indispensable, pero puede ayudar)
+        # Normalizamos los nombres de columna (opcional)
         df_to_save.columns = df_to_save.columns.str.strip().str.lower()
 
         # Guardamos en el Excel
         save_data(excel_file, sheet_name, df_to_save)
         st.success("Cambios guardados en el archivo Excel.")
 
-        # *** NO limpiamos la caché para conservar el estado local y permitir cambios sucesivos ***
-        # st.cache_data.clear()  <-- ELIMINADO
+        # NO limpiamos la caché para conservar el estado local
 
     # --------------------------------------------------
     # Botón para descargar la versión actual del DF
@@ -447,7 +446,8 @@ def main():
             if username_input in app_credentials and password_input == app_credentials[username_input]:
                 st.session_state.authenticated = True
                 st.session_state.current_user = username_input
-                st.experimental_rerun()
+                # Ahora usamos st.rerun() en lugar de st.experimental_rerun()
+                st.rerun()
             else:
                 st.error("Usuario o contraseña incorrectos.")
 
@@ -486,7 +486,7 @@ def main():
                 if st.button("Ingresar"):
                     if password == page_passwords["Actualización"]:
                         st.session_state.page_authenticated["Actualización"] = True
-                        st.experimental_rerun()
+                        st.rerun()
                     else:
                         st.error("Contraseña incorrecta.")
             else:
@@ -500,7 +500,7 @@ def main():
                     if st.button("Ingresar"):
                         if password == page_passwords["Consolidado"]:
                             st.session_state.page_authenticated["Consolidado"] = True
-                            st.experimental_rerun()
+                            st.rerun()
                         else:
                             st.error("Contraseña incorrecta.")
                 else:
@@ -512,7 +512,7 @@ def main():
                     if st.button("Ingresar"):
                         if password == page_passwords["PRE"]:
                             st.session_state.page_authenticated["PRE"] = True
-                            st.experimental_rerun()
+                            st.rerun()
                         else:
                             st.error("Contraseña incorrecta.")
                 else:
@@ -578,7 +578,7 @@ def main():
                     if st.button("Ingresar"):
                         if password == page_passwords[page]:
                             st.session_state.page_authenticated[page] = True
-                            st.experimental_rerun()
+                            st.rerun()
                         else:
                             st.error("Contraseña incorrecta.")
                 else:
