@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 
 # =============================================================================
-# FUNCIONES DE CÁLCULO
+# 1. FUNCIONES DE CÁLCULO
 # =============================================================================
 def calcular_misiones(df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -37,6 +37,7 @@ def calcular_misiones(df: pd.DataFrame) -> pd.DataFrame:
     )
     return df_calc
 
+
 def calcular_consultores(df: pd.DataFrame) -> pd.DataFrame:
     """
     Para tablas de Consultorías (DPP 2025):
@@ -55,15 +56,28 @@ def calcular_consultores(df: pd.DataFrame) -> pd.DataFrame:
     )
     return df_calc
 
+
 # =============================================================================
-# FUNCIÓN PARA MOSTRAR "VALUE BOX" (HTML/CSS)
+# 2. FUNCIÓN PARA FORMATEAR SOLO COLUMNAS NUMÉRICAS A DOS DECIMALES
+# =============================================================================
+def two_decimals_only_numeric(df: pd.DataFrame):
+    """
+    Devuelve un Styler que formatea SOLO las columnas numéricas (float, int)
+    a "{:,.2f}" y deja intactas las columnas de texto/fecha/etc.
+    """
+    numeric_cols = df.select_dtypes(include=["float", "int"]).columns
+    return df.style.format("{:,.2f}", subset=numeric_cols, na_rep="")
+
+
+# =============================================================================
+# 3. FUNCIÓN PARA MOSTRAR "VALUE BOX" (HTML/CSS)
 # =============================================================================
 def value_box(label: str, value, bg_color: str = "#6c757d"):
     """
     Genera un recuadro (value box) con fondo de color y texto en blanco.
     - label: texto descriptivo (p.ej. "Suma del total")
     - value: valor a mostrar (p.ej. "12345.67")
-    - bg_color: color de fondo (ej. "#fb8500" o "green")
+    - bg_color: color de fondo (p.ej. "#fb8500", "green", etc.)
     """
     st.markdown(f"""
     <div style="display:inline-block; background-color:{bg_color}; 
@@ -75,13 +89,13 @@ def value_box(label: str, value, bg_color: str = "#6c757d"):
 
 
 # =============================================================================
-# APLICACIÓN PRINCIPAL
+# 4. APLICACIÓN PRINCIPAL
 # =============================================================================
 def main():
     st.set_page_config(page_title="Aplicación Completa", layout="wide")
 
     # -------------------------------------------------------------------------
-    # LECTURA DE DATOS DESDE EXCEL, SOLO UNA VEZ. Guardado en st.session_state.
+    # A) LECTURA DE DATOS DESDE EXCEL (SOLO 1 VEZ). Guardado en session_state.
     # -------------------------------------------------------------------------
     # VPD
     if "vpd_misiones" not in st.session_state:
@@ -101,13 +115,13 @@ def main():
     if "vpf_consultores" not in st.session_state:
         st.session_state["vpf_consultores"] = pd.read_excel("main_bdd.xlsx", sheet_name="vpf_consultores")
 
-    # VPE -> opcional, si tuvieras esas hojas, podrías leerlas aquí
+    # VPE -> Si tuvieras esas hojas
     # if "vpe_misiones" not in st.session_state:
-    #     st.session_state["vpe_misiones"] = ...
+    #     st.session_state["vpe_misiones"] = pd.read_excel("main_bdd.xlsx", sheet_name="vpe_misiones")
     # if "vpe_consultores" not in st.session_state:
-    #     st.session_state["vpe_consultores"] = ...
+    #     st.session_state["vpe_consultores"] = pd.read_excel("main_bdd.xlsx", sheet_name="vpe_consultores")
 
-    # Para la sección "Consolidado":
+    # Datos para consolidado
     if "cuadro_9" not in st.session_state:
         st.session_state["cuadro_9"] = pd.read_excel("main_bdd.xlsx", sheet_name="cuadro_9")
     if "cuadro_10" not in st.session_state:
@@ -118,7 +132,7 @@ def main():
         st.session_state["consolidado_df"] = pd.read_excel("main_bdd.xlsx", sheet_name="consolidado")
 
     # -------------------------------------------------------------------------
-    # MENÚ PRINCIPAL (SIDEBAR)
+    # B) MENÚ PRINCIPAL (SIDEBAR)
     # -------------------------------------------------------------------------
     st.sidebar.title("Navegación principal")
     secciones = [
@@ -137,7 +151,7 @@ def main():
     # -------------------------------------------------------------------------
     if eleccion_principal == "Página Principal":
         st.title("Página Principal")
-        st.write("Bienvenido a la Página Principal. Aquí puedes colocar información introductoria.")
+        st.write("Bienvenido a la Página Principal.")
 
     # -------------------------------------------------------------------------
     # 2. VPD
@@ -156,7 +170,7 @@ def main():
                 st.subheader("VPD > Misiones > Requerimiento del Área (Solo lectura)")
                 st.dataframe(st.session_state["vpd_misiones"])
 
-            else:  # DPP 2025 (editable con value boxes y resumen)
+            else:  # DPP 2025 (editable)
                 st.subheader("VPD > Misiones > DPP 2025")
 
                 df_actual = st.session_state["vpd_misiones"].copy()
@@ -172,7 +186,7 @@ def main():
                 gasto_centralizado = 35960
                 total_gasto_central = sum_total + gasto_centralizado
 
-                # Mostramos value boxes
+                # Muestra value boxes
                 col1, col2, col3, col4, col5 = st.columns(5)
                 with col1:
                     value_box("Suma del total", f"{sum_total:,.2f}", "#6c757d")
@@ -194,17 +208,17 @@ def main():
                     use_container_width=True,
                     key="vpd_misiones_dpp2025",
                     column_config={
-                        "total_pasaje": st.column_config.NumberColumn(disabled=True),
+                        "total_pasaje":      st.column_config.NumberColumn(disabled=True),
                         "total_alojamiento": st.column_config.NumberColumn(disabled=True),
                         "total_perdiem_otros": st.column_config.NumberColumn(disabled=True),
-                        "total_movilidad": st.column_config.NumberColumn(disabled=True),
-                        "total": st.column_config.NumberColumn(disabled=True),
-                    },
+                        "total_movilidad":   st.column_config.NumberColumn(disabled=True),
+                        "total":             st.column_config.NumberColumn(disabled=True),
+                    }
                 )
                 df_final = calcular_misiones(df_editado)
                 st.session_state["vpd_misiones"] = df_final
 
-                # Resumen de totales (solo para Misiones)
+                # Resumen
                 st.write("**Resumen de totales**")
                 df_resumen = pd.DataFrame({
                     "Total Pasaje": [df_final["total_pasaje"].sum()],
@@ -322,17 +336,17 @@ def main():
                     use_container_width=True,
                     key="vpo_misiones_dpp2025",
                     column_config={
-                        "total_pasaje": st.column_config.NumberColumn(disabled=True),
+                        "total_pasaje":      st.column_config.NumberColumn(disabled=True),
                         "total_alojamiento": st.column_config.NumberColumn(disabled=True),
                         "total_perdiem_otros": st.column_config.NumberColumn(disabled=True),
-                        "total_movilidad": st.column_config.NumberColumn(disabled=True),
-                        "total": st.column_config.NumberColumn(disabled=True),
+                        "total_movilidad":   st.column_config.NumberColumn(disabled=True),
+                        "total":             st.column_config.NumberColumn(disabled=True),
                     }
                 )
                 df_final = calcular_misiones(df_editado)
                 st.session_state["vpo_misiones"] = df_final
 
-                # Resumen de totales
+                # Resumen
                 st.write("**Resumen de totales**")
                 df_resumen = pd.DataFrame({
                     "Total Pasaje": [df_final["total_pasaje"].sum()],
@@ -352,8 +366,7 @@ def main():
             if eleccion_sub_sub_vpo == "Requerimiento del Área":
                 st.subheader("VPO > Consultorías > Requerimiento del Área (Solo lectura)")
                 st.dataframe(st.session_state["vpo_consultores"])
-
-            else:  # DPP 2025
+            else:
                 st.subheader("VPO > Consultorías > DPP 2025")
 
                 df_actual = st.session_state["vpo_consultores"].copy()
@@ -449,17 +462,17 @@ def main():
                     use_container_width=True,
                     key="vpf_misiones_dpp2025",
                     column_config={
-                        "total_pasaje": st.column_config.NumberColumn(disabled=True),
+                        "total_pasaje":      st.column_config.NumberColumn(disabled=True),
                         "total_alojamiento": st.column_config.NumberColumn(disabled=True),
                         "total_perdiem_otros": st.column_config.NumberColumn(disabled=True),
-                        "total_movilidad": st.column_config.NumberColumn(disabled=True),
-                        "total": st.column_config.NumberColumn(disabled=True),
+                        "total_movilidad":   st.column_config.NumberColumn(disabled=True),
+                        "total":             st.column_config.NumberColumn(disabled=True),
                     }
                 )
                 df_final = calcular_misiones(df_editado)
                 st.session_state["vpf_misiones"] = df_final
 
-                # Resumen de totales
+                # Resumen
                 st.write("**Resumen de totales**")
                 df_resumen = pd.DataFrame({
                     "Total Pasaje": [df_final["total_pasaje"].sum()],
@@ -529,14 +542,14 @@ def main():
     # -------------------------------------------------------------------------
     elif eleccion_principal == "VPE":
         st.title("Sección VPE")
-        st.write("Aquí podrías replicar la misma lógica de lectura/edición si tuvieras las hojas 'vpe_misiones' y 'vpe_consultores'.")
+        st.write("Aquí podrías replicar la misma lógica si tuvieras 'vpe_misiones' y 'vpe_consultores'.")
 
     # -------------------------------------------------------------------------
     # 6. ACTUALIZACIÓN
     # -------------------------------------------------------------------------
     elif eleccion_principal == "Actualización":
         st.title("Actualización")
-        st.write("Aquí puedes incluir la lógica o formularios para actualizar datos en Excel u otras acciones.")
+        st.write("Aquí podrías incluir formularios o lógica para actualizar datos.")
 
     # -------------------------------------------------------------------------
     # 7. CONSOLIDADO
@@ -544,38 +557,38 @@ def main():
     elif eleccion_principal == "Consolidado":
         st.title("Consolidado")
 
-        # ========== CUADRO 9 ==========
+        # CUADRO 9
         st.write("#### Gasto en personal 2024 Vs 2025")
         df_9 = st.session_state["cuadro_9"]
-        st.table(df_9.style.format("{:,.2f}"))
+        st.table(two_decimals_only_numeric(df_9))
         st.caption("Cuadro 9 - DPP 2025")
 
         st.write("---")
 
-        # ========== CUADRO 10 ==========
+        # CUADRO 10
         st.write("#### Análisis de Cambios en Gastos de Personal 2025 vs. 2024")
         df_10 = st.session_state["cuadro_10"]
-        st.table(df_10.style.format("{:,.2f}"))
+        st.table(two_decimals_only_numeric(df_10))
         st.caption("Cuadro 10 - DPP 2025")
 
         st.write("---")
 
-        # ========== CUADRO 11 ==========
+        # CUADRO 11
         st.write("#### Gastos Operativos propuestos para 2025 y montos aprobados para 2024")
         df_11 = st.session_state["cuadro_11"]
-        st.table(df_11.style.format("{:,.2f}"))
+        st.table(two_decimals_only_numeric(df_11))
         st.caption("Cuadro 11 - DPP 2025")
 
         st.write("---")
 
-        # ========== CONSOLIDADO (HOJA 'consolidado') ==========
+        # CONSOLIDADO
         st.write("#### DPP 2025")
         df_cons = st.session_state["consolidado_df"]
-        st.table(df_cons.style.format("{:,.2f}"))
+        st.table(two_decimals_only_numeric(df_cons))
 
 
-# -----------------------------------------------------------------------------
-# EJECUCIÓN
-# -----------------------------------------------------------------------------
+# =============================================================================
+# 5. EJECUCIÓN
+# =============================================================================
 if __name__ == "__main__":
     main()
