@@ -6,7 +6,7 @@ import pandas as pd
 # -----------------------------------------------------------------------------
 def calcular_misiones(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Para las tablas de Misiones (DPP 2025):
+    Para tablas de Misiones:
       total_pasaje = cant_funcionarios * costo_pasaje
       total_alojamiento = dias * cant_funcionarios * alojamiento
       total_perdiem_otros = dias * cant_funcionarios * perdiem_otros
@@ -14,9 +14,9 @@ def calcular_misiones(df: pd.DataFrame) -> pd.DataFrame:
       total = suma de las anteriores
     """
     df_calc = df.copy()
-    # Aseguramos las columnas base para evitar errores si no existen:
-    cols_base = ["cant_funcionarios", "costo_pasaje", "dias", "alojamiento", "perdiem_otros", "movilidad"]
-    for col in cols_base:
+    # Aseguramos columnas base para evitar errores:
+    base_cols = ["cant_funcionarios", "costo_pasaje", "dias", "alojamiento", "perdiem_otros", "movilidad"]
+    for col in base_cols:
         if col not in df_calc.columns:
             df_calc[col] = 0
 
@@ -24,7 +24,7 @@ def calcular_misiones(df: pd.DataFrame) -> pd.DataFrame:
     df_calc["total_alojamiento"] = df_calc["cant_funcionarios"] * df_calc["dias"] * df_calc["alojamiento"]
     df_calc["total_perdiem_otros"] = df_calc["cant_funcionarios"] * df_calc["dias"] * df_calc["perdiem_otros"]
     df_calc["total_movilidad"] = df_calc["cant_funcionarios"] * df_calc["movilidad"]
-
+    
     df_calc["total"] = (
         df_calc["total_pasaje"]
         + df_calc["total_alojamiento"]
@@ -35,12 +35,12 @@ def calcular_misiones(df: pd.DataFrame) -> pd.DataFrame:
 
 def calcular_consultores(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Para las tablas de Consultorías (DPP 2025):
+    Para tablas de Consultorías:
       total = cantidad_funcionarios * cantidad_meses * monto_mensual
     """
     df_calc = df.copy()
-    cols_base = ["cantidad_funcionarios", "cantidad_meses", "monto_mensual"]
-    for col in cols_base:
+    base_cols = ["cantidad_funcionarios", "cantidad_meses", "monto_mensual"]
+    for col in base_cols:
         if col not in df_calc.columns:
             df_calc[col] = 0
 
@@ -52,298 +52,95 @@ def calcular_consultores(df: pd.DataFrame) -> pd.DataFrame:
     return df_calc
 
 # -----------------------------------------------------------------------------
-# FUNCIÓN PRINCIPAL
+# APLICACIÓN PRINCIPAL
 # -----------------------------------------------------------------------------
 def main():
-    st.set_page_config(page_title="Aplicación multi-página", layout="wide")
+    st.set_page_config(page_title="Streamlit Cálculos en 1 sola tabla", layout="wide")
 
-    # -------------------------------------------------------------------------
-    # LECTURA DE EXCEL
-    # -------------------------------------------------------------------------
-    # Nota: Si tu archivo no está en la misma carpeta, ajusta la ruta
-    df_vpd_misiones = pd.read_excel("main_bdd.xlsx", sheet_name="vpd_misiones")
-    df_vpd_consultores = pd.read_excel("main_bdd.xlsx", sheet_name="vpd_consultores")
+    # 1) Menú principal
+    st.sidebar.title("Navegación")
+    opciones = ["Página Principal", "Ejemplo VPD Misiones DPP 2025", "Ejemplo VPD Consultorías DPP 2025"]
+    seleccion = st.sidebar.selectbox("Ir a:", opciones)
 
-    df_vpo_misiones = pd.read_excel("main_bdd.xlsx", sheet_name="vpo_misiones")
-    df_vpo_consultores = pd.read_excel("main_bdd.xlsx", sheet_name="vpo_consultores")
-
-    df_vpf_misiones = pd.read_excel("main_bdd.xlsx", sheet_name="vpf_misiones")
-    df_vpf_consultores = pd.read_excel("main_bdd.xlsx", sheet_name="vpf_consultores")
-
-    # Si tuvieras hojas para VPE, podrías leerlas aquí:
-    # df_vpe_misiones = pd.read_excel("main_bdd.xlsx", sheet_name="vpe_misiones")
-    # df_vpe_consultores = pd.read_excel("main_bdd.xlsx", sheet_name="vpe_consultores")
-
-    # -------------------------------------------------------------------------
-    # GUARDADO EN SESSION_STATE
-    # -------------------------------------------------------------------------
-    # Inicializamos en session_state cada DF que usaremos en modo editable,
-    # solo si todavía no existe (así no se reescribe en cada recarga).
-    if "vpd_misiones" not in st.session_state:
-        st.session_state["vpd_misiones"] = df_vpd_misiones.copy()
-    if "vpd_consultores" not in st.session_state:
-        st.session_state["vpd_consultores"] = df_vpd_consultores.copy()
-
-    if "vpo_misiones" not in st.session_state:
-        st.session_state["vpo_misiones"] = df_vpo_misiones.copy()
-    if "vpo_consultores" not in st.session_state:
-        st.session_state["vpo_consultores"] = df_vpo_consultores.copy()
-
-    if "vpf_misiones" not in st.session_state:
-        st.session_state["vpf_misiones"] = df_vpf_misiones.copy()
-    if "vpf_consultores" not in st.session_state:
-        st.session_state["vpf_consultores"] = df_vpf_consultores.copy()
-
-    # -------------------------------------------------------------------------
-    # MENÚ PRINCIPAL (SIDEBAR)
-    # -------------------------------------------------------------------------
-    st.sidebar.title("Navegación principal")
-    menu_principal = [
-        "Página Principal",
-        "VPD",
-        "VPO",
-        "VPF",
-        "VPE",
-        "Actualización",
-        "Consolidado"
-    ]
-    eleccion_principal = st.sidebar.selectbox("Selecciona una sección:", menu_principal)
-
-    # -------------------------------------------------------------------------
-    # 1. PÁGINA PRINCIPAL
-    # -------------------------------------------------------------------------
-    if eleccion_principal == "Página Principal":
+    # 2) Página Principal
+    if seleccion == "Página Principal":
         st.title("Página Principal")
-        st.write("Bienvenido a la Página Principal. Aquí puedes colocar la información introductoria.")
+        st.write("Bienvenido. Selecciona en la barra lateral el ejemplo que desees revisar.")
+        return
 
     # -------------------------------------------------------------------------
-    # 2. VPD
+    # LECTURA DE EXCEL SOLO UNA VEZ (o cuando no está en session_state)
     # -------------------------------------------------------------------------
-    elif eleccion_principal == "VPD":
-        st.title("Sección VPD")
-        st.write("Selecciona las subpáginas en la barra lateral para explorar los contenidos.")
+    if "df_vpd_misiones" not in st.session_state:
+        # Leemos la hoja y guardamos en session_state
+        df_vpd_misiones = pd.read_excel("main_bdd.xlsx", sheet_name="vpd_misiones")
+        st.session_state["df_vpd_misiones"] = df_vpd_misiones.copy()
 
-        menu_sub_vpd = ["Misiones", "Consultorías"]
-        eleccion_vpd = st.sidebar.selectbox("Sub-sección de VPD:", menu_sub_vpd)
-
-        menu_sub_sub_vpd = ["Requerimiento de Personal", "DPP 2025"]
-        eleccion_sub_sub_vpd = st.sidebar.selectbox("Tema:", menu_sub_sub_vpd)
-
-        # ------------------- VPD > MISIONES -------------------
-        if eleccion_vpd == "Misiones":
-            if eleccion_sub_sub_vpd == "Requerimiento de Personal":
-                # Modo lectura
-                st.subheader("VPD > Misiones > Requerimiento de Personal")
-                st.dataframe(st.session_state["vpd_misiones"])
-            else:
-                # DPP 2025: una sola tabla con columnas base editables y columnas calculadas
-                st.subheader("VPD > Misiones > DPP 2025")
-
-                # 1) Tomamos DF de session_state
-                df_temp = st.session_state["vpd_misiones"].copy()
-                # 2) Recalculamos
-                df_temp = calcular_misiones(df_temp)
-                # 3) Mostramos en data_editor, deshabilitando columnas de fórmula
-                df_editado = st.data_editor(
-                    df_temp,
-                    use_container_width=True,
-                    key="vpd_misiones_dpp2025",
-                    column_config={
-                        "total_pasaje":      st.column_config.NumberColumn("Total Pasaje", disabled=True),
-                        "total_alojamiento": st.column_config.NumberColumn("Total Alojamiento", disabled=True),
-                        "total_perdiem_otros": st.column_config.NumberColumn("Total PerDiem/Otros", disabled=True),
-                        "total_movilidad":   st.column_config.NumberColumn("Total Movilidad", disabled=True),
-                        "total":             st.column_config.NumberColumn("TOTAL", disabled=True),
-                    },
-                )
-                # 4) Guardamos en session_state para no perder los cambios
-                st.session_state["vpd_misiones"] = df_editado
-
-                # (Opcional) Botón para guardar en Excel
-                if st.button("Guardar cambios en Excel (VPD Misiones)"):
-                    df_final = calcular_misiones(st.session_state["vpd_misiones"])
-                    df_final.to_excel("main_bdd.xlsx", sheet_name="vpd_misiones", index=False)
-                    st.success("¡Datos guardados en la hoja vpd_misiones!")
-
-        # ------------------- VPD > CONSULTORÍAS -------------------
-        else:  # "Consultorías"
-            if eleccion_sub_sub_vpd == "Requerimiento de Personal":
-                st.subheader("VPD > Consultorías > Requerimiento de Personal")
-                st.dataframe(st.session_state["vpd_consultores"])
-            else:
-                st.subheader("VPD > Consultorías > DPP 2025")
-
-                df_temp = st.session_state["vpd_consultores"].copy()
-                df_temp = calcular_consultores(df_temp)
-                df_editado = st.data_editor(
-                    df_temp,
-                    use_container_width=True,
-                    key="vpd_consultores_dpp2025",
-                    column_config={
-                        "total": st.column_config.NumberColumn("TOTAL", disabled=True),
-                    }
-                )
-                st.session_state["vpd_consultores"] = df_editado
-
-                if st.button("Guardar cambios en Excel (VPD Consultorías)"):
-                    df_final = calcular_consultores(st.session_state["vpd_consultores"])
-                    df_final.to_excel("main_bdd.xlsx", sheet_name="vpd_consultores", index=False)
-                    st.success("¡Datos guardados en la hoja vpd_consultores!")
+    if "df_vpd_consultores" not in st.session_state:
+        df_vpd_consultores = pd.read_excel("main_bdd.xlsx", sheet_name="vpd_consultores")
+        st.session_state["df_vpd_consultores"] = df_vpd_consultores.copy()
 
     # -------------------------------------------------------------------------
-    # 3. VPO
+    # 3) EJEMPLO: VPD > MISIONES > DPP 2025
     # -------------------------------------------------------------------------
-    elif eleccion_principal == "VPO":
-        st.title("Sección VPO")
-        st.write("Selecciona las subpáginas en la barra lateral para explorar los contenidos.")
+    if seleccion == "Ejemplo VPD Misiones DPP 2025":
+        st.title("VPD > Misiones > DPP 2025")
+        st.write("**Aquí puedes editar valores base y se recalcularán las columnas de fórmula en la misma tabla.**")
 
-        menu_sub_vpo = ["Misiones", "Consultorías"]
-        eleccion_vpo = st.sidebar.selectbox("Sub-sección de VPO:", menu_sub_vpo)
+        # a) Tomamos el DF de session_state (versión actual, con cambios anteriores si los hubo)
+        df_base = st.session_state["df_vpd_misiones"].copy()
+        
+        # b) Mostramos la tabla en data_editor. Ojo, las columnas calculadas se deshabilitan
+        df_editado = st.data_editor(
+            df_base,
+            use_container_width=True,
+            key="vpd_misiones_editor",
+            column_config={
+                "total_pasaje":      st.column_config.NumberColumn("Total Pasaje", disabled=True),
+                "total_alojamiento": st.column_config.NumberColumn("Total Alojamiento", disabled=True),
+                "total_perdiem_otros": st.column_config.NumberColumn("Total PerDiem/Otros", disabled=True),
+                "total_movilidad":   st.column_config.NumberColumn("Total Movilidad", disabled=True),
+                "total":             st.column_config.NumberColumn("Total", disabled=True),
+            }
+        )
 
-        menu_sub_sub_vpo = ["Requerimiento de Personal", "DPP 2025"]
-        eleccion_sub_sub_vpo = st.sidebar.selectbox("Tema:", menu_sub_sub_vpo)
+        # c) Luego de la edición, recalculamos las columnas con fórmulas
+        df_calculado = calcular_misiones(df_editado)
 
-        if eleccion_vpo == "Misiones":
-            if eleccion_sub_sub_vpo == "Requerimiento de Personal":
-                st.subheader("VPO > Misiones > Requerimiento de Personal")
-                st.dataframe(st.session_state["vpo_misiones"])
-            else:
-                st.subheader("VPO > Misiones > DPP 2025")
+        # d) Guardamos el DF recalculado en session_state, para que la próxima recarga ya tenga esos valores
+        st.session_state["df_vpd_misiones"] = df_calculado
 
-                df_temp = st.session_state["vpo_misiones"].copy()
-                df_temp = calcular_misiones(df_temp)
-                df_editado = st.data_editor(
-                    df_temp,
-                    use_container_width=True,
-                    key="vpo_misiones_dpp2025",
-                    column_config={
-                        "total_pasaje":      st.column_config.NumberColumn(disabled=True),
-                        "total_alojamiento": st.column_config.NumberColumn(disabled=True),
-                        "total_perdiem_otros": st.column_config.NumberColumn(disabled=True),
-                        "total_movilidad":   st.column_config.NumberColumn(disabled=True),
-                        "total":             st.column_config.NumberColumn(disabled=True),
-                    }
-                )
-                st.session_state["vpo_misiones"] = df_editado
-
-                if st.button("Guardar cambios en Excel (VPO Misiones)"):
-                    df_final = calcular_misiones(st.session_state["vpo_misiones"])
-                    df_final.to_excel("main_bdd.xlsx", sheet_name="vpo_misiones", index=False)
-                    st.success("¡Datos guardados en la hoja vpo_misiones!")
-
-        else:  # "Consultorías"
-            if eleccion_sub_sub_vpo == "Requerimiento de Personal":
-                st.subheader("VPO > Consultorías > Requerimiento de Personal")
-                st.dataframe(st.session_state["vpo_consultores"])
-            else:
-                st.subheader("VPO > Consultorías > DPP 2025")
-
-                df_temp = st.session_state["vpo_consultores"].copy()
-                df_temp = calcular_consultores(df_temp)
-                df_editado = st.data_editor(
-                    df_temp,
-                    use_container_width=True,
-                    key="vpo_consultores_dpp2025",
-                    column_config={
-                        "total": st.column_config.NumberColumn(disabled=True)
-                    }
-                )
-                st.session_state["vpo_consultores"] = df_editado
-
-                if st.button("Guardar cambios en Excel (VPO Consultorías)"):
-                    df_final = calcular_consultores(st.session_state["vpo_consultores"])
-                    df_final.to_excel("main_bdd.xlsx", sheet_name="vpo_consultores", index=False)
-                    st.success("¡Datos guardados en la hoja vpo_consultores!")
+        # e) Botón opcional para guardar en Excel:
+        if st.button("Guardar cambios en Excel"):
+            df_final = st.session_state["df_vpd_misiones"]
+            df_final.to_excel("main_bdd.xlsx", sheet_name="vpd_misiones", index=False)
+            st.success("¡Datos guardados en la hoja vpd_misiones del main_bdd.xlsx!")
 
     # -------------------------------------------------------------------------
-    # 4. VPF
+    # 4) EJEMPLO: VPD > CONSULTORÍAS > DPP 2025
     # -------------------------------------------------------------------------
-    elif eleccion_principal == "VPF":
-        st.title("Sección VPF")
-        st.write("Selecciona las subpáginas en la barra lateral para explorar los contenidos.")
+    elif seleccion == "Ejemplo VPD Consultorías DPP 2025":
+        st.title("VPD > Consultorías > DPP 2025")
+        st.write("**Aquí puedes editar valores base y la columna 'total' se recalcula en la misma tabla.**")
 
-        menu_sub_vpf = ["Misiones", "Consultorías"]
-        eleccion_vpf = st.sidebar.selectbox("Sub-sección de VPF:", menu_sub_vpf)
+        df_base = st.session_state["df_vpd_consultores"].copy()
 
-        menu_sub_sub_vpf = ["Requerimiento de Personal", "DPP 2025"]
-        eleccion_sub_sub_vpf = st.sidebar.selectbox("Tema:", menu_sub_sub_vpf)
+        df_editado = st.data_editor(
+            df_base,
+            use_container_width=True,
+            key="vpd_consultores_editor",
+            column_config={
+                "total": st.column_config.NumberColumn("Total", disabled=True)
+            }
+        )
+        df_calculado = calcular_consultores(df_editado)
+        st.session_state["df_vpd_consultores"] = df_calculado
 
-        if eleccion_vpf == "Misiones":
-            if eleccion_sub_sub_vpf == "Requerimiento de Personal":
-                st.subheader("VPF > Misiones > Requerimiento de Personal")
-                st.dataframe(st.session_state["vpf_misiones"])
-            else:
-                st.subheader("VPF > Misiones > DPP 2025")
-
-                df_temp = st.session_state["vpf_misiones"].copy()
-                df_temp = calcular_misiones(df_temp)
-                df_editado = st.data_editor(
-                    df_temp,
-                    use_container_width=True,
-                    key="vpf_misiones_dpp2025",
-                    column_config={
-                        "total_pasaje":      st.column_config.NumberColumn(disabled=True),
-                        "total_alojamiento": st.column_config.NumberColumn(disabled=True),
-                        "total_perdiem_otros": st.column_config.NumberColumn(disabled=True),
-                        "total_movilidad":   st.column_config.NumberColumn(disabled=True),
-                        "total":             st.column_config.NumberColumn(disabled=True),
-                    }
-                )
-                st.session_state["vpf_misiones"] = df_editado
-
-                if st.button("Guardar cambios en Excel (VPF Misiones)"):
-                    df_final = calcular_misiones(st.session_state["vpf_misiones"])
-                    df_final.to_excel("main_bdd.xlsx", sheet_name="vpf_misiones", index=False)
-                    st.success("¡Datos guardados en la hoja vpf_misiones!")
-
-        else:  # "Consultorías"
-            if eleccion_sub_sub_vpf == "Requerimiento de Personal":
-                st.subheader("VPF > Consultorías > Requerimiento de Personal")
-                st.dataframe(st.session_state["vpf_consultores"])
-            else:
-                st.subheader("VPF > Consultorías > DPP 2025")
-
-                df_temp = st.session_state["vpf_consultores"].copy()
-                df_temp = calcular_consultores(df_temp)
-                df_editado = st.data_editor(
-                    df_temp,
-                    use_container_width=True,
-                    key="vpf_consultores_dpp2025",
-                    column_config={
-                        "total": st.column_config.NumberColumn(disabled=True)
-                    }
-                )
-                st.session_state["vpf_consultores"] = df_editado
-
-                if st.button("Guardar cambios en Excel (VPF Consultorías)"):
-                    df_final = calcular_consultores(st.session_state["vpf_consultores"])
-                    df_final.to_excel("main_bdd.xlsx", sheet_name="vpf_consultores", index=False)
-                    st.success("¡Datos guardados en la hoja vpf_consultores!")
-
-    # -------------------------------------------------------------------------
-    # 5. VPE
-    # -------------------------------------------------------------------------
-    elif eleccion_principal == "VPE":
-        st.title("Sección VPE")
-        st.write("Aquí podrías incluir la lógica de lectura/edición de las hojas de VPE en tu Excel.")
-
-    # -------------------------------------------------------------------------
-    # 6. ACTUALIZACIÓN
-    # -------------------------------------------------------------------------
-    elif eleccion_principal == "Actualización":
-        st.title("Actualización")
-        st.write("Aquí puedes incluir información o formularios para la actualización de datos.")
-
-    # -------------------------------------------------------------------------
-    # 7. CONSOLIDADO
-    # -------------------------------------------------------------------------
-    elif eleccion_principal == "Consolidado":
-        st.title("Consolidado")
-        st.write("Aquí puedes mostrar la información consolidada de todas las secciones.")
+        if st.button("Guardar cambios en Excel"):
+            df_final = st.session_state["df_vpd_consultores"]
+            df_final.to_excel("main_bdd.xlsx", sheet_name="vpd_consultores", index=False)
+            st.success("¡Datos guardados en la hoja vpd_consultores del main_bdd.xlsx!")
 
 
-# -----------------------------------------------------------------------------
-# EJECUCIÓN DEL PROGRAMA
-# -----------------------------------------------------------------------------
 if __name__ == "__main__":
     main()
