@@ -117,7 +117,7 @@ def main():
 
             if username in valid_users and password == valid_password:
                 st.session_state["logged_in"] = True
-                st.rerun()  # Reemplazamos st.experimental_rerun() por st.rerun()
+                st.rerun()
             else:
                 st.error("Usuario o contraseña incorrectos.")
         return  # si no está logueado, detenemos aquí
@@ -206,6 +206,9 @@ def main():
                 st.write("")
                 st.write("")
                 st.dataframe(df_req)
+                
+                # Guardamos la suma en session_state para la sección de Actualización
+                st.session_state["requerimiento_area_vpd_misiones"] = sum_total
 
             else:  # DPP 2025 + segunda tabla
                 st.subheader("VPD > Misiones > DPP 2025")
@@ -231,6 +234,11 @@ def main():
                     value_box("Gasto Centralizado", f"{gasto_cent:,.2f}")
                 with col5:
                     value_box("Total + Gasto Centralizado", f"{total_gasto_cent:,.2f}")
+
+                # Guardamos para la sección de Actualización
+                st.session_state["requerimiento_area_vpd_misiones"] = sum_total
+                st.session_state["monto_dpp_vpd_misiones"] = monto_dpp
+                st.session_state["diferencia_vpd_misiones"] = diferencia
 
                 st.write("")
                 st.write("")
@@ -259,7 +267,7 @@ def main():
                 })
                 st.table(df_resumen.style.format("{:,.2f}"))
 
-                if st.button("Recalcular"):
+                if st.button("Recalcular (VPD Misiones)"):
                     df_final.to_excel("main_bdd.xlsx", sheet_name="vpd_misiones", index=False)
                     st.success("¡Datos guardados en 'vpd_misiones'!")
 
@@ -272,6 +280,10 @@ def main():
                 st.write("")
                 st.write("")
                 st.dataframe(df_req)
+                
+                # Guardamos para la sección de Actualización
+                st.session_state["requerimiento_area_vpd_consultorias"] = sum_total
+
             else:
                 st.subheader("VPD > Consultorías > DPP 2025")
                 df_base = st.session_state["vpd_consultores"].copy()
@@ -296,6 +308,11 @@ def main():
                 with col5:
                     value_box("Total + Gasto Centralizado", f"{total_gc:,.2f}")
 
+                # Guardamos para la sección de Actualización
+                st.session_state["requerimiento_area_vpd_consultorias"] = sum_total
+                st.session_state["monto_dpp_vpd_consultorias"] = monto_dpp
+                st.session_state["diferencia_vpd_consultorias"] = diferencia
+
                 st.write("")
                 st.write("")
                 df_editado = st.data_editor(
@@ -313,7 +330,7 @@ def main():
                 sum_final = df_final["total"].sum() if "total" in df_final.columns else 0
                 st.write(f"Total final: {sum_final:,.2f}")
 
-                if st.button("Recalcular"):
+                if st.button("Recalcular (VPD Consultorías)"):
                     df_final.to_excel("main_bdd.xlsx", sheet_name="vpd_consultores", index=False)
                     st.success("¡Guardado en 'vpd_consultores'!")
 
@@ -338,6 +355,9 @@ def main():
                 st.write("")
                 st.write("")
                 st.dataframe(df_req)
+                
+                st.session_state["requerimiento_area_vpo_misiones"] = total_sum
+
             else:
                 st.subheader("VPO > Misiones > DPP 2025")
 
@@ -363,9 +383,18 @@ def main():
                 with col5:
                     value_box("Total + Gasto Centralizado", f"{(sum_total + gasto_cent):,.2f}")
 
+                # Guardamos en session_state
+                st.session_state["requerimiento_area_vpo_misiones"] = sum_total
+                st.session_state["monto_dpp_vpo_misiones"] = monto_dpp
+                st.session_state["diferencia_vpo_misiones"] = diferencia
+
                 st.write("")
                 st.write("")
-                df_editado = st.data_editor(df_base, use_container_width=True, key="vpo_misiones_dpp2025")
+                df_editado = st.data_editor(
+                    df_base, 
+                    use_container_width=True, 
+                    key="vpo_misiones_dpp2025"
+                )
                 df_final = calcular_misiones(df_editado)
                 st.session_state["vpo_misiones"] = df_final
 
@@ -379,7 +408,7 @@ def main():
                 })
                 st.table(df_resumen.style.format("{:,.2f}"))
 
-                if st.button("Recalcular"):
+                if st.button("Recalcular (VPO Misiones)"):
                     df_final.to_excel("main_bdd.xlsx", sheet_name="vpo_misiones", index=False)
                     st.success("Guardado en 'vpo_misiones'!")
         else:
@@ -391,9 +420,30 @@ def main():
                 st.write("")
                 st.write("")
                 st.dataframe(df_req)
+
+                st.session_state["requerimiento_area_vpo_consultorias"] = total_sum
+
             else:
                 st.subheader("VPO > Consultorías > DPP 2025")
-                st.write("Ejemplo DPP 2025 VPO > Consultorías (puedes replicar la segunda tabla si deseas).")
+                st.write("Ejemplo DPP 2025 VPO > Consultorías (puedes replicar la lógica si deseas).")
+
+                # Aquí podrías implementar la misma lógica:
+                # - Calcular
+                # - Mostrar value_box
+                # - Guardar en session_state
+                # - Permitir edición y guardar a Excel
+                # Por ahora, ejemplo mínimo:
+                df_req = st.session_state["vpo_consultores"]
+                sum_total = df_req["total"].sum() if "total" in df_req.columns else 0
+                monto_dpp = 250000  # Ejemplo
+                diferencia = monto_dpp - sum_total
+                st.write(f"Monto DPP 2025: {monto_dpp:,.2f}")
+                st.write(f"Requerimiento Área: {sum_total:,.2f}")
+                st.write(f"Diferencia: {diferencia:,.2f}")
+
+                st.session_state["requerimiento_area_vpo_consultorias"] = sum_total
+                st.session_state["monto_dpp_vpo_consultorias"] = monto_dpp
+                st.session_state["diferencia_vpo_consultorias"] = diferencia
 
     # -------------------------------------------------------------------------
     # 4. VPF
@@ -415,6 +465,9 @@ def main():
                 st.write("")
                 st.write("")
                 st.dataframe(df_req)
+
+                st.session_state["requerimiento_area_vpf_misiones"] = total_sum
+
             else:
                 st.subheader("VPF > Misiones > DPP 2025")
 
@@ -440,6 +493,10 @@ def main():
                 with col5:
                     value_box("Total + Gasto Centralizado", f"{total_gc:,.2f}")
 
+                st.session_state["requerimiento_area_vpf_misiones"] = sum_total
+                st.session_state["monto_dpp_vpf_misiones"] = monto_dpp
+                st.session_state["diferencia_vpf_misiones"] = diferencia
+
                 st.write("")
                 st.write("")
                 df_editado = st.data_editor(df_base, use_container_width=True, key="vpf_misiones_dpp2025")
@@ -456,7 +513,7 @@ def main():
                 })
                 st.table(df_resumen.style.format("{:,.2f}"))
 
-                if st.button("Recalcular"):
+                if st.button("Recalcular (VPF Misiones)"):
                     df_final.to_excel("main_bdd.xlsx", sheet_name="vpf_misiones", index=False)
                     st.success("Guardado en 'vpf_misiones'!")
         else:
@@ -468,9 +525,24 @@ def main():
                 st.write("")
                 st.write("")
                 st.dataframe(df_req)
+
+                st.session_state["requerimiento_area_vpf_consultorias"] = total_sum
+
             else:
                 st.subheader("VPF > Consultorías > DPP 2025")
                 st.write("Ejemplo DPP 2025 VPF > Consultorías (puedes replicar la segunda tabla si deseas).")
+
+                df_req = st.session_state["vpf_consultores"]
+                sum_total = df_req["total"].sum() if "total" in df_req.columns else 0
+                monto_dpp = 200000  # Ejemplo
+                diferencia = monto_dpp - sum_total
+                st.write(f"Monto DPP 2025: {monto_dpp:,.2f}")
+                st.write(f"Requerimiento Área: {sum_total:,.2f}")
+                st.write(f"Diferencia: {diferencia:,.2f}")
+
+                st.session_state["requerimiento_area_vpf_consultorias"] = sum_total
+                st.session_state["monto_dpp_vpf_consultorias"] = monto_dpp
+                st.session_state["diferencia_vpf_consultorias"] = diferencia
 
     # -------------------------------------------------------------------------
     # 5. VPE
@@ -491,6 +563,9 @@ def main():
             st.write("")
             st.write("")
             st.dataframe(df_req)
+
+            st.session_state["requerimiento_area_vpe_misiones"] = total_sum
+
         else:
             st.subheader("VPE > Consultorías > Requerimiento del Área (Solo lectura)")
             df_req = st.session_state["vpe_consultores"]
@@ -499,6 +574,8 @@ def main():
             st.write("")
             st.write("")
             st.dataframe(df_req)
+
+            st.session_state["requerimiento_area_vpe_consultorias"] = total_sum
 
     # -------------------------------------------------------------------------
     # 6. PRE
@@ -538,22 +615,37 @@ def main():
     # -------------------------------------------------------------------------
     elif eleccion_principal == "Actualización":
         st.title("Actualización")
-
-        # Dos tablas: Misiones y Consultorías
         units = ["VPE", "VPD", "VPO", "VPF"]
 
+        # ---------------------------------------------------------------------
+        # Tabla de Misiones
+        # ---------------------------------------------------------------------
         st.write("### Tabla de Misiones")
         misiones_data = []
+
         for unit in units:
-            req_area = 0   # Ejemplo: st.session_state.get(...)
-            monto_dpp = 0  # ...
-            diff = 0       # ...
+            # Cada unidad, por ejemplo 'VPD'
+            # Claves en session_state: 
+            #   "requerimiento_area_vpd_misiones", 
+            #   "monto_dpp_vpd_misiones",
+            #   "diferencia_vpd_misiones"
+            
+            # Usamos lower() para armar la llave. p.ej. vpd -> "requerimiento_area_vpd_misiones"
+            req_key = f"requerimiento_area_{unit.lower()}_misiones"
+            dpp_key = f"monto_dpp_{unit.lower()}_misiones"
+            dif_key = f"diferencia_{unit.lower()}_misiones"
+
+            req_area = st.session_state.get(req_key, 0.0)
+            monto_dpp = st.session_state.get(dpp_key, 0.0)
+            diferencia = st.session_state.get(dif_key, monto_dpp - req_area)
+
             misiones_data.append({
                 "Unidad Organizacional": unit,
                 "Requerimiento del Área": req_area,
                 "Monto DPP 2025": monto_dpp,
-                "Diferencia": diff
+                "Diferencia": diferencia
             })
+
         df_misiones = pd.DataFrame(misiones_data)
         st.dataframe(
             df_misiones.style
@@ -561,17 +653,29 @@ def main():
             .applymap(color_diferencia, subset=["Diferencia"])
         )
 
+        # ---------------------------------------------------------------------
+        # Tabla de Consultorías
+        # ---------------------------------------------------------------------
         st.write("### Tabla de Consultorías")
         consultorias_data = []
         for unit in units:
-            req_area = 0
-            monto_dpp = 0
-            diff = 0
+            # Claves en session_state:
+            #   "requerimiento_area_vpd_consultorias"
+            #   "monto_dpp_vpd_consultorias"
+            #   "diferencia_vpd_consultorias"
+            req_key = f"requerimiento_area_{unit.lower()}_consultorias"
+            dpp_key = f"monto_dpp_{unit.lower()}_consultorias"
+            dif_key = f"diferencia_{unit.lower()}_consultorias"
+
+            req_area = st.session_state.get(req_key, 0.0)
+            monto_dpp = st.session_state.get(dpp_key, 0.0)
+            diferencia = st.session_state.get(dif_key, monto_dpp - req_area)
+
             consultorias_data.append({
                 "Unidad Organizacional": unit,
                 "Requerimiento del Área": req_area,
                 "Monto DPP 2025": monto_dpp,
-                "Diferencia": diff
+                "Diferencia": diferencia
             })
         df_cons = pd.DataFrame(consultorias_data)
         st.dataframe(
@@ -580,7 +684,7 @@ def main():
             .applymap(color_diferencia, subset=["Diferencia"])
         )
 
-        st.info("Valores de ejemplo en st.session_state. Debes guardar al presionar 'Recalcular' en cada DPP 2025.")
+        st.info("Los valores de 'Requerimiento del Área' y 'Monto DPP 2025' provienen de los value boxes de cada sección. La 'Diferencia' se calcula con esos datos.")
 
     # -------------------------------------------------------------------------
     # 8. CONSOLIDADO
