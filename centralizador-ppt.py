@@ -6,12 +6,22 @@ import io
 # 1. FUNCIONES DE CÁLCULO
 # =============================================================================
 def calcular_misiones(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Calcula totales para tablas de Misiones, de acuerdo con las columnas base:
+    - cant_funcionarios, costo_pasaje, dias, alojamiento, perdiem_otros, movilidad.
+    - total_pasaje = cant_funcionarios * costo_pasaje
+    - total_alojamiento = cant_funcionarios * dias * alojamiento
+    - total_perdiem_otros = cant_funcionarios * dias * perdiem_otros
+    - total_movilidad = cant_funcionarios * movilidad
+    - total = suma de los anteriores
+    """
     df_calc = df.copy()
     cols_base = ["cant_funcionarios", "costo_pasaje", "dias",
                  "alojamiento", "perdiem_otros", "movilidad"]
     for col in cols_base:
         if col not in df_calc.columns:
             df_calc[col] = 0
+
     df_calc["total_pasaje"] = df_calc["cant_funcionarios"] * df_calc["costo_pasaje"]
     df_calc["total_alojamiento"] = (
         df_calc["cant_funcionarios"] * df_calc["dias"] * df_calc["alojamiento"]
@@ -29,11 +39,17 @@ def calcular_misiones(df: pd.DataFrame) -> pd.DataFrame:
     return df_calc
 
 def calcular_consultores(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Calcula totales para tablas de Consultorías, de acuerdo a:
+    - cantidad_funcionarios, cantidad_meses, monto_mensual.
+    - total = cantidad_funcionarios * cantidad_meses * monto_mensual
+    """
     df_calc = df.copy()
     cols_base = ["cantidad_funcionarios", "cantidad_meses", "monto_mensual"]
     for col in cols_base:
         if col not in df_calc.columns:
             df_calc[col] = 0
+
     df_calc["total"] = (
         df_calc["cantidad_funcionarios"]
         * df_calc["cantidad_meses"]
@@ -45,13 +61,19 @@ def calcular_consultores(df: pd.DataFrame) -> pd.DataFrame:
 # 2. FUNCIÓN PARA FORMATEAR COLUMNAS NUMÉRICAS A DOS DECIMALES
 # =============================================================================
 def two_decimals_only_numeric(df: pd.DataFrame):
+    """
+    Aplica formato "{:,.2f}" únicamente a columnas numéricas (float, int).
+    """
     numeric_cols = df.select_dtypes(include=["float", "int"]).columns
     return df.style.format("{:,.2f}", subset=numeric_cols, na_rep="")
 
 # =============================================================================
-# 3. FUNCIÓN PARA MOSTRAR "VALUE BOX" (HTML/CSS)
+# 3. FUNCIÓN PARA MOSTRAR UN "VALUE BOX" CON HTML/CSS
 # =============================================================================
 def value_box(label: str, value, bg_color: str = "#6c757d"):
+    """
+    Muestra un pequeño recuadro con color de fondo (bg_color) y texto en blanco.
+    """
     st.markdown(f"""
     <div style="display:inline-block; background-color:{bg_color}; 
                 padding:10px; margin:5px; border-radius:5px; color:white; font-weight:bold;">
@@ -64,25 +86,28 @@ def value_box(label: str, value, bg_color: str = "#6c757d"):
 # 4. FUNCIÓN PARA COLOREAR LA DIFERENCIA
 # =============================================================================
 def color_diferencia(val):
+    """
+    Retorna un estilo de color distinto si val != 0, y verde si val == 0.
+    """
     return "background-color: #fb8500; color:white" if val != 0 else "background-color: green; color:white"
 
 # =============================================================================
-# 5. FUNCIÓN PARA GUARDAR HOJAS EN EL EXCEL
+# 5. FUNCIÓN PARA GUARDAR DATOS EN EXCEL (REEMPLAZANDO UNA HOJA)
 # =============================================================================
 def guardar_en_excel(df: pd.DataFrame, sheet_name: str, excel_file: str = "main_bdd.xlsx"):
     """
-    Guarda df en el archivo 'excel_file', reemplazando la hoja 'sheet_name'
-    y manteniendo las demás hojas.
+    Guarda el DataFrame df en la hoja 'sheet_name' del archivo excel_file,
+    reemplazando esa hoja y manteniendo las demás.
     """
     with pd.ExcelWriter(excel_file, engine="openpyxl", mode="a", if_sheet_exists="replace") as writer:
         df.to_excel(writer, sheet_name=sheet_name, index=False)
 
 # =============================================================================
-# 6. FUNCIÓN PARA DESCARGAR UN DataFrame COMO EXCEL
+# 6. FUNCIÓN PARA DESCARGAR UN DataFrame COMO EXCEL (BOTÓN)
 # =============================================================================
 def descargar_excel(df: pd.DataFrame, file_name: str = "descarga.xlsx") -> None:
     """
-    Crea un botón de descarga para un DataFrame como archivo Excel.
+    Genera un archivo Excel en memoria y lo ofrece para descargar con st.download_button.
     """
     buffer = io.BytesIO()
     with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
@@ -97,19 +122,20 @@ def descargar_excel(df: pd.DataFrame, file_name: str = "descarga.xlsx") -> None:
     )
 
 # =============================================================================
-# APLICACIÓN PRINCIPAL
+# 7. FUNCIÓN PRINCIPAL DE LA APLICACIÓN
 # =============================================================================
 def main():
     st.set_page_config(page_title="Aplicación Completa", layout="wide")
 
     # -------------------------------------------------------------------------
-    # LOGIN
+    # A) LOGIN
     # -------------------------------------------------------------------------
     if "logged_in" not in st.session_state:
         st.session_state["logged_in"] = False
 
     if not st.session_state["logged_in"]:
         st.title("Login - Presupuesto 2025")
+
         username = st.text_input("Usuario")
         password = st.text_input("Contraseña", type="password")
 
@@ -128,24 +154,29 @@ def main():
     excel_file = "main_bdd.xlsx"
 
     # -------------------------------------------------------------------------
-    # LECTURA INICIAL DE DATOS
+    # B) LECTURA DE DATOS DESDE EXCEL A session_state
     # -------------------------------------------------------------------------
+    # Se realiza solo si aún no existen en session_state.
     if "vpd_misiones" not in st.session_state:
         st.session_state["vpd_misiones"] = pd.read_excel(excel_file, sheet_name="vpd_misiones")
     if "vpd_consultores" not in st.session_state:
         st.session_state["vpd_consultores"] = pd.read_excel(excel_file, sheet_name="vpd_consultores")
+
     if "vpo_misiones" not in st.session_state:
         st.session_state["vpo_misiones"] = pd.read_excel(excel_file, sheet_name="vpo_misiones")
     if "vpo_consultores" not in st.session_state:
         st.session_state["vpo_consultores"] = pd.read_excel(excel_file, sheet_name="vpo_consultores")
+
     if "vpf_misiones" not in st.session_state:
         st.session_state["vpf_misiones"] = pd.read_excel(excel_file, sheet_name="vpf_misiones")
     if "vpf_consultores" not in st.session_state:
         st.session_state["vpf_consultores"] = pd.read_excel(excel_file, sheet_name="vpf_consultores")
+
     if "vpe_misiones" not in st.session_state:
         st.session_state["vpe_misiones"] = pd.read_excel(excel_file, sheet_name="vpe_misiones")
     if "vpe_consultores" not in st.session_state:
         st.session_state["vpe_consultores"] = pd.read_excel(excel_file, sheet_name="vpe_consultores")
+
     if "cuadro_9" not in st.session_state:
         st.session_state["cuadro_9"] = pd.read_excel(excel_file, sheet_name="cuadro_9")
     if "cuadro_10" not in st.session_state:
@@ -154,6 +185,7 @@ def main():
         st.session_state["cuadro_11"] = pd.read_excel(excel_file, sheet_name="cuadro_11")
     if "consolidado_df" not in st.session_state:
         st.session_state["consolidado_df"] = pd.read_excel(excel_file, sheet_name="consolidado")
+
     if "pre_misiones_personal" not in st.session_state:
         st.session_state["pre_misiones_personal"] = pd.read_excel(excel_file, sheet_name="pre_misiones_personal")
     if "pre_misiones_consultores" not in st.session_state:
@@ -161,16 +193,27 @@ def main():
     if "pre_consultores" not in st.session_state:
         st.session_state["pre_consultores"] = pd.read_excel(excel_file, sheet_name="pre_consultores")
 
-    # Aquí guardaremos las tablas de Actualización de Misiones y Consultorías
-    # en "st.session_state['actualizacion_misiones']" y "st.session_state['actualizacion_consultorias']"
-    # para no perder los datos al cerrar la app.
+    # -------------------------------------------------------------------------
+    # C) LECTURA/INICIALIZACIÓN DE TABLAS DE ACTUALIZACIÓN
+    # -------------------------------------------------------------------------
+    # Intentamos leer las hojas "actualizacion_misiones" y "actualizacion_consultorias".
+    # Si no existen, creamos DataFrames vacíos.
+    try:
+        act_misiones = pd.read_excel(excel_file, sheet_name="actualizacion_misiones")
+    except:
+        act_misiones = pd.DataFrame()
+    try:
+        act_consultorias = pd.read_excel(excel_file, sheet_name="actualizacion_consultorias")
+    except:
+        act_consultorias = pd.DataFrame()
+
     if "actualizacion_misiones" not in st.session_state:
-        st.session_state["actualizacion_misiones"] = pd.DataFrame()
+        st.session_state["actualizacion_misiones"] = act_misiones
     if "actualizacion_consultorias" not in st.session_state:
-        st.session_state["actualizacion_consultorias"] = pd.DataFrame()
+        st.session_state["actualizacion_consultorias"] = act_consultorias
 
     # -------------------------------------------------------------------------
-    # MENÚ PRINCIPAL
+    # D) MENÚ PRINCIPAL
     # -------------------------------------------------------------------------
     st.sidebar.title("Navegación principal")
     secciones = [
@@ -186,19 +229,23 @@ def main():
     eleccion_principal = st.sidebar.selectbox("Selecciona una sección:", secciones)
 
     # -------------------------------------------------------------------------
-    # 1. PÁGINA PRINCIPAL
+    # E) SECCIONES
+    # -------------------------------------------------------------------------
+    # 1) Página Principal
     # -------------------------------------------------------------------------
     if eleccion_principal == "Página Principal":
         st.title("Página Principal")
         st.write("Bienvenido a la Página Principal.")
 
     # -------------------------------------------------------------------------
-    # 2. VPD
+    # 2) VPD
     # -------------------------------------------------------------------------
     elif eleccion_principal == "VPD":
         st.title("Sección VPD")
+
         sub_vpd = ["Misiones", "Consultorías"]
         eleccion_vpd = st.sidebar.selectbox("Sub-sección de VPD:", sub_vpd)
+
         sub_sub_vpd = ["Requerimiento del Área", "DPP 2025"]
         eleccion_sub_sub_vpd = st.sidebar.selectbox("Tema:", sub_sub_vpd)
 
@@ -211,7 +258,7 @@ def main():
                 st.dataframe(df_req)
                 st.session_state["requerimiento_area_vpd_misiones"] = sum_total
 
-            else:
+            else:  # DPP 2025
                 st.subheader("VPD > Misiones > DPP 2025")
                 df_base = st.session_state["vpd_misiones"].copy()
                 df_base = calcular_misiones(df_base)
@@ -255,7 +302,7 @@ def main():
 
                 if st.button("Recalcular (VPD Misiones)"):
                     st.session_state["vpd_misiones"] = df_final
-                    guardar_en_excel(df_final, "vpd_misiones")
+                    guardar_en_excel(df_final, sheet_name="vpd_misiones")
                     st.success("Datos guardados en 'vpd_misiones'!")
 
                 if st.button("Descargar tabla (VPD Misiones)"):
@@ -280,7 +327,7 @@ def main():
                 st.dataframe(df_req)
                 st.session_state["requerimiento_area_vpd_consultorias"] = sum_total
 
-            else:
+            else:  # DPP 2025
                 st.subheader("VPD > Consultorías > DPP 2025")
                 df_base = st.session_state["vpd_consultores"].copy()
                 df_base = calcular_consultores(df_base)
@@ -320,7 +367,7 @@ def main():
 
                 if st.button("Recalcular (VPD Consultorías)"):
                     st.session_state["vpd_consultores"] = df_final
-                    guardar_en_excel(df_final, "vpd_consultores")
+                    guardar_en_excel(df_final, sheet_name="vpd_consultores")
                     st.success("¡Guardado en 'vpd_consultores'!")
 
                 if st.button("Descargar tabla (VPD Consultorías)"):
@@ -330,12 +377,13 @@ def main():
                 st.write(f"Total final: {df_final['total'].sum():,.2f}")
 
     # -------------------------------------------------------------------------
-    # 3. VPO (análogo)
+    # 3) VPO
     # -------------------------------------------------------------------------
     elif eleccion_principal == "VPO":
         st.title("Sección VPO")
         sub_vpo = ["Misiones", "Consultorías"]
         eleccion_vpo = st.sidebar.selectbox("Sub-sección de VPO:", sub_vpo)
+
         sub_sub_vpo = ["Requerimiento del Área", "DPP 2025"]
         eleccion_sub_sub_vpo = st.sidebar.selectbox("Tema:", sub_sub_vpo)
 
@@ -348,7 +396,7 @@ def main():
                 st.dataframe(df_req)
                 st.session_state["requerimiento_area_vpo_misiones"] = total_sum
 
-            else:
+            else:  # DPP 2025
                 st.subheader("VPO > Misiones > DPP 2025")
                 df_base = st.session_state["vpo_misiones"].copy()
                 df_base = calcular_misiones(df_base)
@@ -407,7 +455,7 @@ def main():
                 st.dataframe(df_req)
                 st.session_state["requerimiento_area_vpo_consultorias"] = total_sum
 
-            else:
+            else:  # DPP 2025
                 st.subheader("VPO > Consultorías > DPP 2025")
                 df_base = st.session_state["vpo_consultores"].copy()
                 df_base = calcular_consultores(df_base)
@@ -454,12 +502,13 @@ def main():
                     descargar_excel(df_final, file_name="vpo_consultores_modificada.xlsx")
 
     # -------------------------------------------------------------------------
-    # 4. VPF (análogo)
+    # 4) VPF
     # -------------------------------------------------------------------------
     elif eleccion_principal == "VPF":
         st.title("Sección VPF")
         sub_vpf = ["Misiones", "Consultorías"]
         eleccion_vpf = st.sidebar.selectbox("Sub-sección de VPF:", sub_vpf)
+
         sub_sub_vpf = ["Requerimiento del Área", "DPP 2025"]
         eleccion_sub_sub_vpf = st.sidebar.selectbox("Tema:", sub_sub_vpf)
 
@@ -472,7 +521,7 @@ def main():
                 st.dataframe(df_req)
                 st.session_state["requerimiento_area_vpf_misiones"] = total_sum
 
-            else:
+            else:  # DPP 2025
                 st.subheader("VPF > Misiones > DPP 2025")
                 df_base = st.session_state["vpf_misiones"].copy()
                 df_base = calcular_misiones(df_base)
@@ -531,7 +580,7 @@ def main():
                 st.dataframe(df_req)
                 st.session_state["requerimiento_area_vpf_consultores"] = total_sum
 
-            else:
+            else:  # DPP 2025
                 st.subheader("VPF > Consultorías > DPP 2025")
                 df_base = st.session_state["vpf_consultores"].copy()
                 df_base = calcular_consultores(df_base)
@@ -578,12 +627,14 @@ def main():
                     descargar_excel(df_final, file_name="vpf_consultores_modificada.xlsx")
 
     # -------------------------------------------------------------------------
-    # 5. VPE
+    # 5) VPE
     # -------------------------------------------------------------------------
     elif eleccion_principal == "VPE":
         st.title("Sección VPE")
+
         sub_vpe = ["Misiones", "Consultorías"]
         eleccion_vpe = st.sidebar.selectbox("Sub-sección de VPE:", sub_vpe)
+
         sub_sub_vpe = ["Requerimiento del Área"]
         eleccion_sub_sub_vpe = st.sidebar.selectbox("Tema:", sub_sub_vpe)
 
@@ -604,7 +655,7 @@ def main():
             st.session_state["requerimiento_area_vpe_consultorias"] = total_sum
 
     # -------------------------------------------------------------------------
-    # 6. PRE
+    # 6) PRE
     # -------------------------------------------------------------------------
     elif eleccion_principal == "PRE":
         st.title("Sección PRE")
@@ -615,15 +666,18 @@ def main():
             st.subheader("PRE > Misiones Personal (Solo lectura)")
             df_pre = st.session_state["pre_misiones_personal"]
             st.dataframe(df_pre)
+
         elif eleccion_pre == "Misiones Consultores":
             st.subheader("PRE > Misiones Consultores (Solo lectura)")
             df_pre = st.session_state["pre_misiones_consultores"]
             st.dataframe(df_pre)
+
         elif eleccion_pre == "Consultorías":
             st.subheader("PRE > Consultorías (Solo lectura)")
             df_pre = st.session_state["pre_consultores"]
             st.dataframe(df_pre)
-        else:
+
+        else:  # Gastos Centralizados
             st.subheader("PRE > Gastos Centralizados")
             uploaded_file = st.file_uploader("Sube un archivo Excel con Gastos Centralizados", type=["xlsx", "xls"])
             if uploaded_file:
@@ -637,12 +691,13 @@ def main():
                 st.write("No se ha subido ningún archivo aún.")
 
     # -------------------------------------------------------------------------
-    # 7. ACTUALIZACIÓN
+    # 7) ACTUALIZACIÓN
     # -------------------------------------------------------------------------
     elif eleccion_principal == "Actualización":
         st.title("Actualización")
 
         units = ["VPE", "VPD", "VPO", "VPF"]
+
         st.write("### Tabla de Misiones")
         misiones_data = []
         for unit in units:
@@ -660,9 +715,8 @@ def main():
                 "Monto DPP 2025": monto_dpp,
                 "Diferencia": diferencia
             })
-        df_misiones = pd.DataFrame(misiones_data)
 
-        # Guardamos la tabla de "Actualización" en session_state
+        df_misiones = pd.DataFrame(misiones_data)
         st.session_state["actualizacion_misiones"] = df_misiones
 
         st.dataframe(
@@ -688,8 +742,8 @@ def main():
                 "Monto DPP 2025": monto_dpp,
                 "Diferencia": diferencia
             })
-        df_cons = pd.DataFrame(consultorias_data)
 
+        df_cons = pd.DataFrame(consultorias_data)
         st.session_state["actualizacion_consultorias"] = df_cons
 
         st.dataframe(
@@ -698,27 +752,20 @@ def main():
             .applymap(color_diferencia, subset=["Diferencia"])
         )
 
-        # Botón para recalcular/guardar la tabla de Actualización
-        if st.button("Recalcular (Actualización)"):
-            guardar_en_excel(df_misiones, "actualizacion_misiones")
-            guardar_en_excel(df_cons, "actualizacion_consultorias")
-            st.success("¡Tablas de Actualización guardadas!")
+        # Botón para guardar la tabla de Actualización en Excel
+        if st.button("Guardar Actualización"):
+            guardar_en_excel(st.session_state["actualizacion_misiones"], "actualizacion_misiones")
+            guardar_en_excel(st.session_state["actualizacion_consultorias"], "actualizacion_consultorias")
+            st.success("¡Tablas de Actualización guardadas en Excel!")
 
-        # Botón para descargar la tabla de Actualización Misiones en Excel
-        if st.button("Descargar (Actualización) Misiones"):
-            descargar_excel(df_misiones, file_name="actualizacion_misiones.xlsx")
-
-        # Botón para descargar la tabla de Actualización Consultorías
-        if st.button("Descargar (Actualización) Consultorías"):
-            descargar_excel(df_cons, file_name="actualizacion_consultorias.xlsx")
-
-        st.info("Estos valores se basan en los value boxes de cada sección.")
+        st.info("La tabla de Actualización se guarda en 'actualizacion_misiones' y 'actualizacion_consultorias' para no reiniciarse al cerrar la app.")
 
     # -------------------------------------------------------------------------
-    # 8. CONSOLIDADO
+    # 8) CONSOLIDADO
     # -------------------------------------------------------------------------
     elif eleccion_principal == "Consolidado":
         st.title("Consolidado")
+
         st.write("#### Gasto en personal 2024 Vs 2025")
         df_9 = st.session_state["cuadro_9"]
         st.table(two_decimals_only_numeric(df_9))
@@ -741,5 +788,8 @@ def main():
         df_cons = st.session_state["consolidado_df"]
         st.table(two_decimals_only_numeric(df_cons))
 
+# =============================================================================
+# 8. EJECUCIÓN
+# =============================================================================
 if __name__ == "__main__":
     main()
