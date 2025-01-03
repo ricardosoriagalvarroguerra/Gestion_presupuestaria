@@ -195,7 +195,7 @@ def main():
 
     # NUEVO: leer gastos_centralizados
     if "gastos_centralizados" not in st.session_state:
-        st.session_state["gastos_centralizados"] = pd.read_excel(excel_file, sheet_name="Hoja1")
+        st.session_state["gastos_centralizados"] = pd.read_excel(excel_file, sheet_name="gastos_centralizados")
 
     # -------------------------------------------------------------------------
     # C) LECTURA/INICIALIZACIÓN DE TABLAS DE ACTUALIZACIÓN
