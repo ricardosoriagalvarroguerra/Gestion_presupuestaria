@@ -128,7 +128,7 @@ def main():
     st.set_page_config(page_title="Aplicación Completa", layout="wide")
 
     # -------------------------------------------------------------------------
-    # A) LOGIN
+    # A) LOGIN (mantiene st.rerun)
     # -------------------------------------------------------------------------
     if "logged_in" not in st.session_state:
         st.session_state["logged_in"] = False
@@ -144,7 +144,7 @@ def main():
             valid_password = "2025presupuesto"
             if username in valid_users and password == valid_password:
                 st.session_state["logged_in"] = True
-                st.experimental_rerun()
+                st.rerun()  # Se mantiene la lógica original
             else:
                 st.error("Usuario o contraseña incorrectos.")
         return
@@ -193,15 +193,13 @@ def main():
     if "pre_consultores" not in st.session_state:
         st.session_state["pre_consultores"] = pd.read_excel(excel_file, sheet_name="pre_consultores")
 
-    # Nuevo: Lectura de la hoja "gastos_centralizados"
+    # NUEVO: leer gastos_centralizados
     if "gastos_centralizados" not in st.session_state:
         st.session_state["gastos_centralizados"] = pd.read_excel(excel_file, sheet_name="gastos_centralizados")
 
     # -------------------------------------------------------------------------
     # C) LECTURA/INICIALIZACIÓN DE TABLAS DE ACTUALIZACIÓN
     # -------------------------------------------------------------------------
-    # Intentamos leer las hojas "actualizacion_misiones" y "actualizacion_consultorias".
-    # Si no existen, creamos DataFrames vacíos.
     try:
         act_misiones = pd.read_excel(excel_file, sheet_name="actualizacion_misiones")
     except:
@@ -268,9 +266,27 @@ def main():
                 df_base = calcular_misiones(df_base)
 
                 sum_total = df_base["total"].sum() if "total" in df_base.columns else 0
+                monto_dpp = 168000
+                diferencia = monto_dpp - sum_total
+                color_dif = "#fb8500" if diferencia != 0 else "green"
+                gasto_cent = 35960
+                total_gasto_cent = sum_total + gasto_cent
 
-                # Solo un value box con la suma total:
-                value_box("Suma del total", f"{sum_total:,.2f}")
+                col1, col2, col3, col4, col5 = st.columns(5)
+                with col1:
+                    value_box("Suma del total", f"{sum_total:,.2f}")
+                with col2:
+                    value_box("Monto DPP 2025", f"{monto_dpp:,.2f}")
+                with col3:
+                    value_box("Diferencia", f"{diferencia:,.2f}", color_dif)
+                with col4:
+                    value_box("Gasto Centralizado", f"{gasto_cent:,.2f}")
+                with col5:
+                    value_box("Total + Gasto Centralizado", f"{total_gasto_cent:,.2f}")
+
+                st.session_state["requerimiento_area_vpd_misiones"] = sum_total
+                st.session_state["monto_dpp_vpd_misiones"] = monto_dpp
+                st.session_state["diferencia_vpd_misiones"] = diferencia
 
                 df_editado = st.data_editor(
                     df_base,
@@ -294,6 +310,16 @@ def main():
                 if st.button("Descargar tabla (VPD Misiones)"):
                     descargar_excel(df_final, file_name="vpd_misiones_modificada.xlsx")
 
+                st.write("**Sumas totales**")
+                df_resumen = pd.DataFrame({
+                    "Total Pasaje": [df_final["total_pasaje"].sum()],
+                    "Total Alojamiento": [df_final["total_alojamiento"].sum()],
+                    "Total PerDiem/Otros": [df_final["total_perdiem_otros"].sum()],
+                    "Total Movilidad": [df_final["total_movilidad"].sum()],
+                    "Total": [df_final["total"].sum()]
+                })
+                st.table(df_resumen.style.format("{:,.2f}"))
+
         else:  # VPD > Consultorías
             if eleccion_sub_sub_vpd == "Requerimiento del Área":
                 st.subheader("VPD > Consultorías > Requerimiento del Área")
@@ -309,9 +335,27 @@ def main():
                 df_base = calcular_consultores(df_base)
 
                 sum_total = df_base["total"].sum() if "total" in df_base.columns else 0
+                monto_dpp = 130000
+                diferencia = monto_dpp - sum_total
+                color_dif = "#fb8500" if diferencia != 0 else "green"
+                gasto_cent = 193160
+                total_gc = sum_total + gasto_cent
 
-                # Solo un value box con la suma total:
-                value_box("Suma del total", f"{sum_total:,.2f}")
+                col1, col2, col3, col4, col5 = st.columns(5)
+                with col1:
+                    value_box("Suma del total", f"{sum_total:,.2f}")
+                with col2:
+                    value_box("Monto DPP 2025", f"{monto_dpp:,.2f}")
+                with col3:
+                    value_box("Diferencia", f"{diferencia:,.2f}", color_dif)
+                with col4:
+                    value_box("Gasto Centralizado", f"{gasto_cent:,.2f}")
+                with col5:
+                    value_box("Total + Gasto Centralizado", f"{total_gc:,.2f}")
+
+                st.session_state["requerimiento_area_vpd_consultorias"] = sum_total
+                st.session_state["monto_dpp_vpd_consultorias"] = monto_dpp
+                st.session_state["diferencia_vpd_consultorias"] = diferencia
 
                 df_editado = st.data_editor(
                     df_base,
@@ -330,6 +374,9 @@ def main():
 
                 if st.button("Descargar tabla (VPD Consultorías)"):
                     descargar_excel(df_final, file_name="vpd_consultores_modificada.xlsx")
+
+                st.write("**Resumen de totales**")
+                st.write(f"Total final: {df_final['total'].sum():,.2f}")
 
     # -------------------------------------------------------------------------
     # 3) VPO
@@ -357,7 +404,27 @@ def main():
                 df_base = calcular_misiones(df_base)
 
                 sum_total = df_base["total"].sum() if "total" in df_base.columns else 0
-                value_box("Suma del total", f"{sum_total:,.2f}")
+                monto_dpp = 434707
+                diferencia = monto_dpp - sum_total
+                color_dif = "#fb8500" if diferencia != 0 else "green"
+                gasto_cent = 48158
+                total_gc = sum_total + gasto_cent
+
+                col1, col2, col3, col4, col5 = st.columns(5)
+                with col1:
+                    value_box("Suma del total", f"{sum_total:,.2f}")
+                with col2:
+                    value_box("Monto DPP 2025", f"{monto_dpp:,.2f}")
+                with col3:
+                    value_box("Diferencia", f"{diferencia:,.2f}", color_dif)
+                with col4:
+                    value_box("Gasto Centralizado", f"{gasto_cent:,.2f}")
+                with col5:
+                    value_box("Total + Gasto Centralizado", f"{total_gc:,.2f}")
+
+                st.session_state["requerimiento_area_vpo_misiones"] = sum_total
+                st.session_state["monto_dpp_vpo_misiones"] = monto_dpp
+                st.session_state["diferencia_vpo_misiones"] = diferencia
 
                 df_editado = st.data_editor(
                     df_base,
@@ -396,7 +463,27 @@ def main():
                 df_base = calcular_consultores(df_base)
 
                 sum_total = df_base["total"].sum() if "total" in df_base.columns else 0
-                value_box("Suma del total", f"{sum_total:,.2f}")
+                monto_dpp = 250000
+                diferencia = monto_dpp - sum_total
+                color_dif = "#fb8500" if diferencia != 0 else "green"
+                gasto_cent = 50000
+                total_gc = sum_total + gasto_cent
+
+                col1, col2, col3, col4, col5 = st.columns(5)
+                with col1:
+                    value_box("Suma del total", f"{sum_total:,.2f}")
+                with col2:
+                    value_box("Monto DPP 2025", f"{monto_dpp:,.2f}")
+                with col3:
+                    value_box("Diferencia", f"{diferencia:,.2f}", color_dif)
+                with col4:
+                    value_box("Gasto Centralizado", f"{gasto_cent:,.2f}")
+                with col5:
+                    value_box("Total + Gasto Centralizado", f"{total_gc:,.2f}")
+
+                st.session_state["requerimiento_area_vpo_consultorias"] = sum_total
+                st.session_state["monto_dpp_vpo_consultorias"] = monto_dpp
+                st.session_state["diferencia_vpo_consultorias"] = diferencia
 
                 df_editado = st.data_editor(
                     df_base,
@@ -442,7 +529,27 @@ def main():
                 df_base = calcular_misiones(df_base)
 
                 sum_total = df_base["total"].sum() if "total" in df_base.columns else 0
-                value_box("Suma del total", f"{sum_total:,.2f}")
+                monto_dpp = 138600
+                diferencia = monto_dpp - sum_total
+                color_dif = "#fb8500" if diferencia != 0 else "green"
+                gasto_cent = 40960
+                total_gc = sum_total + gasto_cent
+
+                col1, col2, col3, col4, col5 = st.columns(5)
+                with col1:
+                    value_box("Suma del total", f"{sum_total:,.2f}")
+                with col2:
+                    value_box("Monto DPP 2025", f"{monto_dpp:,.2f}")
+                with col3:
+                    value_box("Diferencia", f"{diferencia:,.2f}", color_dif)
+                with col4:
+                    value_box("Gasto Centralizado", f"{gasto_cent:,.2f}")
+                with col5:
+                    value_box("Total + Gasto Centralizado", f"{total_gc:,.2f}")
+
+                st.session_state["requerimiento_area_vpf_misiones"] = sum_total
+                st.session_state["monto_dpp_vpf_misiones"] = monto_dpp
+                st.session_state["diferencia_vpf_misiones"] = diferencia
 
                 df_editado = st.data_editor(
                     df_base,
@@ -481,7 +588,27 @@ def main():
                 df_base = calcular_consultores(df_base)
 
                 sum_total = df_base["total"].sum() if "total" in df_base.columns else 0
-                value_box("Suma del total", f"{sum_total:,.2f}")
+                monto_dpp = 200000
+                diferencia = monto_dpp - sum_total
+                color_dif = "#fb8500" if diferencia != 0 else "green"
+                gasto_cent = 60000
+                total_gc = sum_total + gasto_cent
+
+                col1, col2, col3, col4, col5 = st.columns(5)
+                with col1:
+                    value_box("Suma del total", f"{sum_total:,.2f}")
+                with col2:
+                    value_box("Monto DPP 2025", f"{monto_dpp:,.2f}")
+                with col3:
+                    value_box("Diferencia", f"{diferencia:,.2f}", color_dif)
+                with col4:
+                    value_box("Gasto Centralizado", f"{gasto_cent:,.2f}")
+                with col5:
+                    value_box("Total + Gasto Centralizado", f"{total_gc:,.2f}")
+
+                st.session_state["requerimiento_area_vpf_consultores"] = sum_total
+                st.session_state["monto_dpp_vpf_consultores"] = monto_dpp
+                st.session_state["diferencia_vpf_consultores"] = diferencia
 
                 df_editado = st.data_editor(
                     df_base,
@@ -537,23 +664,19 @@ def main():
         menu_pre = ["Misiones Personal", "Misiones Consultores", "Consultorías", "Gastos Centralizados"]
         eleccion_pre = st.sidebar.selectbox("Sub-sección de PRE:", menu_pre)
 
-        # -------------------------------------------------------------
         # A) PRE > Misiones Personal
-        # -------------------------------------------------------------
         if eleccion_pre == "Misiones Personal":
             sub_sub_pre_mp = ["Requerimiento del Área", "DPP 2025"]
             eleccion_sub_sub_pre_mp = st.sidebar.selectbox("Tema (Misiones Personal):", sub_sub_pre_mp)
 
-            # Solo lectura
             if eleccion_sub_sub_pre_mp == "Requerimiento del Área":
                 st.subheader("PRE > Misiones Personal > Requerimiento del Área (Solo lectura)")
                 df_pre = st.session_state["pre_misiones_personal"]
                 sum_total = df_pre["total"].sum() if "total" in df_pre.columns else 0
                 value_box("Suma del total", f"{sum_total:,.2f}")
                 st.dataframe(df_pre)
-            
-            # Editable: DPP 2025
-            else:
+
+            else:  # "DPP 2025" => editable
                 st.subheader("PRE > Misiones Personal > DPP 2025")
                 df_base = st.session_state["pre_misiones_personal"].copy()
                 df_base = calcular_misiones(df_base)
@@ -583,9 +706,7 @@ def main():
                 if st.button("Descargar tabla (PRE Misiones Personal)"):
                     descargar_excel(df_final, file_name="pre_misiones_personal_modificada.xlsx")
 
-        # -------------------------------------------------------------
         # B) PRE > Misiones Consultores
-        # -------------------------------------------------------------
         elif eleccion_pre == "Misiones Consultores":
             sub_sub_pre_mc = ["Requerimiento del Área", "DPP 2025"]
             eleccion_sub_sub_pre_mc = st.sidebar.selectbox("Tema (Misiones Consultores):", sub_sub_pre_mc)
@@ -596,8 +717,8 @@ def main():
                 sum_total = df_pre["total"].sum() if "total" in df_pre.columns else 0
                 value_box("Suma del total", f"{sum_total:,.2f}")
                 st.dataframe(df_pre)
-            
-            else:
+
+            else:  # "DPP 2025" => editable
                 st.subheader("PRE > Misiones Consultores > DPP 2025")
                 df_base = st.session_state["pre_misiones_consultores"].copy()
                 df_base = calcular_misiones(df_base)
@@ -627,9 +748,7 @@ def main():
                 if st.button("Descargar tabla (PRE Misiones Consultores)"):
                     descargar_excel(df_final, file_name="pre_misiones_consultores_modificada.xlsx")
 
-        # -------------------------------------------------------------
         # C) PRE > Consultorías
-        # -------------------------------------------------------------
         elif eleccion_pre == "Consultorías":
             sub_sub_pre_co = ["Requerimiento del Área", "DPP 2025"]
             eleccion_sub_sub_pre_co = st.sidebar.selectbox("Tema (Consultorías):", sub_sub_pre_co)
@@ -641,7 +760,7 @@ def main():
                 value_box("Suma del total", f"{sum_total:,.2f}")
                 st.dataframe(df_pre)
 
-            else:
+            else:  # "DPP 2025" => editable
                 st.subheader("PRE > Consultorías > DPP 2025")
                 df_base = st.session_state["pre_consultores"].copy()
                 df_base = calcular_consultores(df_base)
@@ -667,10 +786,8 @@ def main():
                 if st.button("Descargar tabla (PRE Consultorías)"):
                     descargar_excel(df_final, file_name="pre_consultores_modificada.xlsx")
 
-        # -------------------------------------------------------------
-        # D) PRE > Gastos Centralizados
-        # -------------------------------------------------------------
-        else:  # Gastos Centralizados
+        # D) PRE > Gastos Centralizados (Solo lectura directo desde la bdd)
+        else:  
             st.subheader("PRE > Gastos Centralizados (Solo lectura)")
             df_gc = st.session_state["gastos_centralizados"]
             st.dataframe(df_gc)
