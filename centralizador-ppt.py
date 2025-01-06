@@ -755,8 +755,16 @@ def main():
 
             if eleccion_sub_sub_pre_co == "Requerimiento del Área":
                 st.subheader("PRE > Consultorías > Requerimiento del Área (Solo lectura)")
+
+                # --------------------------------------------------------------------------------
+                # AQUI SE HACE LA CONVERSIÓN PARA EVITAR EL TypeError (string + int)
+                # --------------------------------------------------------------------------------
                 df_pre = st.session_state["pre_consultores"]
+                if "total" in df_pre.columns:
+                    df_pre["total"] = pd.to_numeric(df_pre["total"], errors="coerce")  # <-- FIX
                 sum_total = df_pre["total"].sum() if "total" in df_pre.columns else 0
+                # --------------------------------------------------------------------------------
+
                 value_box("Suma del total", f"{sum_total:,.2f}")
                 st.dataframe(df_pre)
 
@@ -787,7 +795,7 @@ def main():
                     descargar_excel(df_final, file_name="pre_consultores_modificada.xlsx")
 
         # D) PRE > Gastos Centralizados (Solo lectura directo desde la bdd)
-        else:  
+        else:
             st.subheader("PRE > Gastos Centralizados (Solo lectura)")
             df_gc = st.session_state["gastos_centralizados"]
             st.dataframe(df_gc)
