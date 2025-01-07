@@ -83,6 +83,24 @@ def value_box(label: str, value, bg_color: str = "#6c757d"):
     """, unsafe_allow_html=True)
 
 # =============================================================================
+# 3.1. FUNCIÓN AUXILIAR PARA MOSTRAR VALUE BOXES POR ÁREA DE IMPUTACIÓN
+# =============================================================================
+def mostrar_value_boxes_por_area(df: pd.DataFrame, col_area: str = "area_imputacion"):
+    """
+    Muestra un value_box para cada área de imputación 
+    en la columna `col_area` con la suma de la columna 'total'.
+    """
+    # Ajusta las áreas de imputación según tu necesidad
+    areas_imputacion = ["VPD", "VPO", "VPF", "PRE"]
+    
+    for area in areas_imputacion:
+        if col_area in df.columns and "total" in df.columns:
+            suma_area = df.loc[df[col_area] == area, "total"].sum()
+            value_box(area, f"{suma_area:,.2f}")
+        else:
+            value_box(area, "0.00")
+
+# =============================================================================
 # 4. FUNCIÓN PARA COLOREAR LA DIFERENCIA
 # =============================================================================
 def color_diferencia(val):
@@ -156,7 +174,6 @@ def main():
     # -------------------------------------------------------------------------
     # B) LECTURA DE DATOS DESDE EXCEL A session_state
     # -------------------------------------------------------------------------
-    # Se realiza solo si aún no existen en session_state.
     if "vpd_misiones" not in st.session_state:
         st.session_state["vpd_misiones"] = pd.read_excel(excel_file, sheet_name="vpd_misiones")
     if "vpd_consultores" not in st.session_state:
@@ -674,6 +691,10 @@ def main():
                 df_pre = st.session_state["pre_misiones_personal"]
                 sum_total = df_pre["total"].sum() if "total" in df_pre.columns else 0
                 value_box("Suma del total", f"{sum_total:,.2f}")
+
+                # NUEVO: value boxes por área de imputación
+                mostrar_value_boxes_por_area(df_pre, col_area="area_imputacion")
+
                 st.dataframe(df_pre)
 
             else:  # "DPP 2025" => editable
@@ -698,6 +719,10 @@ def main():
                 )
                 df_final = calcular_misiones(df_editado)
 
+                # NUEVO: value boxes por área de imputación
+                st.markdown("### Totales por Área de Imputación")
+                mostrar_value_boxes_por_area(df_final, col_area="area_imputacion")
+
                 if st.button("Recalcular (PRE Misiones Personal)"):
                     st.session_state["pre_misiones_personal"] = df_final
                     guardar_en_excel(df_final, "pre_misiones_personal")
@@ -716,6 +741,10 @@ def main():
                 df_pre = st.session_state["pre_misiones_consultores"]
                 sum_total = df_pre["total"].sum() if "total" in df_pre.columns else 0
                 value_box("Suma del total", f"{sum_total:,.2f}")
+
+                # NUEVO: value boxes por área de imputación
+                mostrar_value_boxes_por_area(df_pre, col_area="area_imputacion")
+
                 st.dataframe(df_pre)
 
             else:  # "DPP 2025" => editable
@@ -740,6 +769,10 @@ def main():
                 )
                 df_final = calcular_misiones(df_editado)
 
+                # NUEVO: value boxes por área de imputación
+                st.markdown("### Totales por Área de Imputación")
+                mostrar_value_boxes_por_area(df_final, col_area="area_imputacion")
+
                 if st.button("Recalcular (PRE Misiones Consultores)"):
                     st.session_state["pre_misiones_consultores"] = df_final
                     guardar_en_excel(df_final, "pre_misiones_consultores")
@@ -756,16 +789,16 @@ def main():
             if eleccion_sub_sub_pre_co == "Requerimiento del Área":
                 st.subheader("PRE > Consultorías > Requerimiento del Área (Solo lectura)")
 
-                # --------------------------------------------------------------------------------
-                # AQUI SE HACE LA CONVERSIÓN PARA EVITAR EL TypeError (string + int)
-                # --------------------------------------------------------------------------------
                 df_pre = st.session_state["pre_consultores"]
                 if "total" in df_pre.columns:
-                    df_pre["total"] = pd.to_numeric(df_pre["total"], errors="coerce")  # <-- FIX
-                sum_total = df_pre["total"].sum() if "total" in df_pre.columns else 0
-                # --------------------------------------------------------------------------------
+                    df_pre["total"] = pd.to_numeric(df_pre["total"], errors="coerce")  # conversión a numérico
 
+                sum_total = df_pre["total"].sum() if "total" in df_pre.columns else 0
                 value_box("Suma del total", f"{sum_total:,.2f}")
+
+                # NUEVO: value boxes por área de imputación
+                mostrar_value_boxes_por_area(df_pre, col_area="area_imputacion")
+
                 st.dataframe(df_pre)
 
             else:  # "DPP 2025" => editable
@@ -786,6 +819,10 @@ def main():
                 )
                 df_final = calcular_consultores(df_editado)
 
+                # NUEVO: value boxes por área de imputación
+                st.markdown("### Totales por Área de Imputación")
+                mostrar_value_boxes_por_area(df_final, col_area="area_imputacion")
+
                 if st.button("Recalcular (PRE Consultorías)"):
                     st.session_state["pre_consultores"] = df_final
                     guardar_en_excel(df_final, "pre_consultores")
@@ -794,7 +831,7 @@ def main():
                 if st.button("Descargar tabla (PRE Consultorías)"):
                     descargar_excel(df_final, file_name="pre_consultores_modificada.xlsx")
 
-        # D) PRE > Gastos Centralizados (Solo lectura directo desde la bdd)
+        # D) PRE > Gastos Centralizados (Solo lectura)
         else:
             st.subheader("PRE > Gastos Centralizados (Solo lectura)")
             df_gc = st.session_state["gastos_centralizados"]
@@ -862,7 +899,6 @@ def main():
             .applymap(color_diferencia, subset=["Diferencia"])
         )
 
-        # Botón para guardar la tabla de Actualización en Excel
         if st.button("Guardar Actualización"):
             guardar_en_excel(st.session_state["actualizacion_misiones"], "actualizacion_misiones")
             guardar_en_excel(st.session_state["actualizacion_consultorias"], "actualizacion_consultorias")
