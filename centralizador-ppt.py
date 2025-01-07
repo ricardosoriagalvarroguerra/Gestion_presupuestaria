@@ -83,42 +83,22 @@ def value_box(label: str, value, bg_color: str = "#6c757d"):
     """, unsafe_allow_html=True)
 
 # =============================================================================
-# 3.1. FUNCIÓN AUXILIAR PARA MOSTRAR VALUE BOXES POR ÁREA DE IMPUTACIÓN (SIDE BY SIDE)
+# 3.1. FUNCIÓN AUXILIAR PARA MOSTRAR VALUE BOXES POR ÁREA DE IMPUTACIÓN
 # =============================================================================
 def mostrar_value_boxes_por_area(df: pd.DataFrame, col_area: str = "area_imputacion"):
     """
-    Genera un bloque HTML con value boxes uno al lado de otro (inline) 
-    para cada área de imputación (VPD, VPO, VPF, PRE), calculando la suma 
-    de la columna 'total' para cada área.
+    Muestra un value_box para cada área de imputación 
+    en la columna `col_area` con la suma de la columna 'total'.
     """
+    # Ajusta las áreas de imputación según tu necesidad
     areas_imputacion = ["VPD", "VPO", "VPF", "PRE"]
-
-    # Iniciamos un contenedor con white-space:nowrap para forzar que estén en la misma línea
-    boxes_html = '<div style="white-space:nowrap;">'
-
+    
     for area in areas_imputacion:
         if col_area in df.columns and "total" in df.columns:
             suma_area = df.loc[df[col_area] == area, "total"].sum()
-            boxes_html += f"""
-            <div style="display:inline-block; background-color:#6c757d;
-                        padding:10px; margin:5px; border-radius:5px; color:white; font-weight:bold;">
-                <div style="font-size:14px;">{area}</div>
-                <div style="font-size:20px;">{suma_area:,.2f}</div>
-            </div>
-            """
+            value_box(area, f"{suma_area:,.2f}")
         else:
-            # Si no existe la columna, ponemos 0.00
-            boxes_html += f"""
-            <div style="display:inline-block; background-color:#6c757d;
-                        padding:10px; margin:5px; border-radius:5px; color:white; font-weight:bold;">
-                <div style="font-size:14px;">{area}</div>
-                <div style="font-size:20px;">0.00</div>
-            </div>
-            """
-    boxes_html += "</div>"
-
-    # Renderizamos la cadena completa de HTML
-    st.markdown(boxes_html, unsafe_allow_html=True)
+            value_box(area, "0.00")
 
 # =============================================================================
 # 4. FUNCIÓN PARA COLOREAR LA DIFERENCIA
@@ -712,7 +692,7 @@ def main():
                 sum_total = df_pre["total"].sum() if "total" in df_pre.columns else 0
                 value_box("Suma del total", f"{sum_total:,.2f}")
 
-                # Value boxes por área de imputación (aparecen lado a lado)
+                # NUEVO: value boxes por área de imputación
                 mostrar_value_boxes_por_area(df_pre, col_area="area_imputacion")
 
                 st.dataframe(df_pre)
@@ -739,7 +719,7 @@ def main():
                 )
                 df_final = calcular_misiones(df_editado)
 
-                # Value boxes por área de imputación (side by side)
+                # NUEVO: value boxes por área de imputación
                 st.markdown("### Totales por Área de Imputación")
                 mostrar_value_boxes_por_area(df_final, col_area="area_imputacion")
 
@@ -762,7 +742,7 @@ def main():
                 sum_total = df_pre["total"].sum() if "total" in df_pre.columns else 0
                 value_box("Suma del total", f"{sum_total:,.2f}")
 
-                # Value boxes por área de imputación
+                # NUEVO: value boxes por área de imputación
                 mostrar_value_boxes_por_area(df_pre, col_area="area_imputacion")
 
                 st.dataframe(df_pre)
@@ -789,6 +769,7 @@ def main():
                 )
                 df_final = calcular_misiones(df_editado)
 
+                # NUEVO: value boxes por área de imputación
                 st.markdown("### Totales por Área de Imputación")
                 mostrar_value_boxes_por_area(df_final, col_area="area_imputacion")
 
@@ -815,7 +796,7 @@ def main():
                 sum_total = df_pre["total"].sum() if "total" in df_pre.columns else 0
                 value_box("Suma del total", f"{sum_total:,.2f}")
 
-                # Value boxes por área de imputación (side by side)
+                # NUEVO: value boxes por área de imputación
                 mostrar_value_boxes_por_area(df_pre, col_area="area_imputacion")
 
                 st.dataframe(df_pre)
@@ -838,6 +819,7 @@ def main():
                 )
                 df_final = calcular_consultores(df_editado)
 
+                # NUEVO: value boxes por área de imputación
                 st.markdown("### Totales por Área de Imputación")
                 mostrar_value_boxes_por_area(df_final, col_area="area_imputacion")
 
