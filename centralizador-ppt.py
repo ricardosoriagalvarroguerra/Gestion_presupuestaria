@@ -83,22 +83,27 @@ def value_box(label: str, value, bg_color: str = "#6c757d"):
     """, unsafe_allow_html=True)
 
 # =============================================================================
-# 3.1. FUNCIÓN AUXILIAR PARA MOSTRAR VALUE BOXES POR ÁREA DE IMPUTACIÓN
+# 3.1. FUNCIÓN AUXILIAR PARA MOSTRAR VALUE BOXES POR ÁREA DE IMPUTACIÓN (EN COLUMNAS)
 # =============================================================================
 def mostrar_value_boxes_por_area(df: pd.DataFrame, col_area: str = "area_imputacion"):
     """
-    Muestra un value_box para cada área de imputación 
-    en la columna `col_area` con la suma de la columna 'total'.
+    Muestra 4 value boxes (VPD, VPO, VPF, PRE) uno al lado del otro
+    en columnas de Streamlit, calculando la suma de la columna 'total'
+    para cada área.
     """
-    # Ajusta las áreas de imputación según tu necesidad
     areas_imputacion = ["VPD", "VPO", "VPF", "PRE"]
-    
-    for area in areas_imputacion:
+    cols = st.columns(len(areas_imputacion))  # Creamos 4 columnas (una por área)
+
+    for i, area in enumerate(areas_imputacion):
         if col_area in df.columns and "total" in df.columns:
-            suma_area = df.loc[df[col_area] == area, "total"].sum()
-            value_box(area, f"{suma_area:,.2f}")
+            # Suma de 'total' filtrando por el valor del área
+            total_area = df.loc[df[col_area] == area, "total"].sum()
         else:
-            value_box(area, "0.00")
+            # Si no hay columna col_area o 'total', mostramos 0
+            total_area = 0
+
+        with cols[i]:
+            value_box(area, f"{total_area:,.2f}")
 
 # =============================================================================
 # 4. FUNCIÓN PARA COLOREAR LA DIFERENCIA
@@ -692,7 +697,6 @@ def main():
                 sum_total = df_pre["total"].sum() if "total" in df_pre.columns else 0
                 value_box("Suma del total", f"{sum_total:,.2f}")
 
-                # NUEVO: value boxes por área de imputación
                 mostrar_value_boxes_por_area(df_pre, col_area="area_imputacion")
 
                 st.dataframe(df_pre)
@@ -719,7 +723,6 @@ def main():
                 )
                 df_final = calcular_misiones(df_editado)
 
-                # NUEVO: value boxes por área de imputación
                 st.markdown("### Totales por Área de Imputación")
                 mostrar_value_boxes_por_area(df_final, col_area="area_imputacion")
 
@@ -742,7 +745,6 @@ def main():
                 sum_total = df_pre["total"].sum() if "total" in df_pre.columns else 0
                 value_box("Suma del total", f"{sum_total:,.2f}")
 
-                # NUEVO: value boxes por área de imputación
                 mostrar_value_boxes_por_area(df_pre, col_area="area_imputacion")
 
                 st.dataframe(df_pre)
@@ -769,7 +771,6 @@ def main():
                 )
                 df_final = calcular_misiones(df_editado)
 
-                # NUEVO: value boxes por área de imputación
                 st.markdown("### Totales por Área de Imputación")
                 mostrar_value_boxes_por_area(df_final, col_area="area_imputacion")
 
@@ -788,15 +789,14 @@ def main():
 
             if eleccion_sub_sub_pre_co == "Requerimiento del Área":
                 st.subheader("PRE > Consultorías > Requerimiento del Área (Solo lectura)")
-
                 df_pre = st.session_state["pre_consultores"]
+
                 if "total" in df_pre.columns:
-                    df_pre["total"] = pd.to_numeric(df_pre["total"], errors="coerce")  # conversión a numérico
+                    df_pre["total"] = pd.to_numeric(df_pre["total"], errors="coerce")
 
                 sum_total = df_pre["total"].sum() if "total" in df_pre.columns else 0
                 value_box("Suma del total", f"{sum_total:,.2f}")
 
-                # NUEVO: value boxes por área de imputación
                 mostrar_value_boxes_por_area(df_pre, col_area="area_imputacion")
 
                 st.dataframe(df_pre)
@@ -819,7 +819,6 @@ def main():
                 )
                 df_final = calcular_consultores(df_editado)
 
-                # NUEVO: value boxes por área de imputación
                 st.markdown("### Totales por Área de Imputación")
                 mostrar_value_boxes_por_area(df_final, col_area="area_imputacion")
 
