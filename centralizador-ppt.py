@@ -266,7 +266,7 @@ def main():
             valid_password = "2025presupuesto"
             if username in valid_users and password == valid_password:
                 st.session_state["logged_in"] = True
-                st.rerun()
+                st.rerun()  # <-- Usar st.rerun() en lugar de st.experimental_rerun()
             else:
                 st.error("Usuario o contraseña incorrectos.")
         return
@@ -422,7 +422,7 @@ def main():
                     st.session_state["vpd_misiones"] = df_subido
                     guardar_en_excel(df_subido, sheet_name="vpd_misiones")
                     st.success("¡Tabla de VPD Misiones reemplazada con éxito!")
-                    st.experimental_rerun()
+                    st.rerun()  # <-- Cambiamos a st.rerun()
 
                 df_editado = st.data_editor(
                     df_base,
@@ -448,7 +448,6 @@ def main():
                     st.session_state["requerimiento_area_vpd_misiones"] = sum_final
                     dif_final = monto_dpp - sum_final
                     st.session_state["diferencia_vpd_misiones"] = dif_final
-                    # Y si quieres, llamas de nuevo a actualizar_misiones("VPD", sum_final, monto_dpp)
 
                 if st.button("Descargar tabla (VPD Misiones)"):
                     descargar_excel(df_final, file_name="vpd_misiones_modificada.xlsx")
@@ -511,7 +510,7 @@ def main():
                     st.session_state["vpd_consultores"] = df_subido
                     guardar_en_excel(df_subido, sheet_name="vpd_consultores")
                     st.success("¡Tabla de VPD Consultorías reemplazada con éxito!")
-                    st.experimental_rerun()
+                    st.rerun()  # <-- Cambiamos a st.rerun()
 
                 df_editado = st.data_editor(
                     df_base,
@@ -532,7 +531,6 @@ def main():
                     dif_fin = monto_dpp - sum_final
                     st.session_state["requerimiento_area_vpd_consultorias"] = sum_final
                     st.session_state["diferencia_vpd_consultorias"] = dif_fin
-                    # actualizar_consultorias("VPD", sum_final, monto_dpp)
 
                 if st.button("Descargar tabla (VPD Consultorías)"):
                     descargar_excel(df_final, file_name="vpd_consultores_modificada.xlsx")
@@ -599,7 +597,7 @@ def main():
                     st.session_state["vpo_misiones"] = df_subido
                     guardar_en_excel(df_subido, "vpo_misiones")
                     st.success("¡Tabla de VPO Misiones reemplazada con éxito!")
-                    st.experimental_rerun()
+                    st.rerun()  # <-- Cambiamos a st.rerun()
 
                 df_editado = st.data_editor(
                     df_base,
@@ -670,7 +668,7 @@ def main():
                     st.session_state["vpo_consultores"] = df_subido
                     guardar_en_excel(df_subido, "vpo_consultores")
                     st.success("¡Tabla de VPO Consultorías reemplazada con éxito!")
-                    st.experimental_rerun()
+                    st.rerun()  # <-- Cambiamos a st.rerun()
 
                 df_editado = st.data_editor(
                     df_base,
@@ -748,7 +746,7 @@ def main():
                     st.session_state["vpf_misiones"] = df_subido
                     guardar_en_excel(df_subido, "vpf_misiones")
                     st.success("¡Tabla de VPF Misiones reemplazada con éxito!")
-                    st.experimental_rerun()
+                    st.rerun()  # <-- Cambiamos a st.rerun()
 
                 df_editado = st.data_editor(
                     df_base,
@@ -819,7 +817,7 @@ def main():
                     st.session_state["vpf_consultores"] = df_subido
                     guardar_en_excel(df_subido, "vpf_consultores")
                     st.success("¡Tabla de VPF Consultorías reemplazada con éxito!")
-                    st.experimental_rerun()
+                    st.rerun()  # <-- Cambiamos a st.rerun()
 
                 df_editado = st.data_editor(
                     df_base,
@@ -903,7 +901,7 @@ def main():
                     st.session_state["pre_misiones_personal"] = df_subido
                     guardar_en_excel(df_subido, "pre_misiones_personal")
                     st.success("¡Tabla de PRE Misiones Personal reemplazada con éxito!")
-                    st.experimental_rerun()
+                    st.rerun()  # <-- Cambiamos a st.rerun()
 
                 df_editado = st.data_editor(
                     df_base,
@@ -957,7 +955,7 @@ def main():
                     st.session_state["pre_misiones_consultores"] = df_subido
                     guardar_en_excel(df_subido, "pre_misiones_consultores")
                     st.success("¡Tabla de PRE Misiones Consultores reemplazada con éxito!")
-                    st.experimental_rerun()
+                    st.rerun()  # <-- Cambiamos a st.rerun()
 
                 df_editado = st.data_editor(
                     df_base,
@@ -1016,7 +1014,7 @@ def main():
                     st.session_state["pre_consultores"] = df_subido
                     guardar_en_excel(df_subido, "pre_consultores")
                     st.success("¡Tabla de PRE Consultorías reemplazada con éxito!")
-                    st.experimental_rerun()
+                    st.rerun()  # <-- Cambiamos a st.rerun()
 
                 df_editado = st.data_editor(
                     df_base,
