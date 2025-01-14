@@ -263,7 +263,7 @@ def main():
             valid_password = "2025presupuesto"
             if username in valid_users and password == valid_password:
                 st.session_state["logged_in"] = True
-                st.rerun()
+                st.experimental_rerun()
             else:
                 st.error("Usuario o contraseña incorrectos.")
         return
@@ -407,12 +407,8 @@ def main():
                 with col5:
                     value_box("Total + Gasto Centralizado", f"{total_gasto_cent:,.2f}")
 
-                st.session_state["requerimiento_area_vpd_misiones"] = sum_total
-                st.session_state["monto_dpp_vpd_misiones"] = monto_dpp
-                st.session_state["diferencia_vpd_misiones"] = diferencia
-
                 # ------------------------------------------------------------------
-                #   CARGAR ARCHIVO EXCEL PARA REEMPLAZAR TABLA - FIX EVITAR LOOP
+                #   CARGAR ARCHIVO EXCEL PARA REEMPLAZAR TABLA - FIX
                 # ------------------------------------------------------------------
                 uploaded_file = st.file_uploader(
                     "Cargar un archivo Excel para reemplazar esta tabla", 
@@ -420,21 +416,14 @@ def main():
                     key="vpd_misiones_file"
                 )
 
-                if "vpd_misiones_uploaded" not in st.session_state:
-                    st.session_state["vpd_misiones_uploaded"] = False
-
-                # Si no hay archivo subido, resetea la bandera
-                if not uploaded_file and st.session_state["vpd_misiones_uploaded"]:
-                    st.session_state["vpd_misiones_uploaded"] = False
-
-                if uploaded_file and not st.session_state["vpd_misiones_uploaded"]:
+                # **Nueva lógica simplificada**:
+                if uploaded_file:
                     df_subido = pd.read_excel(uploaded_file)
                     df_subido = calcular_misiones(df_subido)
                     st.session_state["vpd_misiones"] = df_subido
                     guardar_en_excel(df_subido, sheet_name="vpd_misiones")
                     st.success("¡Tabla de VPD Misiones reemplazada con éxito!")
-                    st.session_state["vpd_misiones_uploaded"] = True
-                    st.rerun()
+                    st.experimental_rerun()
 
                 df_editado = st.data_editor(
                     df_base,
@@ -509,30 +498,20 @@ def main():
                 with col5:
                     value_box("Total + Gasto Centralizado", f"{total_gc:,.2f}")
 
-                st.session_state["requerimiento_area_vpd_consultorias"] = sum_total
-                st.session_state["monto_dpp_vpd_consultorias"] = monto_dpp
-                st.session_state["diferencia_vpd_consultorias"] = diferencia
-
                 uploaded_file = st.file_uploader(
                     "Cargar un archivo Excel para reemplazar esta tabla",
                     type=["xlsx"], 
                     key="vpd_consultores_file"
                 )
 
-                if "vpd_consultores_uploaded" not in st.session_state:
-                    st.session_state["vpd_consultores_uploaded"] = False
-
-                if not uploaded_file and st.session_state["vpd_consultores_uploaded"]:
-                    st.session_state["vpd_consultores_uploaded"] = False
-
-                if uploaded_file and not st.session_state["vpd_consultores_uploaded"]:
+                # **Nueva lógica simplificada**:
+                if uploaded_file:
                     df_subido = pd.read_excel(uploaded_file)
                     df_subido = calcular_consultores(df_subido)
                     st.session_state["vpd_consultores"] = df_subido
                     guardar_en_excel(df_subido, sheet_name="vpd_consultores")
                     st.success("¡Tabla de VPD Consultorías reemplazada con éxito!")
-                    st.session_state["vpd_consultores_uploaded"] = True
-                    st.rerun()
+                    st.experimental_rerun()
 
                 df_editado = st.data_editor(
                     df_base,
@@ -608,27 +587,19 @@ def main():
                 with col5:
                     value_box("Total + Gasto Centralizado", f"{total_gc:,.2f}")
 
-                # Subir archivo
                 uploaded_file = st.file_uploader(
                     "Cargar un archivo Excel para reemplazar esta tabla",
                     type=["xlsx"],
                     key="vpo_misiones_file"
                 )
 
-                if "vpo_misiones_uploaded" not in st.session_state:
-                    st.session_state["vpo_misiones_uploaded"] = False
-
-                if not uploaded_file and st.session_state["vpo_misiones_uploaded"]:
-                    st.session_state["vpo_misiones_uploaded"] = False
-
-                if uploaded_file and not st.session_state["vpo_misiones_uploaded"]:
+                if uploaded_file:
                     df_subido = pd.read_excel(uploaded_file)
                     df_subido = calcular_misiones(df_subido)
                     st.session_state["vpo_misiones"] = df_subido
                     guardar_en_excel(df_subido, "vpo_misiones")
                     st.success("¡Tabla de VPO Misiones reemplazada con éxito!")
-                    st.session_state["vpo_misiones_uploaded"] = True
-                    st.rerun()
+                    st.experimental_rerun()
 
                 st.session_state["requerimiento_area_vpo_misiones"] = sum_total
                 st.session_state["monto_dpp_vpo_misiones"] = monto_dpp
@@ -689,27 +660,19 @@ def main():
                 with col5:
                     value_box("Total + Gasto Centralizado", f"{total_gc:,.2f}")
 
-                # Subir archivo
                 uploaded_file = st.file_uploader(
                     "Cargar un archivo Excel para reemplazar esta tabla",
                     type=["xlsx"],
                     key="vpo_consultores_file"
                 )
 
-                if "vpo_consultores_uploaded" not in st.session_state:
-                    st.session_state["vpo_consultores_uploaded"] = False
-
-                if not uploaded_file and st.session_state["vpo_consultores_uploaded"]:
-                    st.session_state["vpo_consultores_uploaded"] = False
-
-                if uploaded_file and not st.session_state["vpo_consultores_uploaded"]:
+                if uploaded_file:
                     df_subido = pd.read_excel(uploaded_file)
                     df_subido = calcular_consultores(df_subido)
                     st.session_state["vpo_consultores"] = df_subido
                     guardar_en_excel(df_subido, "vpo_consultores")
                     st.success("¡Tabla de VPO Consultorías reemplazada con éxito!")
-                    st.session_state["vpo_consultores_uploaded"] = True
-                    st.rerun()
+                    st.experimental_rerun()
 
                 st.session_state["requerimiento_area_vpo_consultorias"] = sum_total
                 st.session_state["monto_dpp_vpo_consultorias"] = monto_dpp
@@ -784,20 +747,13 @@ def main():
                     key="vpf_misiones_file"
                 )
 
-                if "vpf_misiones_uploaded" not in st.session_state:
-                    st.session_state["vpf_misiones_uploaded"] = False
-
-                if not uploaded_file and st.session_state["vpf_misiones_uploaded"]:
-                    st.session_state["vpf_misiones_uploaded"] = False
-
-                if uploaded_file and not st.session_state["vpf_misiones_uploaded"]:
+                if uploaded_file:
                     df_subido = pd.read_excel(uploaded_file)
                     df_subido = calcular_misiones(df_subido)
                     st.session_state["vpf_misiones"] = df_subido
                     guardar_en_excel(df_subido, "vpf_misiones")
                     st.success("¡Tabla de VPF Misiones reemplazada con éxito!")
-                    st.session_state["vpf_misiones_uploaded"] = True
-                    st.rerun()
+                    st.experimental_rerun()
 
                 st.session_state["requerimiento_area_vpf_misiones"] = sum_total
                 st.session_state["monto_dpp_vpf_misiones"] = monto_dpp
@@ -864,20 +820,13 @@ def main():
                     key="vpf_consultores_file"
                 )
 
-                if "vpf_consultores_uploaded" not in st.session_state:
-                    st.session_state["vpf_consultores_uploaded"] = False
-
-                if not uploaded_file and st.session_state["vpf_consultores_uploaded"]:
-                    st.session_state["vpf_consultores_uploaded"] = False
-
-                if uploaded_file and not st.session_state["vpf_consultores_uploaded"]:
+                if uploaded_file:
                     df_subido = pd.read_excel(uploaded_file)
                     df_subido = calcular_consultores(df_subido)
                     st.session_state["vpf_consultores"] = df_subido
                     guardar_en_excel(df_subido, "vpf_consultores")
                     st.success("¡Tabla de VPF Consultorías reemplazada con éxito!")
-                    st.session_state["vpf_consultores_uploaded"] = True
-                    st.rerun()
+                    st.experimental_rerun()
 
                 st.session_state["requerimiento_area_vpf_consultores"] = sum_total
                 st.session_state["monto_dpp_vpf_consultores"] = monto_dpp
@@ -961,20 +910,13 @@ def main():
                     key="pre_misiones_personal_file"
                 )
 
-                if "pre_misiones_personal_uploaded" not in st.session_state:
-                    st.session_state["pre_misiones_personal_uploaded"] = False
-
-                if not uploaded_file and st.session_state["pre_misiones_personal_uploaded"]:
-                    st.session_state["pre_misiones_personal_uploaded"] = False
-
-                if uploaded_file and not st.session_state["pre_misiones_personal_uploaded"]:
+                if uploaded_file:
                     df_subido = pd.read_excel(uploaded_file)
                     df_subido = calcular_misiones(df_subido)
                     st.session_state["pre_misiones_personal"] = df_subido
                     guardar_en_excel(df_subido, "pre_misiones_personal")
                     st.success("¡Tabla de PRE Misiones Personal reemplazada con éxito!")
-                    st.session_state["pre_misiones_personal_uploaded"] = True
-                    st.rerun()
+                    st.experimental_rerun()
 
                 df_editado = st.data_editor(
                     df_base,
@@ -1027,20 +969,13 @@ def main():
                     key="pre_misiones_consultores_file"
                 )
 
-                if "pre_misiones_consultores_uploaded" not in st.session_state:
-                    st.session_state["pre_misiones_consultores_uploaded"] = False
-
-                if not uploaded_file and st.session_state["pre_misiones_consultores_uploaded"]:
-                    st.session_state["pre_misiones_consultores_uploaded"] = False
-
-                if uploaded_file and not st.session_state["pre_misiones_consultores_uploaded"]:
+                if uploaded_file:
                     df_subido = pd.read_excel(uploaded_file)
                     df_subido = calcular_misiones(df_subido)
                     st.session_state["pre_misiones_consultores"] = df_subido
                     guardar_en_excel(df_subido, "pre_misiones_consultores")
                     st.success("¡Tabla de PRE Misiones Consultores reemplazada con éxito!")
-                    st.session_state["pre_misiones_consultores_uploaded"] = True
-                    st.rerun()
+                    st.experimental_rerun()
 
                 df_editado = st.data_editor(
                     df_base,
@@ -1098,20 +1033,13 @@ def main():
                     key="pre_consultores_file"
                 )
 
-                if "pre_consultores_uploaded" not in st.session_state:
-                    st.session_state["pre_consultores_uploaded"] = False
-
-                if not uploaded_file and st.session_state["pre_consultores_uploaded"]:
-                    st.session_state["pre_consultores_uploaded"] = False
-
-                if uploaded_file and not st.session_state["pre_consultores_uploaded"]:
+                if uploaded_file:
                     df_subido = pd.read_excel(uploaded_file)
                     df_subido = calcular_consultores(df_subido)
                     st.session_state["pre_consultores"] = df_subido
                     guardar_en_excel(df_subido, "pre_consultores")
                     st.success("¡Tabla de PRE Consultorías reemplazada con éxito!")
-                    st.session_state["pre_consultores_uploaded"] = True
-                    st.rerun()
+                    st.experimental_rerun()
 
                 df_editado = st.data_editor(
                     df_base,
