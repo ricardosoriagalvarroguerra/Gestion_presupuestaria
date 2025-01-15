@@ -201,20 +201,18 @@ DPP_VALORES = {
     "PRE": {"misiones": 0,      "consultorias": 0},
 }
 
-# DPP ESPECÍFICOS PARA "GC" (Gastos Centralizados) - Tus instrucciones:
-# - Misiones Personal
+# DPP ESPECÍFICOS PARA "GC" (Gastos Centralizados)
+# (Si no los requieres, puedes dejarlos o borrarlos)
 DPP_GC_MIS_PER = {
     "VPD": 36960,
     "VPO": 48158,
     "VPF": 40960
 }
-# - Misiones Consultores
 DPP_GC_MIS_CONS = {
     "VPD": 24200,
     "VPO": 13160,
     "VPF": 24200
 }
-# - Consultorías
 DPP_GC_CONS = {
     "VPD": 24200,
     "VPO": 13160,
@@ -226,16 +224,15 @@ DPP_GC_CONS = {
 # =============================================================================
 def sincronizar_actualizacion_al_iniciar():
     """
-    1) Actualiza VPD, VPO, VPF, VPE con sus DPP habituales.
+    1) Actualiza VPD, VPO, VPF, VPE con sus DPP habituales en Misiones y Consultorías.
     2) Actualiza PRE dividiéndolo en:
        - PRE - Misiones - Personal
        - PRE - Misiones - Consultores
        - PRE - Consultorías
-    3) Agrega filas para "Gastos Centralizados" de Misiones Personal, Misiones Consultores,
-       y Consultorías (por VPD, VPO, VPF) a partir de la data de "PRE"
-       pero filtrando area_imputacion == 'VPD', 'VPO', 'VPF'.
-       Con los DPP 2025 que indicaste.
+    3) También se calculan las filas "VPD - Consultorías", "VPO - Consultorías", "VPF - Consultorías"
+       a partir de la hoja 'pre_consultores' (filtrando por area_imputacion).
     """
+
     # -------------------------------------------------------------------------
     # A) VPD, VPO, VPF, VPE
     # -------------------------------------------------------------------------
@@ -262,8 +259,9 @@ def sincronizar_actualizacion_al_iniciar():
             actualizar_consultorias(unidad, total_cons, dpp_cons)
 
     # -------------------------------------------------------------------------
-    # B) PRE
+    # B) PRE > MISIONES (PERSONAL Y CONSULTORES) Y CONSULTORÍAS
     # -------------------------------------------------------------------------
+    # --- Misiones Personal ---
     if "pre_misiones_personal" in st.session_state:
         df_personal = st.session_state["pre_misiones_personal"].copy()
         df_personal = calcular_misiones(df_personal)
@@ -271,6 +269,7 @@ def sincronizar_actualizacion_al_iniciar():
     else:
         total_personal = 0
 
+    # --- Misiones Consultores ---
     if "pre_misiones_consultores" in st.session_state:
         df_mis_cons = st.session_state["pre_misiones_consultores"].copy()
         df_mis_cons = calcular_misiones(df_mis_cons)
@@ -278,24 +277,49 @@ def sincronizar_actualizacion_al_iniciar():
     else:
         total_misiones_cons = 0
 
+    # --- Consultorías (se usará para PRE y también para VPD, VPO, VPF) ---
     if "pre_consultores" in st.session_state:
         df_cons = st.session_state["pre_consultores"].copy()
         df_cons = calcular_consultores(df_cons)
-        total_consultorias = df_cons.loc[df_cons["area_imputacion"] == "PRE", "total"].sum()
     else:
-        total_consultorias = 0
+        # Si no hay DataFrame, definimos uno vacío
+        df_cons = pd.DataFrame(columns=["area_imputacion", "total"])
+
+    # Cálculo para "PRE" (consultorías)
+    total_consultorias_PRE = df_cons.loc[df_cons["area_imputacion"] == "PRE", "total"].sum()
 
     # Montos DPP 2025 PRE
     dpp_pre_personal     = 80248
     dpp_pre_mis_cons     = 30872
     dpp_pre_consultorias = 307528
 
-    actualizar_misiones("PRE - Misiones - Personal",       total_personal,       dpp_pre_personal)
-    actualizar_misiones("PRE - Misiones - Consultores",    total_misiones_cons,  dpp_pre_mis_cons)
-    actualizar_consultorias("PRE - Consultorías",          total_consultorias,   dpp_pre_consultorias)
+    # Actualiza las filas en "actualizacion_misiones" y "actualizacion_consultorias"
+    actualizar_misiones("PRE - Misiones - Personal",    total_personal,      dpp_pre_personal)
+    actualizar_misiones("PRE - Misiones - Consultores", total_misiones_cons, dpp_pre_mis_cons)
+    actualizar_consultorias("PRE - Consultorías",       total_consultorias_PRE, dpp_pre_consultorias)
 
     # -------------------------------------------------------------------------
-    # C) GASTOS CENTRALIZADOS (GC) para VPD, VPO, VPF (a partir de PRE)
+    # C) CREAR FILAS: VPD - Consultorías, VPO - Consultorías, VPF - Consultorías
+    #    con base en 'pre_consultores' filtrando area_imputacion = "VPD", "VPO", "VPF"
+    #    y usando los montos DPP 2025 solicitados.
+    # -------------------------------------------------------------------------
+    sum_vpd = df_cons.loc[df_cons["area_imputacion"] == "VPD", "total"].sum()
+    sum_vpo = df_cons.loc[df_cons["area_imputacion"] == "VPO", "total"].sum()
+    sum_vpf = df_cons.loc[df_cons["area_imputacion"] == "VPF", "total"].sum()
+
+    dpp_vpd_consultorias = 193160
+    dpp_vpo_consultorias = 33160
+    dpp_vpf_consultorias = 88480
+
+    actualizar_consultorias("VPD - Consultorías", sum_vpd, dpp_vpd_consultorias)
+    actualizar_consultorias("VPO - Consultorías", sum_vpo, dpp_vpo_consultorias)
+    actualizar_consultorias("VPF - Consultorías", sum_vpf, dpp_vpf_consultorias)
+
+    # -------------------------------------------------------------------------
+    # D) GASTOS CENTRALIZADOS (GC) - OPCIONALES
+    #    Si aún los requieres para Misiones (Personal y Consultores) PUEDES dejarlos;
+    #    En esta parte *comentamos* la sección de GC para Consultorías (VPD,VPO,VPF) 
+    #    para NO sobrescribir los valores que acabamos de poner.
     # -------------------------------------------------------------------------
     df_gc_personal = st.session_state.get("pre_misiones_personal", pd.DataFrame())
     df_gc_personal = calcular_misiones(df_gc_personal)
@@ -303,9 +327,7 @@ def sincronizar_actualizacion_al_iniciar():
     df_gc_miscons  = st.session_state.get("pre_misiones_consultores", pd.DataFrame())
     df_gc_miscons  = calcular_misiones(df_gc_miscons)
 
-    df_gc_cons     = st.session_state.get("pre_consultores", pd.DataFrame())
-    df_gc_cons     = calcular_consultores(df_gc_cons)
-
+    # *** Dejamos los GC de misiones, si los usas ***
     # 1) GC - Misiones Personal
     for unidad in ["VPD", "VPO", "VPF"]:
         total_unidad = df_gc_personal.loc[df_gc_personal["area_imputacion"] == unidad, "total"].sum()
@@ -320,12 +342,17 @@ def sincronizar_actualizacion_al_iniciar():
         label_gc = f"{unidad} - GC Misiones Consultores"
         actualizar_misiones(label_gc, total_unidad, dpp_gc)
 
-    # 3) GC - Consultorías (VPD, VPO, VPF)
-    for unidad in ["VPD", "VPO", "VPF"]:
-        total_unidad = df_gc_cons.loc[df_gc_cons["area_imputacion"] == unidad, "total"].sum()
-        dpp_gc = DPP_GC_CONS[unidad]
-        label_gc = f"{unidad} - Consultorías"
-        actualizar_consultorias(label_gc, total_unidad, dpp_gc)
+    # 3) GC - Consultorías (VPD, VPO, VPF) -- COMENTADO / ELIMINADO
+    #    para no sobrescribir "VPD - Consultorías", "VPO - Consultorías", "VPF - Consultorías".
+    #
+    # df_gc_cons     = st.session_state.get("pre_consultores", pd.DataFrame())
+    # df_gc_cons     = calcular_consultores(df_gc_cons)
+    #
+    # for unidad in ["VPD", "VPO", "VPF"]:
+    #     total_unidad = df_gc_cons.loc[df_gc_cons["area_imputacion"] == unidad, "total"].sum()
+    #     dpp_gc = DPP_GC_CONS[unidad]
+    #     label_gc = f"{unidad} - Consultorías"
+    #     actualizar_consultorias(label_gc, total_unidad, dpp_gc)
 
 # =============================================================================
 # 9. FUNCIÓN PRINCIPAL
