@@ -165,7 +165,7 @@ def actualizar_misiones(unit: str, req_area: float, monto_dpp: float):
 
 def actualizar_consultorias(unit: str, req_area: float, monto_dpp: float):
     """
-    Similar a actualizar_misiones, pero para 'actualizacion_consultorias'.
+    Actualiza (o crea) la fila correspondiente a `unit` en 'actualizacion_consultorias'.
     """
     if "actualizacion_consultorias" not in st.session_state:
         st.session_state["actualizacion_consultorias"] = pd.DataFrame(
@@ -192,14 +192,33 @@ def actualizar_consultorias(unit: str, req_area: float, monto_dpp: float):
     st.session_state["actualizacion_consultorias"] = df_act
     guardar_en_excel(df_act, "actualizacion_consultorias")
 
-# Diccionario con valores DPP 2025 para VPD, VPO, VPF, VPE (y PRE=0, porque se maneja aparte)
+# MONTOS DPP PARA VPD, VPO, VPF, VPE (la unidad PRE se maneja abajo).
 DPP_VALORES = {
     "VPD": {"misiones": 168000, "consultorias": 130000},
     "VPO": {"misiones": 434707, "consultorias": 250000},
     "VPF": {"misiones": 138600, "consultorias": 200000},
-    # Aquí el ajuste para VPE: misiones=28,244 y consultorías=179,446
     "VPE": {"misiones": 28244,  "consultorias": 179446},
     "PRE": {"misiones": 0,      "consultorias": 0},
+}
+
+# DPP ESPECÍFICOS PARA "GC" (Gastos Centralizados) - Tus instrucciones:
+# - Misiones Personal
+DPP_GC_MIS_PER = {
+    "VPD": 36960,
+    "VPO": 48158,
+    "VPF": 40960
+}
+# - Misiones Consultores
+DPP_GC_MIS_CONS = {
+    "VPD": 24200,
+    "VPO": 13160,
+    "VPF": 24200
+}
+# - Consultorías
+DPP_GC_CONS = {
+    "VPD": 24200,
+    "VPO": 13160,
+    "VPF": 24200
 }
 
 # =============================================================================
@@ -207,69 +226,51 @@ DPP_VALORES = {
 # =============================================================================
 def sincronizar_actualizacion_al_iniciar():
     """
-    Sincroniza las tablas de 'actualizacion_misiones' y 'actualizacion_consultorias'
-    al iniciar la app, recalculando totals y DPP para cada unidad.
-    
-    - VPD, VPO, VPF, VPE => Se manejan en el bucle for con DPP_VALORES,
-      sumando la columna "total" y comparándola con su DPP respectivo.
-    - PRE => Se hace un manejo especial, dividiendo en:
-       1) PRE - Misiones - Personal      (DPP 2025 = 80,248)
-       2) PRE - Misiones - Consultores   (DPP 2025 = 30,872)
-       3) PRE - Consultorías             (DPP 2025 = 307,528)
+    1) Actualiza VPD, VPO, VPF, VPE con sus DPP habituales.
+    2) Actualiza PRE dividiéndolo en:
+       - PRE - Misiones - Personal
+       - PRE - Misiones - Consultores
+       - PRE - Consultorías
+    3) Agrega filas para "Gastos Centralizados" de Misiones Personal, Misiones Consultores,
+       y Consultorías (por VPD, VPO, VPF) a partir de la data de "PRE"
+       pero filtrando area_imputacion == 'VPD', 'VPO', 'VPF'.
+       Con los DPP 2025 que indicaste.
     """
-    unidades = ["VPD", "VPO", "VPF", "VPE"]  # Excluimos PRE del loop (se maneja aparte)
-
+    # -------------------------------------------------------------------------
+    # A) VPD, VPO, VPF, VPE
+    # -------------------------------------------------------------------------
+    unidades = ["VPD", "VPO", "VPF", "VPE"]  # Excluimos PRE del bucle
     for unidad in unidades:
-        # --- MISIONES
+        # MISIONES
         df_misiones_key = f"{unidad.lower()}_misiones"
         if df_misiones_key in st.session_state:
             df_temp = st.session_state[df_misiones_key].copy()
-
-            # Para VPE no aplicamos la fórmula de "calcular_misiones" si no quieres.
-            # Aun así, necesitamos la columna "total". 
-            # Si la tabla NO tiene fórmulas, esperamos que ya haya una columna "total".
-            # En este ejemplo, definimos:
-            #   - VPE "sin fórmulas" => no llamamos a calcular_misiones
-            if unidad != "VPE":
+            if unidad != "VPE":  
                 df_temp = calcular_misiones(df_temp)
-
-            if "total" in df_temp.columns:
-                total_misiones = df_temp["total"].sum()
-            else:
-                total_misiones = 0.0
-
-            dpp_misiones = DPP_VALORES.get(unidad, {}).get("misiones", 0.0)
+            total_misiones = df_temp["total"].sum() if "total" in df_temp.columns else 0
+            dpp_misiones = DPP_VALORES[unidad]["misiones"]
             actualizar_misiones(unidad, total_misiones, dpp_misiones)
 
-        # --- CONSULTORÍAS
+        # CONSULTORIAS
         df_consult_key = f"{unidad.lower()}_consultores"
         if df_consult_key in st.session_state:
             df_temp = st.session_state[df_consult_key].copy()
-
             if unidad != "VPE":
                 df_temp = calcular_consultores(df_temp)
+            total_cons = df_temp["total"].sum() if "total" in df_temp.columns else 0
+            dpp_cons = DPP_VALORES[unidad]["consultorias"]
+            actualizar_consultorias(unidad, total_cons, dpp_cons)
 
-            if "total" in df_temp.columns:
-                total_consult = df_temp["total"].sum()
-            else:
-                total_consult = 0.0
-
-            dpp_consult = DPP_VALORES.get(unidad, {}).get("consultorias", 0.0)
-            actualizar_consultorias(unidad, total_consult, dpp_consult)
-
-    # -----------------------------------------------------------------------
-    # TRATAMIENTO ESPECIAL PARA "PRE"
-    # -----------------------------------------------------------------------
-    # a) PRE - Misiones - Personal
+    # -------------------------------------------------------------------------
+    # B) PRE
+    # -------------------------------------------------------------------------
     if "pre_misiones_personal" in st.session_state:
         df_personal = st.session_state["pre_misiones_personal"].copy()
-        # Si en PRE - Misiones Personal se usan las fórmulas:
         df_personal = calcular_misiones(df_personal)
         total_personal = df_personal.loc[df_personal["area_imputacion"] == "PRE", "total"].sum()
     else:
         total_personal = 0
 
-    # b) PRE - Misiones - Consultores
     if "pre_misiones_consultores" in st.session_state:
         df_mis_cons = st.session_state["pre_misiones_consultores"].copy()
         df_mis_cons = calcular_misiones(df_mis_cons)
@@ -277,7 +278,6 @@ def sincronizar_actualizacion_al_iniciar():
     else:
         total_misiones_cons = 0
 
-    # c) PRE - Consultorías
     if "pre_consultores" in st.session_state:
         df_cons = st.session_state["pre_consultores"].copy()
         df_cons = calcular_consultores(df_cons)
@@ -285,22 +285,47 @@ def sincronizar_actualizacion_al_iniciar():
     else:
         total_consultorias = 0
 
-    # Monto DPP 2025 para:
-    #   PRE - Misiones - Personal     => 80,248
-    #   PRE - Misiones - Consultores  => 30,872
-    #   PRE - Consultorías            => 307,528
+    # Montos DPP 2025 PRE
     dpp_pre_personal     = 80248
     dpp_pre_mis_cons     = 30872
     dpp_pre_consultorias = 307528
 
-    # A) PRE - Misiones - Personal → actualizacion_misiones
-    actualizar_misiones("PRE - Misiones - Personal", total_personal, dpp_pre_personal)
+    actualizar_misiones("PRE - Misiones - Personal",       total_personal,       dpp_pre_personal)
+    actualizar_misiones("PRE - Misiones - Consultores",    total_misiones_cons,  dpp_pre_mis_cons)
+    actualizar_consultorias("PRE - Consultorías",          total_consultorias,   dpp_pre_consultorias)
 
-    # B) PRE - Misiones - Consultores → actualizacion_misiones
-    actualizar_misiones("PRE - Misiones - Consultores", total_misiones_cons, dpp_pre_mis_cons)
+    # -------------------------------------------------------------------------
+    # C) GASTOS CENTRALIZADOS (GC) para VPD, VPO, VPF (a partir de PRE)
+    # -------------------------------------------------------------------------
+    df_gc_personal = st.session_state.get("pre_misiones_personal", pd.DataFrame())
+    df_gc_personal = calcular_misiones(df_gc_personal)
 
-    # C) PRE - Consultorías → actualizacion_consultorias
-    actualizar_consultorias("PRE - Consultorías", total_consultorias, dpp_pre_consultorias)
+    df_gc_miscons  = st.session_state.get("pre_misiones_consultores", pd.DataFrame())
+    df_gc_miscons  = calcular_misiones(df_gc_miscons)
+
+    df_gc_cons     = st.session_state.get("pre_consultores", pd.DataFrame())
+    df_gc_cons     = calcular_consultores(df_gc_cons)
+
+    # 1) GC - Misiones Personal
+    for unidad in ["VPD", "VPO", "VPF"]:
+        total_unidad = df_gc_personal.loc[df_gc_personal["area_imputacion"] == unidad, "total"].sum()
+        dpp_gc = DPP_GC_MIS_PER[unidad]
+        label_gc = f"{unidad} - GC Misiones Personal"
+        actualizar_misiones(label_gc, total_unidad, dpp_gc)
+
+    # 2) GC - Misiones Consultores
+    for unidad in ["VPD", "VPO", "VPF"]:
+        total_unidad = df_gc_miscons.loc[df_gc_miscons["area_imputacion"] == unidad, "total"].sum()
+        dpp_gc = DPP_GC_MIS_CONS[unidad]
+        label_gc = f"{unidad} - GC Misiones Consultores"
+        actualizar_misiones(label_gc, total_unidad, dpp_gc)
+
+    # 3) GC - Consultorías (VPD, VPO, VPF)
+    for unidad in ["VPD", "VPO", "VPF"]:
+        total_unidad = df_gc_cons.loc[df_gc_cons["area_imputacion"] == unidad, "total"].sum()
+        dpp_gc = DPP_GC_CONS[unidad]
+        label_gc = f"{unidad} - Consultorías"
+        actualizar_consultorias(label_gc, total_unidad, dpp_gc)
 
 # =============================================================================
 # 9. FUNCIÓN PRINCIPAL
@@ -337,28 +362,31 @@ def main():
     # -------------------------------------------------------------------------
     excel_file = "main_bdd.xlsx"
 
+    # VPD
     if "vpd_misiones" not in st.session_state:
         st.session_state["vpd_misiones"] = pd.read_excel(excel_file, sheet_name="vpd_misiones")
     if "vpd_consultores" not in st.session_state:
         st.session_state["vpd_consultores"] = pd.read_excel(excel_file, sheet_name="vpd_consultores")
 
+    # VPO
     if "vpo_misiones" not in st.session_state:
         st.session_state["vpo_misiones"] = pd.read_excel(excel_file, sheet_name="vpo_misiones")
     if "vpo_consultores" not in st.session_state:
         st.session_state["vpo_consultores"] = pd.read_excel(excel_file, sheet_name="vpo_consultores")
 
+    # VPF
     if "vpf_misiones" not in st.session_state:
         st.session_state["vpf_misiones"] = pd.read_excel(excel_file, sheet_name="vpf_misiones")
     if "vpf_consultores" not in st.session_state:
         st.session_state["vpf_consultores"] = pd.read_excel(excel_file, sheet_name="vpf_consultores")
 
-    # Para VPE
+    # VPE
     if "vpe_misiones" not in st.session_state:
         st.session_state["vpe_misiones"] = pd.read_excel(excel_file, sheet_name="vpe_misiones")
     if "vpe_consultores" not in st.session_state:
         st.session_state["vpe_consultores"] = pd.read_excel(excel_file, sheet_name="vpe_consultores")
 
-    # Para PRE
+    # PRE
     if "pre_misiones_personal" not in st.session_state:
         st.session_state["pre_misiones_personal"] = pd.read_excel(excel_file, sheet_name="pre_misiones_personal")
     if "pre_misiones_consultores" not in st.session_state:
@@ -396,7 +424,7 @@ def main():
         st.session_state["actualizacion_consultorias"] = act_consultorias
 
     # -------------------------------------------------------------------------
-    # --- SINCRONIZA AUTOMÁTICAMENTE LA TABLA DE ACTUALIZACIÓN
+    # SINCRONIZA AUTOMÁTICAMENTE LA TABLA DE ACTUALIZACIÓN
     # -------------------------------------------------------------------------
     sincronizar_actualizacion_al_iniciar()
 
@@ -420,7 +448,9 @@ def main():
     # E) SECCIONES
     # =========================================================================
 
-    # 1) Página Principal
+    # -------------------------------------------------------------------------
+    # 1) PÁGINA PRINCIPAL
+    # -------------------------------------------------------------------------
     if eleccion_principal == "Página Principal":
         st.title("Página Principal")
         st.write("Bienvenido a la Página Principal.")
@@ -437,9 +467,7 @@ def main():
         sub_sub_vpd = ["Requerimiento del Área", "DPP 2025"]
         eleccion_sub_sub_vpd = st.sidebar.selectbox("Tema:", sub_sub_vpd)
 
-        # ---------------------------
         # VPD > Misiones
-        # ---------------------------
         if eleccion_vpd == "Misiones":
             if eleccion_sub_sub_vpd == "Requerimiento del Área":
                 st.subheader("VPD > Misiones > Requerimiento del Área")
@@ -466,6 +494,7 @@ def main():
                 with col3:
                     value_box("Diferencia", f"{diferencia:,.2f}", color_dif)
 
+                # Carga Excel para reemplazar
                 uploaded_file = st.file_uploader(
                     "Cargar un archivo Excel para reemplazar esta tabla",
                     type=["xlsx"],
@@ -480,6 +509,7 @@ def main():
                         st.success("¡Tabla de VPD Misiones reemplazada con éxito!")
                         st.rerun()
 
+                # Editor
                 df_editado = st.data_editor(
                     df_base,
                     use_container_width=True,
@@ -502,9 +532,7 @@ def main():
                 if st.button("Descargar tabla (VPD Misiones)"):
                     descargar_excel(df_final, file_name="vpd_misiones_modificada.xlsx")
 
-        # ---------------------------
         # VPD > Consultorías
-        # ---------------------------
         else:
             if eleccion_sub_sub_vpd == "Requerimiento del Área":
                 st.subheader("VPD > Consultorías > Requerimiento del Área")
@@ -572,9 +600,7 @@ def main():
         sub_sub_vpo = ["Requerimiento del Área", "DPP 2025"]
         eleccion_sub_sub_vpo = st.sidebar.selectbox("Tema:", sub_sub_vpo)
 
-        # ---------------------------
         # VPO > Misiones
-        # ---------------------------
         if eleccion_vpo == "Misiones":
             if eleccion_sub_sub_vpo == "Requerimiento del Área":
                 st.subheader("VPO > Misiones > Requerimiento del Área")
@@ -583,7 +609,7 @@ def main():
                 value_box("Suma del total", f"{total_sum:,.2f}")
                 st.dataframe(df_req)
 
-            else:  # DPP 2025
+            else:
                 st.subheader("VPO > Misiones > DPP 2025")
                 df_base = st.session_state["vpo_misiones"].copy()
                 df_base = calcular_misiones(df_base)
@@ -601,11 +627,7 @@ def main():
                 with col3:
                     value_box("Diferencia", f"{diferencia:,.2f}", color_dif)
 
-                uploaded_file = st.file_uploader(
-                    "Cargar un archivo Excel para reemplazar esta tabla",
-                    type=["xlsx"],
-                    key="vpo_misiones_file"
-                )
+                uploaded_file = st.file_uploader("...", type=["xlsx"], key="vpo_misiones_file")
                 if uploaded_file is not None:
                     if st.button("Reemplazar tabla (VPO Misiones)"):
                         df_subido = pd.read_excel(uploaded_file)
@@ -634,9 +656,7 @@ def main():
                     guardar_en_excel(df_final, "vpo_misiones")
                     st.success("Guardado en 'vpo_misiones'!")
 
-        # ---------------------------
         # VPO > Consultorías
-        # ---------------------------
         else:
             if eleccion_sub_sub_vpo == "Requerimiento del Área":
                 st.subheader("VPO > Consultorías > Requerimiento del Área")
@@ -645,7 +665,7 @@ def main():
                 value_box("Suma del total", f"{total_sum:,.2f}")
                 st.dataframe(df_req)
 
-            else:  # DPP 2025
+            else:
                 st.subheader("VPO > Consultorías > DPP 2025")
                 df_base = st.session_state["vpo_consultores"].copy()
                 df_base = calcular_consultores(df_base)
@@ -663,11 +683,7 @@ def main():
                 with col3:
                     value_box("Diferencia", f"{diferencia:,.2f}", color_dif)
 
-                uploaded_file = st.file_uploader(
-                    "Cargar un archivo Excel para reemplazar esta tabla",
-                    type=["xlsx"],
-                    key="vpo_consultores_file"
-                )
+                uploaded_file = st.file_uploader("...", type=["xlsx"], key="vpo_consultores_file")
                 if uploaded_file is not None:
                     if st.button("Reemplazar tabla (VPO Consultorías)"):
                         df_subido = pd.read_excel(uploaded_file)
@@ -681,9 +697,7 @@ def main():
                     df_base,
                     use_container_width=True,
                     key="vpo_consultores_dpp2025",
-                    column_config={
-                        "total": st.column_config.NumberColumn(disabled=True)
-                    }
+                    column_config={"total": st.column_config.NumberColumn(disabled=True)}
                 )
                 df_final = calcular_consultores(df_editado)
 
@@ -704,9 +718,7 @@ def main():
         sub_sub_vpf = ["Requerimiento del Área", "DPP 2025"]
         eleccion_sub_sub_vpf = st.sidebar.selectbox("Tema:", sub_sub_vpf)
 
-        # ---------------------------
         # VPF > Misiones
-        # ---------------------------
         if eleccion_vpf == "Misiones":
             if eleccion_sub_sub_vpf == "Requerimiento del Área":
                 st.subheader("VPF > Misiones > Requerimiento del Área")
@@ -715,7 +727,7 @@ def main():
                 value_box("Suma del total", f"{total_sum:,.2f}")
                 st.dataframe(df_req)
 
-            else:  # DPP 2025
+            else:
                 st.subheader("VPF > Misiones > DPP 2025")
                 df_base = st.session_state["vpf_misiones"].copy()
                 df_base = calcular_misiones(df_base)
@@ -733,11 +745,7 @@ def main():
                 with col3:
                     value_box("Diferencia", f"{diferencia:,.2f}", color_dif)
 
-                uploaded_file = st.file_uploader(
-                    "Cargar un archivo Excel para reemplazar esta tabla",
-                    type=["xlsx"],
-                    key="vpf_misiones_file"
-                )
+                uploaded_file = st.file_uploader("...", type=["xlsx"], key="vpf_misiones_file")
                 if uploaded_file is not None:
                     if st.button("Reemplazar tabla (VPF Misiones)"):
                         df_subido = pd.read_excel(uploaded_file)
@@ -766,9 +774,7 @@ def main():
                     guardar_en_excel(df_final, "vpf_misiones")
                     st.success("Guardado en 'vpf_misiones'!")
 
-        # ---------------------------
         # VPF > Consultorías
-        # ---------------------------
         else:
             if eleccion_sub_sub_vpf == "Requerimiento del Área":
                 st.subheader("VPF > Consultorías > Requerimiento del Área")
@@ -777,7 +783,7 @@ def main():
                 value_box("Suma del total", f"{total_sum:,.2f}")
                 st.dataframe(df_req)
 
-            else:  # DPP 2025
+            else:
                 st.subheader("VPF > Consultorías > DPP 2025")
                 df_base = st.session_state["vpf_consultores"].copy()
                 df_base = calcular_consultores(df_base)
@@ -795,11 +801,7 @@ def main():
                 with col3:
                     value_box("Diferencia", f"{diferencia:,.2f}", color_dif)
 
-                uploaded_file = st.file_uploader(
-                    "Cargar un archivo Excel para reemplazar esta tabla",
-                    type=["xlsx"],
-                    key="vpf_consultores_file"
-                )
+                uploaded_file = st.file_uploader("...", type=["xlsx"], key="vpf_consultores_file")
                 if uploaded_file is not None:
                     if st.button("Reemplazar tabla (VPF Consultorías)"):
                         df_subido = pd.read_excel(uploaded_file)
@@ -825,7 +827,7 @@ def main():
                     st.success("Guardado en 'vpf_consultores'!")
 
     # -------------------------------------------------------------------------
-    # 5) VPE (EDICIÓN SIN FÓRMULAS, PERO AHORA TAMBIÉN EN ACTUALIZACIÓN)
+    # 5) VPE
     # -------------------------------------------------------------------------
     elif eleccion_principal == "VPE":
         st.title("Sección VPE")
@@ -836,9 +838,7 @@ def main():
         sub_sub_vpe = ["Requerimiento del Área", "DPP 2025"]
         eleccion_sub_sub_vpe = st.sidebar.selectbox("Tema:", sub_sub_vpe)
 
-        # ---------------------------
         # VPE > Misiones
-        # ---------------------------
         if eleccion_vpe_ == "Misiones":
             if eleccion_sub_sub_vpe == "Requerimiento del Área":
                 st.subheader("VPE > Misiones > Requerimiento del Área (Solo lectura)")
@@ -847,9 +847,8 @@ def main():
                 value_box("Suma del total", f"{total_sum:,.2f}")
                 st.dataframe(df_req)
 
-            else:  # DPP 2025 (Editable sin fórmulas)
+            else:  # DPP 2025 sin fórmulas
                 st.subheader("VPE > Misiones > DPP 2025 (Editable sin fórmulas)")
-
                 df_base = st.session_state["vpe_misiones"].copy()
 
                 uploaded_file = st.file_uploader(
@@ -865,7 +864,6 @@ def main():
                         st.success("¡Tabla de VPE Misiones reemplazada con éxito!")
                         st.rerun()
 
-                # Editor sin llamar a calcular_misiones
                 df_editado = st.data_editor(
                     df_base,
                     use_container_width=True,
@@ -880,9 +878,7 @@ def main():
                 if st.button("Descargar tabla (VPE Misiones)"):
                     descargar_excel(df_editado, file_name="vpe_misiones_modificada.xlsx")
 
-        # ---------------------------
         # VPE > Consultorías
-        # ---------------------------
         else:
             if eleccion_sub_sub_vpe == "Requerimiento del Área":
                 st.subheader("VPE > Consultorías > Requerimiento del Área (Solo lectura)")
@@ -891,9 +887,8 @@ def main():
                 value_box("Suma del total", f"{total_sum:,.2f}")
                 st.dataframe(df_req)
 
-            else:  # DPP 2025 (Editable sin fórmulas)
+            else:  # DPP 2025 sin fórmulas
                 st.subheader("VPE > Consultorías > DPP 2025 (Editable sin fórmulas)")
-
                 df_base = st.session_state["vpe_consultores"].copy()
 
                 uploaded_file = st.file_uploader(
@@ -951,11 +946,7 @@ def main():
                 sum_total = df_base["total"].sum() if "total" in df_base.columns else 0
                 value_box("Suma del total", f"{sum_total:,.2f}")
 
-                uploaded_file = st.file_uploader(
-                    "Cargar un archivo Excel para reemplazar esta tabla",
-                    type=["xlsx"],
-                    key="pre_misiones_personal_file"
-                )
+                uploaded_file = st.file_uploader("...", type=["xlsx"], key="pre_misiones_personal_file")
                 if uploaded_file is not None:
                     if st.button("Reemplazar tabla (PRE Misiones Personal)"):
                         df_subido = pd.read_excel(uploaded_file)
@@ -1010,11 +1001,7 @@ def main():
                 sum_total = df_base["total"].sum() if "total" in df_base.columns else 0
                 value_box("Suma del total", f"{sum_total:,.2f}")
 
-                uploaded_file = st.file_uploader(
-                    "Cargar un archivo Excel para reemplazar esta tabla",
-                    type=["xlsx"],
-                    key="pre_misiones_consultores_file"
-                )
+                uploaded_file = st.file_uploader("...", type=["xlsx"], key="pre_misiones_consultores_file")
                 if uploaded_file is not None:
                     if st.button("Reemplazar tabla (PRE Misiones Consultores)"):
                         df_subido = pd.read_excel(uploaded_file)
@@ -1057,7 +1044,6 @@ def main():
             if eleccion_sub_sub_pre_co == "Requerimiento del Área":
                 st.subheader("PRE > Consultorías > Requerimiento del Área (Solo lectura)")
                 df_pre = st.session_state["pre_consultores"]
-
                 if "total" in df_pre.columns:
                     df_pre["total"] = pd.to_numeric(df_pre["total"], errors="coerce")
 
@@ -1074,11 +1060,7 @@ def main():
                 sum_total = df_base["total"].sum() if "total" in df_base.columns else 0
                 value_box("Suma del total", f"{sum_total:,.2f}")
 
-                uploaded_file = st.file_uploader(
-                    "Cargar un archivo Excel para reemplazar esta tabla",
-                    type=["xlsx"],
-                    key="pre_consultores_file"
-                )
+                uploaded_file = st.file_uploader("...", type=["xlsx"], key="pre_consultores_file")
                 if uploaded_file is not None:
                     if st.button("Reemplazar tabla (PRE Consultorías)"):
                         df_subido = pd.read_excel(uploaded_file)
@@ -1109,7 +1091,6 @@ def main():
                 if st.button("Descargar tabla (PRE Consultorías)"):
                     descargar_excel(df_final, file_name="pre_consultores_modificada.xlsx")
 
-        # D) PRE > Gastos Centralizados (Solo lectura)
         else:
             st.subheader("PRE > Gastos Centralizados (Solo lectura)")
             df_gc = st.session_state["gastos_centralizados"]
@@ -1165,8 +1146,8 @@ def main():
 
         st.write("---")
         st.write("#### DPP 2025")
-        df_cons = st.session_state["consolidado_df"]
-        st.table(two_decimals_only_numeric(df_cons))
+        df_cons2 = st.session_state["consolidado_df"]
+        st.table(two_decimals_only_numeric(df_cons2))
 
 # =============================================================================
 # 10. EJECUCIÓN
