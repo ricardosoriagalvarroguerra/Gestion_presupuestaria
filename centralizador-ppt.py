@@ -192,14 +192,13 @@ def actualizar_consultorias(unit: str, req_area: float, monto_dpp: float):
     st.session_state["actualizacion_consultorias"] = df_act
     guardar_en_excel(df_act, "actualizacion_consultorias")
 
-# Diccionario con valores DPP por defecto para VPD, VPO, VPF, VPE
-# (La unidad PRE la trataremos de forma especial más abajo.)
+# Diccionario con valores DPP 2025 para VPD, VPO, VPF, VPE (y PRE=0, porque se maneja aparte)
 DPP_VALORES = {
     "VPD": {"misiones": 168000, "consultorias": 130000},
     "VPO": {"misiones": 434707, "consultorias": 250000},
     "VPF": {"misiones": 138600, "consultorias": 200000},
-    "VPE": {"misiones": 0,      "consultorias": 0},
-    # PRE en 0 para no usarlo en el bucle, ya que haremos un bloque especial
+    # Aquí el ajuste para VPE: misiones=28,244 y consultorías=179,446
+    "VPE": {"misiones": 28244,  "consultorias": 179446},
     "PRE": {"misiones": 0,      "consultorias": 0},
 }
 
@@ -211,22 +210,33 @@ def sincronizar_actualizacion_al_iniciar():
     Sincroniza las tablas de 'actualizacion_misiones' y 'actualizacion_consultorias'
     al iniciar la app, recalculando totals y DPP para cada unidad.
     
-    - VPD, VPO, VPF, VPE => Se manejan en el bucle for con DPP_VALORES.
+    - VPD, VPO, VPF, VPE => Se manejan en el bucle for con DPP_VALORES,
+      sumando la columna "total" y comparándola con su DPP respectivo.
     - PRE => Se hace un manejo especial, dividiendo en:
        1) PRE - Misiones - Personal      (DPP 2025 = 80,248)
        2) PRE - Misiones - Consultores   (DPP 2025 = 30,872)
-       3) PRE - Consultorías             (DPP 2025 = 80,248)
+       3) PRE - Consultorías             (DPP 2025 = 307,528)
     """
-    # 1) Recorremos las unidades habituales (excluyendo PRE)
-    for unidad in ["VPD", "VPO", "VPF", "VPE"]:
+    unidades = ["VPD", "VPO", "VPF", "VPE"]  # Excluimos PRE del loop (se maneja aparte)
+
+    for unidad in unidades:
         # --- MISIONES
         df_misiones_key = f"{unidad.lower()}_misiones"
         if df_misiones_key in st.session_state:
             df_temp = st.session_state[df_misiones_key].copy()
-            # Si no queremos cálculos para VPE, omitir. Si VPE no usa fórmulas:
+
+            # Para VPE no aplicamos la fórmula de "calcular_misiones" si no quieres.
+            # Aun así, necesitamos la columna "total". 
+            # Si la tabla NO tiene fórmulas, esperamos que ya haya una columna "total".
+            # En este ejemplo, definimos:
+            #   - VPE "sin fórmulas" => no llamamos a calcular_misiones
             if unidad != "VPE":
                 df_temp = calcular_misiones(df_temp)
-            total_misiones = df_temp["total"].sum() if "total" in df_temp.columns else 0.0
+
+            if "total" in df_temp.columns:
+                total_misiones = df_temp["total"].sum()
+            else:
+                total_misiones = 0.0
 
             dpp_misiones = DPP_VALORES.get(unidad, {}).get("misiones", 0.0)
             actualizar_misiones(unidad, total_misiones, dpp_misiones)
@@ -235,20 +245,25 @@ def sincronizar_actualizacion_al_iniciar():
         df_consult_key = f"{unidad.lower()}_consultores"
         if df_consult_key in st.session_state:
             df_temp = st.session_state[df_consult_key].copy()
+
             if unidad != "VPE":
                 df_temp = calcular_consultores(df_temp)
-            total_consult = df_temp["total"].sum() if "total" in df_temp.columns else 0.0
+
+            if "total" in df_temp.columns:
+                total_consult = df_temp["total"].sum()
+            else:
+                total_consult = 0.0
 
             dpp_consult = DPP_VALORES.get(unidad, {}).get("consultorias", 0.0)
             actualizar_consultorias(unidad, total_consult, dpp_consult)
 
     # -----------------------------------------------------------------------
-    # 2) TRATAMIENTO ESPECIAL PARA "PRE"
+    # TRATAMIENTO ESPECIAL PARA "PRE"
     # -----------------------------------------------------------------------
     # a) PRE - Misiones - Personal
     if "pre_misiones_personal" in st.session_state:
         df_personal = st.session_state["pre_misiones_personal"].copy()
-        # Si deseas cálculos automáticos, usa calcular_misiones:
+        # Si en PRE - Misiones Personal se usan las fórmulas:
         df_personal = calcular_misiones(df_personal)
         total_personal = df_personal.loc[df_personal["area_imputacion"] == "PRE", "total"].sum()
     else:
@@ -257,7 +272,6 @@ def sincronizar_actualizacion_al_iniciar():
     # b) PRE - Misiones - Consultores
     if "pre_misiones_consultores" in st.session_state:
         df_mis_cons = st.session_state["pre_misiones_consultores"].copy()
-        # Usa calcular_misiones para estos datos si corresponden a la estructura de misiones
         df_mis_cons = calcular_misiones(df_mis_cons)
         total_misiones_cons = df_mis_cons.loc[df_mis_cons["area_imputacion"] == "PRE", "total"].sum()
     else:
@@ -266,7 +280,6 @@ def sincronizar_actualizacion_al_iniciar():
     # c) PRE - Consultorías
     if "pre_consultores" in st.session_state:
         df_cons = st.session_state["pre_consultores"].copy()
-        # Usa calcular_consultores si corresponde a la estructura
         df_cons = calcular_consultores(df_cons)
         total_consultorias = df_cons.loc[df_cons["area_imputacion"] == "PRE", "total"].sum()
     else:
@@ -275,31 +288,19 @@ def sincronizar_actualizacion_al_iniciar():
     # Monto DPP 2025 para:
     #   PRE - Misiones - Personal     => 80,248
     #   PRE - Misiones - Consultores  => 30,872
-    #   PRE - Consultorías            => 80,248
+    #   PRE - Consultorías            => 307,528
     dpp_pre_personal     = 80248
     dpp_pre_mis_cons     = 30872
-    dpp_pre_consultorias = 80248
+    dpp_pre_consultorias = 307528
 
     # A) PRE - Misiones - Personal → actualizacion_misiones
-    actualizar_misiones(
-        "PRE - Misiones - Personal",
-        total_personal,
-        dpp_pre_personal
-    )
+    actualizar_misiones("PRE - Misiones - Personal", total_personal, dpp_pre_personal)
 
     # B) PRE - Misiones - Consultores → actualizacion_misiones
-    actualizar_misiones(
-        "PRE - Misiones - Consultores",
-        total_misiones_cons,
-        dpp_pre_mis_cons
-    )
+    actualizar_misiones("PRE - Misiones - Consultores", total_misiones_cons, dpp_pre_mis_cons)
 
     # C) PRE - Consultorías → actualizacion_consultorias
-    actualizar_consultorias(
-        "PRE - Consultorías",
-        total_consultorias,
-        dpp_pre_consultorias
-    )
+    actualizar_consultorias("PRE - Consultorías", total_consultorias, dpp_pre_consultorias)
 
 # =============================================================================
 # 9. FUNCIÓN PRINCIPAL
@@ -351,11 +352,13 @@ def main():
     if "vpf_consultores" not in st.session_state:
         st.session_state["vpf_consultores"] = pd.read_excel(excel_file, sheet_name="vpf_consultores")
 
+    # Para VPE
     if "vpe_misiones" not in st.session_state:
         st.session_state["vpe_misiones"] = pd.read_excel(excel_file, sheet_name="vpe_misiones")
     if "vpe_consultores" not in st.session_state:
         st.session_state["vpe_consultores"] = pd.read_excel(excel_file, sheet_name="vpe_consultores")
 
+    # Para PRE
     if "pre_misiones_personal" not in st.session_state:
         st.session_state["pre_misiones_personal"] = pd.read_excel(excel_file, sheet_name="pre_misiones_personal")
     if "pre_misiones_consultores" not in st.session_state:
@@ -822,7 +825,7 @@ def main():
                     st.success("Guardado en 'vpf_consultores'!")
 
     # -------------------------------------------------------------------------
-    # 5) VPE (ACTUALIZADO - CON "DPP 2025" EDITABLE SIN FÓRMULAS)
+    # 5) VPE (EDICIÓN SIN FÓRMULAS, PERO AHORA TAMBIÉN EN ACTUALIZACIÓN)
     # -------------------------------------------------------------------------
     elif eleccion_principal == "VPE":
         st.title("Sección VPE")
@@ -857,7 +860,6 @@ def main():
                 if uploaded_file is not None:
                     if st.button("Reemplazar tabla (VPE Misiones)"):
                         df_subido = pd.read_excel(uploaded_file)
-                        # Sin cálculo automático
                         st.session_state["vpe_misiones"] = df_subido
                         guardar_en_excel(df_subido, "vpe_misiones")
                         st.success("¡Tabla de VPE Misiones reemplazada con éxito!")
