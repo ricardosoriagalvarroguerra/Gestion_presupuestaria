@@ -406,12 +406,12 @@ def main():
         st.session_state["pre_consultores"] = pd.read_excel(excel_file, sheet_name="pre_consultores")
 
     # LECTURA DE LA HOJA "com" PARA COMUNICACIONES
-    if "com" not in st.session_state:
+    if "COM" not in st.session_state:
         try:
-            st.session_state["com"] = pd.read_excel(excel_file, sheet_name="com")
+            st.session_state["COM"] = pd.read_excel(excel_file, sheet_name="COM")
         except:
             # Si no existe, crea un DataFrame vacío
-            st.session_state["com"] = pd.DataFrame()
+            st.session_state["COM"] = pd.DataFrame()
 
     # Otros cuadros y centralizados
     if "cuadro_9" not in st.session_state:
