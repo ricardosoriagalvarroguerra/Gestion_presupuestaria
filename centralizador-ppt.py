@@ -342,7 +342,7 @@ def main():
         password = st.text_input("Contraseña", type="password")
 
         if st.button("Iniciar Sesión"):
-            valid_users = ["mcalvino", "ajustinianon", "vgonzales"]
+            valid_users = ["mcalvino", "ajustinianon", "vgonzales", "vmoreira"]
             valid_password = "2025presupuesto"
             if username in valid_users and password == valid_password:
                 st.session_state["logged_in"] = True
