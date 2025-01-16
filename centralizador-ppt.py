@@ -405,13 +405,14 @@ def main():
     if "pre_consultores" not in st.session_state:
         st.session_state["pre_consultores"] = pd.read_excel(excel_file, sheet_name="pre_consultores")
 
-    # LECTURA DE LA HOJA "com" PARA COMUNICACIONES
-    if "COM" not in st.session_state:
+    # LECTURA DE LA HOJA "COM" (en mayúsculas, tal y como existe en tu dataset)
+    if "com" not in st.session_state:
         try:
-            st.session_state["COM"] = pd.read_excel(excel_file, sheet_name="COM")
+            # Ajusta este sheet_name si la hoja se llama exactamente "COM"
+            st.session_state["com"] = pd.read_excel(excel_file, sheet_name="COM")
         except:
-            # Si no existe, crea un DataFrame vacío
-            st.session_state["COM"] = pd.DataFrame()
+            st.warning("No se encontró la hoja COM. Se crea un DataFrame vacío.")
+            st.session_state["com"] = pd.DataFrame()
 
     # Otros cuadros y centralizados
     if "cuadro_9" not in st.session_state:
@@ -423,7 +424,7 @@ def main():
     if "consolidado_df" not in st.session_state:
         st.session_state["consolidado_df"] = pd.read_excel(excel_file, sheet_name="consolidado")
 
-    # Gastos Centralizados (si se desea usar, ya no se mostrará en PRE tal cual)
+    # Gastos Centralizados (si se desea usar, ya no se muestra en PRE tal cual)
     if "gastos_centralizados" not in st.session_state:
         st.session_state["gastos_centralizados"] = pd.read_excel(excel_file, sheet_name="gastos_centralizados")
 
@@ -1125,7 +1126,7 @@ def main():
                 if st.button("Descargar tabla (PRE Consultorías)"):
                     descargar_excel(df_final, file_name="pre_consultores_modificada.xlsx")
 
-        # D) NUEVA PESTAÑA "COMUNICACIONES"
+        # D) NUEVA PESTAÑA "Comunicaciones"
         elif eleccion_pre == "Comunicaciones":
             st.subheader("PRE > Comunicaciones")
             df_com = st.session_state["com"]
