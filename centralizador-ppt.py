@@ -475,7 +475,7 @@ def main():
                 value_box("Suma del total", f"{sum_total:,.2f}")
                 st.dataframe(df_req)
 
-            else:  # DPP 2025
+            else:  # DPP 2025 (Misiones)
                 st.subheader("VPD > Misiones > DPP 2025")
                 df_base = st.session_state["vpd_misiones"].copy()
                 df_base = calcular_misiones(df_base)
@@ -493,14 +493,14 @@ def main():
                 with col3:
                     value_box("Diferencia", f"{diferencia:,.2f}", color_dif)
 
-                # ---- NUEVA TABLA DE SUMAS
+                # ---- Tabla de sumas SOLO para Misiones
                 sum_dict = {}
                 for col in ["total_pasaje","total_alojamiento","total_perdiem_otros","total_movilidad","total"]:
                     sum_dict[col] = df_base[col].sum() if col in df_base.columns else 0
                 st.write("#### Suma de columnas (Misiones)")
                 st.dataframe(pd.DataFrame([sum_dict]))
 
-                # Botón para reemplazar tabla
+                # Botones para reemplazar y editar
                 uploaded_file = st.file_uploader(
                     "Cargar un archivo Excel para reemplazar esta tabla",
                     type=["xlsx"],
@@ -515,7 +515,6 @@ def main():
                         st.success("¡Tabla de VPD Misiones reemplazada con éxito!")
                         st.rerun()
 
-                # Editor
                 df_editado = st.data_editor(
                     df_base,
                     use_container_width=True,
@@ -547,7 +546,7 @@ def main():
                 value_box("Suma del total", f"{sum_total:,.2f}")
                 st.dataframe(df_req)
 
-            else:  # DPP 2025
+            else:  # DPP 2025 (Consultorías)
                 st.subheader("VPD > Consultorías > DPP 2025")
                 df_base = st.session_state["vpd_consultores"].copy()
                 df_base = calcular_consultores(df_base)
@@ -565,12 +564,7 @@ def main():
                 with col3:
                     value_box("Diferencia", f"{diferencia:,.2f}", color_dif)
 
-                # ---- NUEVA TABLA DE SUMAS
-                sum_dict = {}
-                for col in ["total_pasaje","total_alojamiento","total_perdiem_otros","total_movilidad","total"]:
-                    sum_dict[col] = df_base[col].sum() if col in df_base.columns else 0
-                st.write("#### Suma de columnas (Consultorías)")
-                st.dataframe(pd.DataFrame([sum_dict]))
+                # *** Eliminamos la tabla de sumas para Consultorías (solicitado) ***
 
                 uploaded_file = st.file_uploader(
                     "Cargar un archivo Excel para reemplazar esta tabla",
@@ -639,7 +633,7 @@ def main():
                 with col3:
                     value_box("Diferencia", f"{diferencia:,.2f}", color_dif)
 
-                # ---- NUEVA TABLA DE SUMAS
+                # ---- Tabla de sumas SOLO para Misiones
                 sum_dict = {}
                 for col in ["total_pasaje","total_alojamiento","total_perdiem_otros","total_movilidad","total"]:
                     sum_dict[col] = df_base[col].sum() if col in df_base.columns else 0
@@ -705,12 +699,7 @@ def main():
                 with col3:
                     value_box("Diferencia", f"{diferencia:,.2f}", color_dif)
 
-                # ---- NUEVA TABLA DE SUMAS
-                sum_dict = {}
-                for col in ["total_pasaje","total_alojamiento","total_perdiem_otros","total_movilidad","total"]:
-                    sum_dict[col] = df_base[col].sum() if col in df_base.columns else 0
-                st.write("#### Suma de columnas (Consultorías)")
-                st.dataframe(pd.DataFrame([sum_dict]))
+                # *** Eliminada tabla de sumas para Consultorías ***
 
                 uploaded_file = st.file_uploader(
                     "Cargar un archivo Excel para reemplazar esta tabla",
@@ -777,7 +766,7 @@ def main():
                 with col3:
                     value_box("Diferencia", f"{diferencia:,.2f}", color_dif)
 
-                # ---- NUEVA TABLA DE SUMAS
+                # ---- Tabla de sumas SOLO para Misiones
                 sum_dict = {}
                 for col in ["total_pasaje","total_alojamiento","total_perdiem_otros","total_movilidad","total"]:
                     sum_dict[col] = df_base[col].sum() if col in df_base.columns else 0
@@ -843,12 +832,7 @@ def main():
                 with col3:
                     value_box("Diferencia", f"{diferencia:,.2f}", color_dif)
 
-                # ---- NUEVA TABLA DE SUMAS
-                sum_dict = {}
-                for col in ["total_pasaje","total_alojamiento","total_perdiem_otros","total_movilidad","total"]:
-                    sum_dict[col] = df_base[col].sum() if col in df_base.columns else 0
-                st.write("#### Suma de columnas (Consultorías)")
-                st.dataframe(pd.DataFrame([sum_dict]))
+                # *** Eliminada tabla de sumas para Consultorías ***
 
                 uploaded_file = st.file_uploader(
                     "Cargar un archivo Excel para reemplazar esta tabla",
@@ -989,14 +973,14 @@ def main():
                 mostrar_value_boxes_por_area(df_pre, col_area="area_imputacion")
                 st.dataframe(df_pre)
 
-            else:  # DPP 2025
+            else:  # DPP 2025 (Misiones Personal)
                 st.subheader("PRE > Misiones Personal > DPP 2025")
                 df_base = st.session_state["pre_misiones_personal"].copy()
                 df_base = calcular_misiones(df_base)
                 sum_total = df_base["total"].sum() if "total" in df_base.columns else 0
                 value_box("Suma del total", f"{sum_total:,.2f}")
 
-                # ---- NUEVA TABLA DE SUMAS
+                # ---- Tabla de sumas SOLO para Misiones
                 sum_dict = {}
                 for col in ["total_pasaje","total_alojamiento","total_perdiem_otros","total_movilidad","total"]:
                     sum_dict[col] = df_base[col].sum() if col in df_base.columns else 0
@@ -1051,14 +1035,14 @@ def main():
                 mostrar_value_boxes_por_area(df_pre, col_area="area_imputacion")
                 st.dataframe(df_pre)
 
-            else:  # DPP 2025
+            else:  # DPP 2025 (Misiones Consultores)
                 st.subheader("PRE > Misiones Consultores > DPP 2025")
                 df_base = st.session_state["pre_misiones_consultores"].copy()
                 df_base = calcular_misiones(df_base)
                 sum_total = df_base["total"].sum() if "total" in df_base.columns else 0
                 value_box("Suma del total", f"{sum_total:,.2f}")
 
-                # ---- NUEVA TABLA DE SUMAS
+                # ---- Tabla de sumas SOLO para Misiones
                 sum_dict = {}
                 for col in ["total_pasaje","total_alojamiento","total_perdiem_otros","total_movilidad","total"]:
                     sum_dict[col] = df_base[col].sum() if col in df_base.columns else 0
@@ -1116,7 +1100,7 @@ def main():
                 mostrar_value_boxes_por_area(df_pre, col_area="area_imputacion")
                 st.dataframe(df_pre)
 
-            else:  # DPP 2025
+            else:  # DPP 2025 (Consultorías)
                 st.subheader("PRE > Consultorías > DPP 2025")
                 df_base = st.session_state["pre_consultores"].copy()
                 df_base = calcular_consultores(df_base)
@@ -1124,12 +1108,7 @@ def main():
                 sum_total = df_base["total"].sum() if "total" in df_base.columns else 0
                 value_box("Suma del total", f"{sum_total:,.2f}")
 
-                # ---- NUEVA TABLA DE SUMAS
-                sum_dict = {}
-                for col in ["total_pasaje","total_alojamiento","total_perdiem_otros","total_movilidad","total"]:
-                    sum_dict[col] = df_base[col].sum() if col in df_base.columns else 0
-                st.write("#### Suma de columnas (Consultorías)")
-                st.dataframe(pd.DataFrame([sum_dict]))
+                # *** Eliminada tabla de sumas para Consultorías ***
 
                 uploaded_file = st.file_uploader("...", type=["xlsx"], key="pre_consultores_file")
                 if uploaded_file is not None:
