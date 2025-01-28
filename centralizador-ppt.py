@@ -481,6 +481,8 @@ def main():
     else:
         # ============ LOGIN ============
         config = leer_config_json("config.json")
+
+        # PASAMOS EL location COMO PARÁMETRO NOMBRADO
         authenticator = stauth.Authenticate(
             credentials=config["credentials"],
             cookie_name=config["cookie"]["name"],
@@ -488,11 +490,12 @@ def main():
             cookie_expiry_days=config["cookie"]["expiry_days"]
         )
 
-         # Forma B (nombrada), usando 'main' o 'sidebar' según quieras
+        # EVITA PASAR "main" COMO SEGUNDO PARÁMETRO POSICIONAL
+        # USAMOS location="sidebar" POR SEGURIDAD
         name, auth_status, username = authenticator.login(
-             form_name="Iniciar Sesión",
-             location="sidebar"
-         ) 
+            form_name="Iniciar Sesión",
+            location="sidebar"   # <-- Recomendado en la barra lateral
+        )
 
         if auth_status is False:
             st.error("Usuario o contraseña incorrectos.")
@@ -501,7 +504,7 @@ def main():
             st.warning("Por favor ingresa tus credenciales.")
             return
         else:
-            st.sidebar.success(f"Sesión iniciada: {nombre}")
+            st.sidebar.success(f"Sesión iniciada: {name}")
 
     ########### A PARTIR DE AQUÍ, USUARIO LOGUEADO
 
@@ -589,6 +592,7 @@ def main():
 
     # BOTÓN PARA CERRAR SESIÓN 
     if st.sidebar.button("Cerrar Sesión"):
+        # Se cierra la sesión, quedando sin credenciales
         authenticator.logout("Cerrar Sesión", "sidebar")
         st.experimental_rerun()
 
@@ -942,4 +946,4 @@ def main():
 
 
 if __name__ == "__main__":
-    ()
+    main()
