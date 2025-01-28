@@ -1,26 +1,36 @@
 credentials:
   usernames:
+    # Usuario con rol "admin"
     mcalvino:
       first_name: "M"
       last_name: "Calvino"
       email: "[email protected]"
-      # Contraseña hasheada con bcrypt (Hasher)
       password: "$2b$12$XXXXXXXXXXXX"
+      role: "admin"
+
+    # Usuario con rol "editor"
     ajustinianon:
       first_name: "A"
       last_name: "Justinianon"
       email: "[email protected]"
       password: "$2b$12$YYYYYYYYYYYY"
+      role: "editor"
+
+    # Otro con rol "viewer"
     vgonzales:
       first_name: "V"
       last_name: "Gonzales"
       email: "[email protected]"
       password: "$2b$12$ZZZZZZZZZZZZ"
+      role: "viewer"
+
+    # Otro editor
     vmoreira:
       first_name: "V"
       last_name: "Moreira"
       email: "[email protected]"
       password: "$2b$12$WWWWWWWWWWWW"
+      role: "editor"
 
 cookie:
   name: "mi_cookie_auth"
