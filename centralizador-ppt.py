@@ -1,6 +1,6 @@
+import streamlit as st
 import pandas as pd
 import io
-import streamlit as st
 from openpyxl import load_workbook
 
 # =============================================================================
@@ -43,13 +43,16 @@ def calcular_consultores(df: pd.DataFrame) -> pd.DataFrame:
 # 2. FUNCIONES AUXILIARES DE FORMATO Y ESTILO
 # =============================================================================
 def two_decimals_only_numeric(df: pd.DataFrame):
+    """Devuelve un Styler que muestra los valores numéricos con 2 decimales y separador de miles."""
     numeric_cols = df.select_dtypes(include=["float", "int"]).columns
     return df.style.format("{:,.2f}", subset=numeric_cols, na_rep="")
 
 def color_diferencia(val):
+    """Resalta en naranja si val != 0, en verde si val = 0."""
     return "background-color: #fb8500; color:white" if val != 0 else "background-color: green; color:white"
 
 def value_box(label: str, value, bg_color: str = "#6c757d"):
+    """Crea un recuadro con un título (label) y un valor, con color de fondo bg_color."""
     st.markdown(f"""
     <div style="display:inline-block; background-color:{bg_color}; 
                 padding:10px; margin:5px; border-radius:5px; color:white; font-weight:bold;">
@@ -59,6 +62,7 @@ def value_box(label: str, value, bg_color: str = "#6c757d"):
     """, unsafe_allow_html=True)
 
 def mostrar_value_boxes_por_area(df: pd.DataFrame, col_area: str = "area_imputacion"):
+    """Muestra 4 value boxes en la misma fila, uno para cada área: VPD, VPO, VPF, PRE."""
     areas_imputacion = ["VPD", "VPO", "VPF", "PRE"]
     cols = st.columns(len(areas_imputacion))
     for i, area in enumerate(areas_imputacion):
@@ -70,6 +74,7 @@ def mostrar_value_boxes_por_area(df: pd.DataFrame, col_area: str = "area_imputac
             value_box(area, f"{total_area:,.2f}")
 
 def descargar_excel(df: pd.DataFrame, file_name: str = "descarga.xlsx") -> None:
+    """Crea un botón para descargar el DataFrame df como archivo Excel."""
     buffer = io.BytesIO()
     with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
         df.to_excel(writer, sheet_name="Hoja1", index=False)
@@ -83,6 +88,7 @@ def descargar_excel(df: pd.DataFrame, file_name: str = "descarga.xlsx") -> None:
     )
 
 def guardar_en_excel(df: pd.DataFrame, sheet_name: str, excel_file: str = "main_bdd.xlsx"):
+    """Guarda df en la hoja sheet_name del archivo excel_file. Reemplaza la hoja si existe."""
     with pd.ExcelWriter(excel_file, engine="openpyxl", mode="a", if_sheet_exists="replace") as writer:
         df.to_excel(writer, sheet_name=sheet_name, index=False)
 
@@ -187,7 +193,7 @@ def sincronizar_actualizacion_al_iniciar():
             dpp_cons = DPP_VALORES[unidad]["consultorias"]
             actualizar_consultorias(unidad, total_cons, dpp_cons)
 
-    # PRE
+    # PRE - Manejo especial
     if "pre_misiones_personal" in st.session_state:
         df_personal = st.session_state["pre_misiones_personal"].copy()
         df_personal = calcular_misiones(df_personal)
@@ -250,7 +256,6 @@ def sincronizar_actualizacion_al_iniciar():
         label_gc = f"{unidad} - GC Misiones Consultores"
         actualizar_misiones(label_gc, total_unidad, dpp_gc)
 
-
 # =============================================================================
 # 5. FUNCIÓN GENÉRICA PARA EDITAR TABLA EN STREAMLIT
 # =============================================================================
@@ -267,16 +272,23 @@ def editar_tabla_section(
 ):
     st.subheader(titulo)
 
+    # Aplica cálculo si corresponde
     if calculo_fn is not None:
         df_calc = calculo_fn(df_original.copy())
     else:
         df_calc = df_original.copy()
 
+    # Calculamos la suma total si existe la columna 'total'
     sum_total = 0
     if "total" in df_calc.columns:
         sum_total = df_calc["total"].sum()
-        value_box("Suma del total", f"{sum_total:,.2f}")
 
+    # Muestra value boxes por área si corresponde (VPD, VPO, VPF, PRE)
+    if mostrar_valuebox_area:
+        st.markdown("### Totales por Área de Imputación")
+        mostrar_value_boxes_por_area(df_calc, col_area="area_imputacion")
+
+    # Muestra suma de columnas para misiones (opcional)
     if mostrar_sum_misiones and all(col in df_calc.columns for col in ["total_pasaje","total_alojamiento","total_perdiem_otros","total_movilidad"]):
         sum_dict = {}
         for col in ["total_pasaje","total_alojamiento","total_perdiem_otros","total_movilidad","total"]:
@@ -284,19 +296,23 @@ def editar_tabla_section(
         st.write("#### Suma de columnas (Misiones)")
         st.dataframe(pd.DataFrame([sum_dict]))
 
-    if mostrar_valuebox_area:
-        st.markdown("### Totales por Área de Imputación")
-        mostrar_value_boxes_por_area(df_calc, col_area="area_imputacion")
-
+    # Mostramos en una sola línea: Suma del total, Monto DPP 2025, y Diferencia
     if dpp_value is not None:
         diferencia = dpp_value - sum_total
         color_dif = "#fb8500" if diferencia != 0 else "green"
-        col_a, col_b = st.columns(2)
-        with col_a:
-            value_box("Monto DPP 2025", f"{dpp_value:,.2f}")
-        with col_b:
-            value_box("Diferencia", f"{diferencia:,.2f}", color_dif)
+        col1, col2, col3 = st.columns(3)
 
+        with col1:
+            value_box("Suma del total", f"{sum_total:,.2f}")
+        with col2:
+            value_box("Monto DPP 2025", f"{dpp_value:,.2f}")
+        with col3:
+            value_box("Diferencia", f"{diferencia:,.2f}", color_dif)
+    else:
+        # Si no hay dpp_value, solo mostramos la "Suma del total"
+        value_box("Suma del total", f"{sum_total:,.2f}")
+
+    # Posibilidad de subir un archivo Excel para reemplazar la tabla
     uploaded_file = st.file_uploader(subir_archivo_label, type=["xlsx"])
     if uploaded_file is not None:
         if st.button(f"Reemplazar tabla ({sheet_name})"):
@@ -306,7 +322,7 @@ def editar_tabla_section(
             st.session_state[session_key] = df_subido
             guardar_en_excel(df_subido, sheet_name)
             st.success(f"¡Tabla en '{sheet_name}' reemplazada con éxito!")
-            st.rerun()  # <-- Aquí usamos st.rerun()
+            st.rerun()
 
     st.markdown("### Edición de la tabla (haz clic en las celdas para modificar)")
     disabled_cols = {}
@@ -343,7 +359,7 @@ def editar_tabla_section(
     with col_cancelar:
         if st.button("Cancelar / Descartar Cambios"):
             st.info("Descartando cambios y recargando la tabla original...")
-            st.rerun()  # <-- Y aquí también
+            st.rerun()
 
     st.write("### Descargar la tabla en Excel (versión actual en pantalla)")
     descargar_excel(df_editado, file_name=f"{sheet_name}_modificada.xlsx")
@@ -676,6 +692,7 @@ def main():
                 mostrar_value_boxes_por_area(df_pre, col_area="area_imputacion")
                 st.dataframe(df_pre)
             else:
+                # Aquí asignamos dpp_value = 8248, como indicas
                 editar_tabla_section(
                     titulo="PRE > Misiones Personal > DPP 2025",
                     df_original=st.session_state["pre_misiones_personal"],
@@ -684,7 +701,7 @@ def main():
                     calculo_fn=calcular_misiones,
                     mostrar_sum_misiones=True,
                     mostrar_valuebox_area=True,
-                    dpp_value=None,
+                    dpp_value=8248,  # <-- Monto DPP 2025 para PRE - Misiones Personal
                     subir_archivo_label="Reemplazar tabla de PRE Misiones Personal"
                 )
 
@@ -804,6 +821,7 @@ def main():
         st.write("#### DPP 2025 - Consolidado")
         df_cons2 = st.session_state["consolidado_df"]
         st.table(two_decimals_only_numeric(df_cons2))
+
 
 if __name__ == "__main__":
     main()
