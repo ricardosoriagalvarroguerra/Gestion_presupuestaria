@@ -1,0 +1,31 @@
+credentials:
+  usernames:
+    mcalvino:
+      first_name: "M"
+      last_name: "Calvino"
+      email: "[email protected]"
+      # Contraseña hasheada con bcrypt (Hasher)
+      password: "$2b$12$XXXXXXXXXXXX"
+    ajustinianon:
+      first_name: "A"
+      last_name: "Justinianon"
+      email: "[email protected]"
+      password: "$2b$12$YYYYYYYYYYYY"
+    vgonzales:
+      first_name: "V"
+      last_name: "Gonzales"
+      email: "[email protected]"
+      password: "$2b$12$ZZZZZZZZZZZZ"
+    vmoreira:
+      first_name: "V"
+      last_name: "Moreira"
+      email: "[email protected]"
+      password: "$2b$12$WWWWWWWWWWWW"
+
+cookie:
+  name: "mi_cookie_auth"
+  key: "clave_secreta_unica"
+  expiry_days: 30
+
+preauthorized:
+  emails: []
