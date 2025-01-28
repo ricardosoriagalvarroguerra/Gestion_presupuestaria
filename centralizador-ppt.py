@@ -492,7 +492,7 @@ def main():
         name, auth_status, username = authenticator.login(
              form_name="Iniciar Sesión",
              location="sidebar"
-        ) 
+         ) 
 
         if auth_status is False:
             st.error("Usuario o contraseña incorrectos.")
