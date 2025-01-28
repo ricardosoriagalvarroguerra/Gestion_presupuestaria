@@ -173,12 +173,13 @@ DPP_GC_CONS = {
 }
 
 def sincronizar_actualizacion_al_iniciar():
-    unidades = ["VPD", "VPO", "VPF", "VPE"]  # Excluimos PRE (manejo especial)
+    # Actualiza VPD, VPO, VPF, VPE
+    unidades = ["VPD", "VPO", "VPF", "VPE"]
     for unidad in unidades:
         df_misiones_key = f"{unidad.lower()}_misiones"
         if df_misiones_key in st.session_state:
             df_temp = st.session_state[df_misiones_key].copy()
-            if unidad != "VPE":
+            if unidad != "VPE":  # Si es VPE, no aplica cálculo automático
                 df_temp = calcular_misiones(df_temp)
             total_misiones = df_temp["total"].sum() if "total" in df_temp.columns else 0
             dpp_misiones = DPP_VALORES[unidad]["misiones"]
@@ -187,7 +188,7 @@ def sincronizar_actualizacion_al_iniciar():
         df_consult_key = f"{unidad.lower()}_consultores"
         if df_consult_key in st.session_state:
             df_temp = st.session_state[df_consult_key].copy()
-            if unidad != "VPE":
+            if unidad != "VPE":  # Si es VPE, no aplica cálculo automático
                 df_temp = calcular_consultores(df_temp)
             total_cons = df_temp["total"].sum() if "total" in df_temp.columns else 0
             dpp_cons = DPP_VALORES[unidad]["consultorias"]
@@ -216,6 +217,7 @@ def sincronizar_actualizacion_al_iniciar():
 
     total_consultorias_PRE = df_cons.loc[df_cons["area_imputacion"] == "PRE", "total"].sum()
 
+    # Asignación de DPP que ya tenías
     dpp_pre_personal     = 80248
     dpp_pre_mis_cons     = 30872
     dpp_pre_consultorias = 307528
@@ -237,7 +239,7 @@ def sincronizar_actualizacion_al_iniciar():
     actualizar_consultorias("VPO - Consultorías", sum_vpo, dpp_vpo_consultorias)
     actualizar_consultorias("VPF - Consultorías", sum_vpf, dpp_vpf_consultorias)
 
-    # Gastos centralizados (opcional)
+    # Gastos centralizados
     df_gc_personal = st.session_state.get("pre_misiones_personal", pd.DataFrame())
     df_gc_personal = calcular_misiones(df_gc_personal)
 
@@ -296,13 +298,31 @@ def editar_tabla_section(
         st.write("#### Suma de columnas (Misiones)")
         st.dataframe(pd.DataFrame([sum_dict]))
 
-    # Mostramos en una sola línea: Suma del total, Monto DPP 2025, y Diferencia
+    # -------------------------------------------------------------------------
+    # MOSTRAR VALUE BOXES DE SUMA TOTAL / DPP 2025 / DIFERENCIA
+    # -------------------------------------------------------------------------
+    # Si tenemos un dpp_value, calculamos la "Diferencia".
+    # Para PRE, la diferencia debe ser = dpp_value - (total del área "PRE"),
+    # no la suma de todo el df (en caso existan varias áreas).
+    # -------------------------------------------------------------------------
     if dpp_value is not None:
-        diferencia = dpp_value - sum_total
-        color_dif = "#fb8500" if diferencia != 0 else "green"
-        col1, col2, col3 = st.columns(3)
+        if ("area_imputacion" in df_calc.columns
+            and "PRE" in df_calc["area_imputacion"].unique()
+            and titulo.startswith("PRE")
+        ):
+            # Sección PRE: Se calcula la diferencia con el total del área "PRE" solamente
+            pre_area_total = df_calc.loc[df_calc["area_imputacion"] == "PRE", "total"].sum()
+            diferencia = dpp_value - pre_area_total
+        else:
+            # Otras secciones: diferencia = dpp_value - sum_total
+            diferencia = dpp_value - sum_total
 
+        color_dif = "#fb8500" if diferencia != 0 else "green"
+
+        # Tres value boxes en la misma fila
+        col1, col2, col3 = st.columns(3)
         with col1:
+            # "Suma del total" - lo dejamos como referencia
             value_box("Suma del total", f"{sum_total:,.2f}")
         with col2:
             value_box("Monto DPP 2025", f"{dpp_value:,.2f}")
@@ -328,11 +348,11 @@ def editar_tabla_section(
     disabled_cols = {}
     if calculo_fn == calcular_misiones:
         disabled_cols = {
-            "total_pasaje":      st.column_config.NumberColumn(disabled=True),
-            "total_alojamiento": st.column_config.NumberColumn(disabled=True),
+            "total_pasaje":        st.column_config.NumberColumn(disabled=True),
+            "total_alojamiento":   st.column_config.NumberColumn(disabled=True),
             "total_perdiem_otros": st.column_config.NumberColumn(disabled=True),
-            "total_movilidad":   st.column_config.NumberColumn(disabled=True),
-            "total":             st.column_config.NumberColumn(disabled=True),
+            "total_movilidad":     st.column_config.NumberColumn(disabled=True),
+            "total":               st.column_config.NumberColumn(disabled=True),
         }
     elif calculo_fn == calcular_consultores:
         disabled_cols = {
@@ -395,6 +415,7 @@ def main():
     # B) LECTURA DE DATOS DESDE EXCEL A session_state
     excel_file = "main_bdd.xlsx"
 
+    # Cargamos en session_state cada hoja que necesitemos
     if "vpd_misiones" not in st.session_state:
         st.session_state["vpd_misiones"] = pd.read_excel(excel_file, sheet_name="vpd_misiones")
     if "vpd_consultores" not in st.session_state:
@@ -441,6 +462,7 @@ def main():
     if "gastos_centralizados" not in st.session_state:
         st.session_state["gastos_centralizados"] = pd.read_excel(excel_file, sheet_name="gastos_centralizados")
 
+    # Tablas de actualización
     try:
         act_misiones = pd.read_excel(excel_file, sheet_name="actualizacion_misiones")
     except:
@@ -692,7 +714,7 @@ def main():
                 mostrar_value_boxes_por_area(df_pre, col_area="area_imputacion")
                 st.dataframe(df_pre)
             else:
-                # Aquí asignamos dpp_value = 8248, como indicas
+                # Asignamos dpp_value = 8248 para PRE > Misiones Personal
                 editar_tabla_section(
                     titulo="PRE > Misiones Personal > DPP 2025",
                     df_original=st.session_state["pre_misiones_personal"],
