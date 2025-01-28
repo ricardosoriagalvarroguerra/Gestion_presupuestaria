@@ -217,10 +217,11 @@ def sincronizar_actualizacion_al_iniciar():
 
     total_consultorias_PRE = df_cons.loc[df_cons["area_imputacion"] == "PRE", "total"].sum()
 
-    # Asignación de DPP que ya tenías
+    # Estos valores se utilizan para la hoja "actualizacion_misiones" y "actualizacion_consultorias"
+    # en la sección "Actualización", pero no impactan en lo que se muestre en la interfaz de DPP 2025.
     dpp_pre_personal     = 80248
     dpp_pre_mis_cons     = 30872
-    dpp_pre_consultorias = 307528
+    dpp_pre_consultorias = 307528  # Nota: distinto del 338372 que se muestra en la UI
 
     actualizar_misiones("PRE - Misiones - Personal",    total_personal,      dpp_pre_personal)
     actualizar_misiones("PRE - Misiones - Consultores", total_misiones_cons, dpp_pre_mis_cons)
@@ -712,7 +713,7 @@ def main():
                 mostrar_value_boxes_por_area(df_pre, col_area="area_imputacion")
                 st.dataframe(df_pre)
             else:
-                # Monto DPP 2025 = 80.248 (corregido)
+                # Monto DPP 2025 = 80.248
                 editar_tabla_section(
                     titulo="PRE > Misiones Personal > DPP 2025",
                     df_original=st.session_state["pre_misiones_personal"],
@@ -721,7 +722,7 @@ def main():
                     calculo_fn=calcular_misiones,
                     mostrar_sum_misiones=True,
                     mostrar_valuebox_area=True,
-                    dpp_value=80248,  # <-- Monto DPP 2025 para PRE - Misiones Personal (corregido)
+                    dpp_value=80248,  
                     subir_archivo_label="Reemplazar tabla de PRE Misiones Personal"
                 )
 
@@ -745,7 +746,7 @@ def main():
                     calculo_fn=calcular_misiones,
                     mostrar_sum_misiones=True,
                     mostrar_valuebox_area=True,
-                    dpp_value=30872,  # <-- Monto DPP 2025 para PRE - Misiones Consultores
+                    dpp_value=30872,  
                     subir_archivo_label="Reemplazar tabla de PRE Misiones Consultores"
                 )
 
@@ -762,6 +763,7 @@ def main():
                 mostrar_value_boxes_por_area(df_pre, col_area="area_imputacion")
                 st.dataframe(df_pre)
             else:
+                # Monto DPP 2025 para PRE > Consultorías = 338.372 (nuevo requerido)
                 editar_tabla_section(
                     titulo="PRE > Consultorías > DPP 2025",
                     df_original=st.session_state["pre_consultores"],
@@ -770,7 +772,7 @@ def main():
                     calculo_fn=calcular_consultores,
                     mostrar_sum_misiones=False,
                     mostrar_valuebox_area=True,
-                    dpp_value=None,
+                    dpp_value=338372,  # ← NUEVO: Se muestra este monto en la UI
                     subir_archivo_label="Reemplazar tabla de PRE Consultorías"
                 )
 
