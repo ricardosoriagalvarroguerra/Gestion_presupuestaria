@@ -301,16 +301,15 @@ def editar_tabla_section(
     # -------------------------------------------------------------------------
     # MOSTRAR VALUE BOXES DE SUMA TOTAL / DPP 2025 / DIFERENCIA
     # -------------------------------------------------------------------------
-    # Si tenemos un dpp_value, calculamos la "Diferencia".
-    # Para PRE, la diferencia debe ser = dpp_value - (total del área "PRE"),
-    # no la suma de todo el df (en caso existan varias áreas).
+    # Se verifica si hay dpp_value para calcular la diferencia.  
+    # Para PRE, la diferencia se hace contra el total del área "PRE" (si existe).  
     # -------------------------------------------------------------------------
     if dpp_value is not None:
         if ("area_imputacion" in df_calc.columns
             and "PRE" in df_calc["area_imputacion"].unique()
             and titulo.startswith("PRE")
         ):
-            # Sección PRE: Se calcula la diferencia con el total del área "PRE" solamente
+            # Sección PRE: Se calcula la diferencia con el total del área "PRE"
             pre_area_total = df_calc.loc[df_calc["area_imputacion"] == "PRE", "total"].sum()
             diferencia = dpp_value - pre_area_total
         else:
@@ -322,7 +321,6 @@ def editar_tabla_section(
         # Tres value boxes en la misma fila
         col1, col2, col3 = st.columns(3)
         with col1:
-            # "Suma del total" - lo dejamos como referencia
             value_box("Suma del total", f"{sum_total:,.2f}")
         with col2:
             value_box("Monto DPP 2025", f"{dpp_value:,.2f}")
@@ -714,7 +712,7 @@ def main():
                 mostrar_value_boxes_por_area(df_pre, col_area="area_imputacion")
                 st.dataframe(df_pre)
             else:
-                # Asignamos dpp_value = 8248 para PRE > Misiones Personal
+                # Monto DPP 2025 = 80.248 (corregido)
                 editar_tabla_section(
                     titulo="PRE > Misiones Personal > DPP 2025",
                     df_original=st.session_state["pre_misiones_personal"],
@@ -723,7 +721,7 @@ def main():
                     calculo_fn=calcular_misiones,
                     mostrar_sum_misiones=True,
                     mostrar_valuebox_area=True,
-                    dpp_value=8248,  # <-- Monto DPP 2025 para PRE - Misiones Personal
+                    dpp_value=80248,  # <-- Monto DPP 2025 para PRE - Misiones Personal (corregido)
                     subir_archivo_label="Reemplazar tabla de PRE Misiones Personal"
                 )
 
@@ -738,6 +736,7 @@ def main():
                 mostrar_value_boxes_por_area(df_pre, col_area="area_imputacion")
                 st.dataframe(df_pre)
             else:
+                # Monto DPP 2025 = 30.872
                 editar_tabla_section(
                     titulo="PRE > Misiones Consultores > DPP 2025",
                     df_original=st.session_state["pre_misiones_consultores"],
@@ -746,7 +745,7 @@ def main():
                     calculo_fn=calcular_misiones,
                     mostrar_sum_misiones=True,
                     mostrar_valuebox_area=True,
-                    dpp_value=None,
+                    dpp_value=30872,  # <-- Monto DPP 2025 para PRE - Misiones Consultores
                     subir_archivo_label="Reemplazar tabla de PRE Misiones Consultores"
                 )
 
