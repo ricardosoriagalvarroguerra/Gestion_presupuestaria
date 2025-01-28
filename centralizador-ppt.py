@@ -9,7 +9,7 @@ import os
 from openpyxl import load_workbook
 
 ############################
-# FUNCIONES PARA LECTURA YAML
+# 1) Funciones para leer / escribir config.yaml
 ############################
 def cargar_config_desde_yaml(ruta_yaml="config.yaml"):
     """Lee config.yaml y retorna un dict de configuración."""
@@ -18,8 +18,80 @@ def cargar_config_desde_yaml(ruta_yaml="config.yaml"):
     with open(ruta_yaml, "r", encoding="utf-8") as file:
         return yaml.load(file, Loader=SafeLoader)
 
+def guardar_config_a_yaml(config: dict, ruta_yaml="config.yaml"):
+    """Sobrescribe config.yaml con el dict config."""
+    with open(ruta_yaml, "w", encoding="utf-8") as file:
+        yaml.dump(config, file, default_flow_style=False)
+
 ############################
-# FUNCIONES DE CÁLCULO Y FORMATO
+# 2) Funciones para registrar un nuevo usuario en config.yaml
+############################
+def registrar_nuevo_usuario(username, first_name, last_name, email, password_plano, ruta_yaml="config.yaml"):
+    """
+    Registra un nuevo usuario en config.yaml con la librería streamlit_authenticator.
+    Retorna (exito: bool, mensaje: str).
+    """
+    config = cargar_config_desde_yaml(ruta_yaml)
+
+    # Revisar si ya existe el username
+    if username in config["credentials"]["usernames"]:
+        return False, "Ese usuario ya existe."
+
+    # Hashear la contraseña
+    hashed_pass = stauth.Hasher([password_plano]).generate()[0]
+
+    # Agregar al diccionario
+    config["credentials"]["usernames"][username] = {
+        "first_name": first_name,
+        "last_name":  last_name,
+        "email":      email,
+        "password":   hashed_pass
+    }
+
+    # Guardar
+    guardar_config_a_yaml(config, ruta_yaml)
+    return True, f"Usuario '{username}' creado exitosamente."
+
+def formulario_crear_usuario():
+    """
+    Muestra un formulario para crear un nuevo usuario en config.yaml.
+    """
+    st.subheader("Crear Nuevo Usuario")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        nuevo_username = st.text_input("Nombre de Usuario")
+        nuevo_first    = st.text_input("Nombre")
+    with col2:
+        nuevo_last     = st.text_input("Apellido")
+        nuevo_email    = st.text_input("Email (opcional)")
+
+    pass1 = st.text_input("Contraseña", type="password")
+    pass2 = st.text_input("Repite Contraseña", type="password")
+
+    if st.button("Registrar Usuario"):
+        if pass1 != pass2:
+            st.error("Las contraseñas no coinciden.")
+            return
+        if not nuevo_username.strip():
+            st.error("El campo 'Nombre de Usuario' es obligatorio.")
+            return
+
+        exito, msg = registrar_nuevo_usuario(
+            username=nuevo_username.strip(),
+            first_name=nuevo_first.strip(),
+            last_name=nuevo_last.strip(),
+            email=nuevo_email.strip(),
+            password_plano=pass1
+        )
+        if exito:
+            st.success(msg)
+            st.info("Ahora ya puedes loguearte con tu nuevo usuario.")
+        else:
+            st.error(msg)
+
+############################
+# 3) Funciones de Cálculo y Formato (iguales que las que tenías)
 ############################
 def calcular_misiones(df: pd.DataFrame) -> pd.DataFrame:
     df_calc = df.copy()
@@ -46,7 +118,6 @@ def calcular_consultores(df: pd.DataFrame) -> pd.DataFrame:
     for col in cols_base:
         if col not in df_calc.columns:
             df_calc[col] = 0
-
     df_calc["total"] = (
         df_calc["cantidad_funcionarios"]
         * df_calc["cantidad_meses"]
@@ -61,7 +132,7 @@ def two_decimals_only_numeric(df: pd.DataFrame):
 def color_diferencia(val):
     return "background-color: #fb8500; color:white" if val != 0 else "background-color: green; color:white"
 
-def value_box(label: str, value, bg_color: str = "#6c757d"):
+def value_box(label: str, value, bg_color: str="#6c757d"):
     st.markdown(f"""
     <div style="display:inline-block; background-color:{bg_color}; 
                 padding:10px; margin:5px; border-radius:5px; color:white; font-weight:bold;">
@@ -70,7 +141,7 @@ def value_box(label: str, value, bg_color: str = "#6c757d"):
     </div>
     """, unsafe_allow_html=True)
 
-def mostrar_value_boxes_por_area(df: pd.DataFrame, col_area: str = "area_imputacion"):
+def mostrar_value_boxes_por_area(df: pd.DataFrame, col_area: str="area_imputacion"):
     areas_imputacion = ["VPD","VPO","VPF","PRE"]
     cols = st.columns(len(areas_imputacion))
     for i, area in enumerate(areas_imputacion):
@@ -81,7 +152,7 @@ def mostrar_value_boxes_por_area(df: pd.DataFrame, col_area: str = "area_imputac
             value_box(area, f"{total_area:,.2f}")
 
 import io
-def descargar_excel(df: pd.DataFrame, file_name: str = "descarga.xlsx") -> None:
+def descargar_excel(df: pd.DataFrame, file_name: str="descarga.xlsx") -> None:
     buffer = io.BytesIO()
     with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
         df.to_excel(writer, sheet_name="Hoja1", index=False)
@@ -94,12 +165,12 @@ def descargar_excel(df: pd.DataFrame, file_name: str = "descarga.xlsx") -> None:
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
-def guardar_en_excel(df: pd.DataFrame, sheet_name: str, excel_file: str = "main_bdd.xlsx"):
+def guardar_en_excel(df: pd.DataFrame, sheet_name: str, excel_file: str="main_bdd.xlsx"):
     with pd.ExcelWriter(excel_file, engine="openpyxl", mode="a", if_sheet_exists="replace") as writer:
         df.to_excel(writer, sheet_name=sheet_name, index=False)
 
 ############################
-#  FUNCIONES PARA ACTUALIZACIÓN
+# 4) Funciones de Actualización (mismo contenido)
 ############################
 def actualizar_misiones(unit: str, req_area: float, monto_dpp: float):
     if "actualizacion_misiones" not in st.session_state:
@@ -150,7 +221,6 @@ def actualizar_consultorias(unit: str, req_area: float, monto_dpp: float):
 
     st.session_state["actualizacion_consultorias"] = df_act
     guardar_en_excel(df_act, "actualizacion_consultorias")
-
 
 DPP_VALORES = {
     "VPD": {"misiones":168000,"consultorias":130000},
@@ -212,9 +282,9 @@ def sincronizar_actualizacion_al_iniciar():
     dpp_pre_mis_cons     = 30872
     dpp_pre_consultorias = 307528
 
-    actualizar_misiones("PRE - Misiones - Personal",    total_personal,      dpp_pre_personal)
+    actualizar_misiones("PRE - Misiones - Personal", total_personal, dpp_pre_personal)
     actualizar_misiones("PRE - Misiones - Consultores", total_misiones_cons, dpp_pre_mis_cons)
-    actualizar_consultorias("PRE - Consultorías",       total_consultorias_PRE, dpp_pre_consultorias)
+    actualizar_consultorias("PRE - Consultorías", total_consultorias_PRE, dpp_pre_consultorias)
 
     sum_vpd = df_cons.loc[df_cons["area_imputacion"]=="VPD","total"].sum()
     sum_vpo = df_cons.loc[df_cons["area_imputacion"]=="VPO","total"].sum()
@@ -228,10 +298,8 @@ def sincronizar_actualizacion_al_iniciar():
     actualizar_consultorias("VPO - Consultorías", sum_vpo, dpp_vpo_consultorias)
     actualizar_consultorias("VPF - Consultorías", sum_vpf, dpp_vpf_consultorias)
 
-    # Gastos centralizados
     df_gc_personal = st.session_state.get("pre_misiones_personal", pd.DataFrame())
     df_gc_personal = calcular_misiones(df_gc_personal)
-
     df_gc_miscons  = st.session_state.get("pre_misiones_consultores", pd.DataFrame())
     df_gc_miscons  = calcular_misiones(df_gc_miscons)
 
@@ -248,7 +316,7 @@ def sincronizar_actualizacion_al_iniciar():
         actualizar_misiones(label_gc, total_unidad, dpp_gc)
 
 ############################
-# FUNCIÓN PARA EDITAR TABLA
+# 5) Función para editar tabla
 ############################
 def editar_tabla_section(
     titulo: str,
@@ -282,9 +350,8 @@ def editar_tabla_section(
         st.write("#### Suma de columnas (Misiones)")
         st.dataframe(pd.DataFrame([sum_dict]))
 
-    # Muestra value boxes
     if dpp_value is not None:
-        # Ajuste para área PRE
+        # Ajuste especial para area PRE
         if ("area_imputacion" in df_calc.columns
             and "PRE" in df_calc["area_imputacion"].unique()
             and titulo.startswith("PRE")
@@ -295,7 +362,7 @@ def editar_tabla_section(
             diferencia = dpp_value - sum_total
 
         color_dif = "#fb8500" if diferencia != 0 else "green"
-        col1,col2,col3 = st.columns(3)
+        col1, col2, col3 = st.columns(3)
         with col1:
             value_box("Suma del total", f"{sum_total:,.2f}")
         with col2:
@@ -305,7 +372,7 @@ def editar_tabla_section(
     else:
         value_box("Suma del total", f"{sum_total:,.2f}")
 
-    # Subir nuevo Excel
+    # Subir un archivo Excel
     uploaded_file = st.file_uploader(subir_archivo_label, type=["xlsx"])
     if uploaded_file is not None:
         if st.button(f"Reemplazar tabla ({sheet_name})"):
@@ -318,18 +385,17 @@ def editar_tabla_section(
             st.rerun()
 
     st.markdown("### Edición de la tabla (haz clic en las celdas para modificar)")
-
     disabled_cols = {}
     if calculo_fn==calcular_misiones:
         disabled_cols = {
-            "total_pasaje":st.column_config.NumberColumn(disabled=True),
-            "total_alojamiento":st.column_config.NumberColumn(disabled=True),
-            "total_perdiem_otros":st.column_config.NumberColumn(disabled=True),
-            "total_movilidad":st.column_config.NumberColumn(disabled=True),
-            "total":st.column_config.NumberColumn(disabled=True),
+            "total_pasaje":        st.column_config.NumberColumn(disabled=True),
+            "total_alojamiento":   st.column_config.NumberColumn(disabled=True),
+            "total_perdiem_otros": st.column_config.NumberColumn(disabled=True),
+            "total_movilidad":     st.column_config.NumberColumn(disabled=True),
+            "total":               st.column_config.NumberColumn(disabled=True),
         }
     elif calculo_fn==calcular_consultores:
-        disabled_cols = {"total":st.column_config.NumberColumn(disabled=True)}
+        disabled_cols = {"total": st.column_config.NumberColumn(disabled=True)}
 
     df_editado = st.data_editor(
         df_calc,
@@ -337,7 +403,7 @@ def editar_tabla_section(
         column_config=disabled_cols
     )
 
-    col_guardar,col_cancelar = st.columns(2)
+    col_guardar, col_cancelar = st.columns(2)
     with col_guardar:
         if st.button("Guardar Cambios"):
             if calculo_fn:
@@ -356,17 +422,26 @@ def editar_tabla_section(
     st.write("### Descargar la tabla en Excel (versión actual en pantalla)")
     descargar_excel(df_editado, file_name=f"{sheet_name}_modificada.xlsx")
 
+
 ############################
-# FUNCIÓN PRINCIPAL
+# 6) FUNCIÓN PRINCIPAL
 ############################
 def main():
-    st.set_page_config(page_title="Planificación Presupuestaria con YAML", layout="wide")
+    st.set_page_config(page_title="Presupuesto", layout="wide")
 
-    # 1) Cargar configuración desde YAML
+    st.title("Presupuesto")
+
+    # Barra lateral para "Login" o "Crear Usuario"
+    menu_lateral = st.sidebar.radio("Selecciona una Opción:", ["Login", "Crear Usuario"])
+
+    if menu_lateral=="Crear Usuario":
+        formulario_crear_usuario()
+        return
+
+    # 1) Cargar config.yaml
     config = cargar_config_desde_yaml("config.yaml")
 
-    # 2) Crear objeto 'authenticator' sin parámetros extra, 
-    #    para evitar problemas de location/form_name
+    # 2) Crear Authenticator
     authenticator = stauth.Authenticate(
         config['credentials'],
         config['cookie']['name'],
@@ -374,28 +449,24 @@ def main():
         config['cookie']['expiry_days']
     )
 
-    # 3) Widget de login
-    #    Versión 0.4.x de streamlit_authenticator no requiere 
-    #    location ni form_name, 
+    # 3) Login widget (sin parámetros)
     try:
         authenticator.login()
     except stauth.LoginError as e:
         st.error(e)
 
-    # 4) Revisar estado
     if "authentication_status" not in st.session_state:
         st.session_state["authentication_status"] = None
 
-    if st.session_state["authentication_status"]:
-        # Usuario logueado
+    # 4) Ver estado
+    if st.session_state["authentication_status"] is True:
         st.sidebar.success(f"Sesión iniciada por: {st.session_state['name']}")
 
-        # Botón logout
+        # Logout
         authenticator.logout()
         st.write(f"Bienvenido *{st.session_state['name']}*")
-        st.title("Planificación Presupuestaria - YAML & streamlit-authenticator")
 
-        # A) Cargar data de Excel a session_state
+        # A) Cargar data de Excel
         excel_file = "main_bdd.xlsx"
 
         if "vpd_misiones" not in st.session_state:
@@ -463,7 +534,6 @@ def main():
 
         if eleccion_principal=="Página Principal":
             st.title("Página Principal")
-            st.write("Bienvenido a la Página Principal.")
 
         elif eleccion_principal=="VPD":
             st.title("Sección VPD")
@@ -488,8 +558,7 @@ def main():
                         calculo_fn=calcular_misiones,
                         mostrar_sum_misiones=True,
                         mostrar_valuebox_area=False,
-                        dpp_value=168000,
-                        subir_archivo_label="Reemplazar la tabla de VPD Misiones"
+                        dpp_value=168000
                     )
             else:
                 if eleccion_sub_sub=="Requerimiento del Área":
@@ -507,12 +576,12 @@ def main():
                         calculo_fn=calcular_consultores,
                         mostrar_sum_misiones=False,
                         mostrar_valuebox_area=False,
-                        dpp_value=130000,
-                        subir_archivo_label="Reemplazar la tabla de VPD Consultorías"
+                        dpp_value=130000
                     )
 
         elif eleccion_principal=="VPO":
             st.title("Sección VPO")
+            # ... (mismo patrón)
             sub_vpo = ["Misiones","Consultorías"]
             eleccion_vpo_ = st.sidebar.selectbox("Sub-sección de VPO:", sub_vpo)
             sub_sub_opciones = ["Requerimiento del Área","DPP 2025"]
@@ -534,8 +603,7 @@ def main():
                         calculo_fn=calcular_misiones,
                         mostrar_sum_misiones=True,
                         mostrar_valuebox_area=False,
-                        dpp_value=434707,
-                        subir_archivo_label="Reemplazar la tabla de VPO Misiones"
+                        dpp_value=434707
                     )
             else:
                 if eleccion_sub_sub=="Requerimiento del Área":
@@ -553,8 +621,7 @@ def main():
                         calculo_fn=calcular_consultores,
                         mostrar_sum_misiones=False,
                         mostrar_valuebox_area=False,
-                        dpp_value=250000,
-                        subir_archivo_label="Reemplazar la tabla de VPO Consultorías"
+                        dpp_value=250000
                     )
 
         elif eleccion_principal=="VPF":
@@ -580,8 +647,7 @@ def main():
                         calculo_fn=calcular_misiones,
                         mostrar_sum_misiones=True,
                         mostrar_valuebox_area=False,
-                        dpp_value=138600,
-                        subir_archivo_label="Reemplazar la tabla de VPF Misiones"
+                        dpp_value=138600
                     )
             else:
                 if eleccion_sub_sub=="Requerimiento del Área":
@@ -599,8 +665,7 @@ def main():
                         calculo_fn=calcular_consultores,
                         mostrar_sum_misiones=False,
                         mostrar_valuebox_area=False,
-                        dpp_value=200000,
-                        subir_archivo_label="Reemplazar la tabla de VPF Consultorías"
+                        dpp_value=200000
                     )
 
         elif eleccion_principal=="VPE":
@@ -626,8 +691,7 @@ def main():
                         calculo_fn=None,
                         mostrar_sum_misiones=False,
                         mostrar_valuebox_area=False,
-                        dpp_value=28244,
-                        subir_archivo_label="Reemplazar tabla de VPE Misiones"
+                        dpp_value=28244
                     )
             else:
                 if eleccion_sub_sub_vpe=="Requerimiento del Área":
@@ -645,8 +709,7 @@ def main():
                         calculo_fn=None,
                         mostrar_sum_misiones=False,
                         mostrar_valuebox_area=False,
-                        dpp_value=179446,
-                        subir_archivo_label="Reemplazar tabla de VPE Consultorías"
+                        dpp_value=179446
                     )
 
         elif eleccion_principal=="PRE":
@@ -673,8 +736,7 @@ def main():
                         calculo_fn=calcular_misiones,
                         mostrar_sum_misiones=True,
                         mostrar_valuebox_area=True,
-                        dpp_value=80248,
-                        subir_archivo_label="Reemplazar tabla de PRE Misiones Personal"
+                        dpp_value=80248
                     )
 
             elif eleccion_pre_=="Misiones Consultores":
@@ -696,8 +758,7 @@ def main():
                         calculo_fn=calcular_misiones,
                         mostrar_sum_misiones=True,
                         mostrar_valuebox_area=True,
-                        dpp_value=30872,
-                        subir_archivo_label="Reemplazar tabla de PRE Misiones Consultores"
+                        dpp_value=30872
                     )
 
             elif eleccion_pre_=="Consultorías":
@@ -721,15 +782,13 @@ def main():
                         calculo_fn=calcular_consultores,
                         mostrar_sum_misiones=False,
                         mostrar_valuebox_area=True,
-                        dpp_value=338372,
-                        subir_archivo_label="Reemplazar tabla de PRE Consultorías"
+                        dpp_value=338372
                     )
 
             elif eleccion_pre_=="Comunicaciones":
                 st.subheader("PRE > Comunicaciones (Solo lectura)")
                 df_com = st.session_state["com"]
                 st.dataframe(df_com)
-                st.info("Tabla de Comunicaciones (COM) mostrada aquí.")
 
             else:
                 st.subheader("PRE > Gastos Centralizados (Referencias)")
@@ -755,7 +814,6 @@ def main():
                 .format("{:,.2f}", subset=["Requerimiento del Área","Monto DPP 2025","Diferencia"])
                 .applymap(color_diferencia, subset=["Diferencia"])
             )
-
             st.write("### Tabla de Consultorías")
             df_cons = st.session_state["actualizacion_consultorias"]
             st.dataframe(
@@ -763,7 +821,6 @@ def main():
                 .format("{:,.2f}", subset=["Requerimiento del Área","Monto DPP 2025","Diferencia"])
                 .applymap(color_diferencia, subset=["Diferencia"])
             )
-
             st.info("Se recalculan en cada carga de la app y cuando guardas datos en las secciones DPP 2025.")
 
         elif eleccion_principal=="Consolidado":
@@ -791,10 +848,8 @@ def main():
             st.table(two_decimals_only_numeric(df_cons2))
 
     elif st.session_state["authentication_status"] is False:
-        # Usuario o pass incorrectos
         st.error("Usuario/Contraseña incorrectos.")
     else:
-        # None
         st.warning("Por favor ingresa tu usuario y contraseña.")
 
 if __name__=="__main__":
