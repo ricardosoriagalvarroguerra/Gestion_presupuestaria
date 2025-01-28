@@ -491,7 +491,7 @@ def editar_tabla_section(
 ########################################
 def main():
     # Configuración de la página
-    st.set_page_config(page_title="Presupuesto", layout="wide")
+    st.set_page_config(page_title="Planificación presupuestaria", layout="wide")
 
     st.title("Presupuesto")
 
