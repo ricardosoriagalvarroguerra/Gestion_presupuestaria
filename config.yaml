@@ -35,7 +35,7 @@ credentials:
 cookie:
   name: "mi_cookie_auth"
   key: "clave_secreta_unica"
-  expiry_days: 30
+  expiry_days: 60
 
 preauthorized:
   emails: []
