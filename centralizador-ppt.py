@@ -489,10 +489,10 @@ def main():
         )
 
          # Forma B (nombrada), usando 'main' o 'sidebar' según quieras
-       name, auth_status, username = authenticator.login(
+        name, auth_status, username = authenticator.login(
              form_name="Iniciar Sesión",
              location="sidebar"
-       )
+        ) 
 
         if auth_status is False:
             st.error("Usuario o contraseña incorrectos.")
@@ -942,4 +942,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    ()
