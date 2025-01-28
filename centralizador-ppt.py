@@ -37,8 +37,9 @@ def registrar_nuevo_usuario(username, first_name, last_name, email, password_pla
     if username in config["credentials"]["usernames"]:
         return False, "Ese usuario ya existe."
 
-    # Hashear la contraseña
-    hashed_pass = stauth.Hasher([password_plano]).generate()[0]
+    # Hashear la contraseña usando hash_all
+    hashed_list = stauth.Hasher([password_plano]).hash_all()
+    hashed_pass = hashed_list[0]  # Primer hash
 
     # Agregar al diccionario
     config["credentials"]["usernames"][username] = {
