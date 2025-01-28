@@ -491,9 +491,9 @@ def editar_tabla_section(
 ########################################
 def main():
     # Configuración de la página
-    st.set_page_config(page_title="Planificación presupuestaria", layout="wide")
+    st.set_page_config(page_title="Presupuesto", layout="wide")
 
-    st.title("Presupuesto")
+    st.title("Planificación presupuestaria")
 
     # Menú lateral: "Login" o "Crear Usuario"
     menu_lateral = st.sidebar.radio("Selecciona una Opción:", ["Login", "Crear Usuario"])
