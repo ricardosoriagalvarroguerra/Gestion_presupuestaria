@@ -1,0 +1,34 @@
+{
+  "credentials": {
+    "usernames": {
+      "mcalvino": {
+        "email": "[email protected]",
+        "name": "M Calvino",
+        "password": "$2b$12$XXXXXXXXXXXX" 
+      },
+      "ajustinianon": {
+        "email": "[email protected]",
+        "name": "A Justinianon",
+        "password": "$2b$12$YYYYYYYYYYYY"
+      },
+      "vgonzales": {
+        "email": "[email protected]",
+        "name": "V Gonzales",
+        "password": "$2b$12$ZZZZZZZZZZZZ"
+      },
+      "vmoreira": {
+        "email": "[email protected]",
+        "name": "V Moreira",
+        "password": "$2b$12$WWWWWWWWWWWW"
+      }
+    }
+  },
+  "cookie": {
+    "expiry_days": 30,
+    "key": "clave_secreta_unica", 
+    "name": "mi_cookie_auth"
+  },
+  "preauthorized": {
+    "emails": []
+  }
+}
