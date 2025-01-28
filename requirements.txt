@@ -1,5 +1,5 @@
 streamlit
-mitosheet
+streamlit-authenticator
 pandas
 openpyxl
 numpy
