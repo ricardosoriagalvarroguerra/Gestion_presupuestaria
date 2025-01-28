@@ -488,7 +488,11 @@ def main():
             cookie_expiry_days=config["cookie"]["expiry_days"]
         )
 
-        name, auth_status, username = authenticator.login("Iniciar Sesión", "main")
+         # Forma B (nombrada), usando 'main' o 'sidebar' según quieras
+       name, auth_status, username = authenticator.login(
+             form_name="Iniciar Sesión",
+             location="sidebar"
+       )
 
         if auth_status is False:
             st.error("Usuario o contraseña incorrectos.")
