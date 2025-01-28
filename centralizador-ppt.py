@@ -388,7 +388,7 @@ def editar_tabla_section(
 # 6. FUNCIÓN PRINCIPAL
 # =============================================================================
 def main():
-    st.set_page_config(page_title="Aplicación Completa Mejorada", layout="wide")
+    st.set_page_config(page_title="Planificación Presupuestaria FONP", layout="wide")
 
     # A) LOGIN
     if "logged_in" not in st.session_state:
