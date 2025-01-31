@@ -8,6 +8,7 @@ import os
 import bcrypt  # Para hashear contraseñas manualmente
 from openpyxl import load_workbook
 
+
 ########################################
 # 1) Funciones para leer/escribir config.yaml
 ########################################
@@ -114,7 +115,7 @@ def formulario_crear_usuario():
         )
         if exito:
             st.success(msg)
-            st.info("Ahora ya puedes loguearte con tu nuevo usuario.")
+            st.info("Ahora ya puedes iniciar sesión con tu nuevo usuario.")
         else:
             st.error(msg)
 
@@ -202,7 +203,7 @@ def mostrar_value_boxes_por_area(df: pd.DataFrame, col_area: str="area_imputacio
         with cols[i]:
             value_box(area, f"{total_area:,.2f}")
 
-import io
+
 def descargar_excel(df: pd.DataFrame, file_name: str="descarga.xlsx") -> None:
     """
     Crea un botón para descargar 'df' en formato Excel.
@@ -223,6 +224,7 @@ def guardar_en_excel(df: pd.DataFrame, sheet_name: str, excel_file: str="main_bd
     """
     Guarda 'df' en la hoja 'sheet_name' del archivo 'excel_file', reemplazándola.
     """
+    from openpyxl import Workbook
     with pd.ExcelWriter(excel_file, engine="openpyxl", mode="a", if_sheet_exists="replace") as writer:
         df.to_excel(writer, sheet_name=sheet_name, index=False)
 
@@ -298,6 +300,7 @@ DPP_VALORES = {
     "VPE": {"misiones":28244,  "consultorias":179446},
     "PRE": {"misiones":0,      "consultorias":0},
 }
+
 DPP_GC_MIS_PER = {"VPD":36960,"VPO":48158,"VPF":40960}
 DPP_GC_MIS_CONS= {"VPD":24200,"VPO":13160,"VPF":24200}
 DPP_GC_CONS    = {"VPD":24200,"VPO":13160,"VPF":24200}
@@ -314,8 +317,7 @@ def sincronizar_actualizacion_al_iniciar():
         df_misiones_key = f"{unidad.lower()}_misiones"
         if df_misiones_key in st.session_state:
             df_temp = st.session_state[df_misiones_key].copy()
-            # VPE se ingresa sin fórmula, el resto se calculan
-            if unidad != "VPE":
+            if unidad != "VPE":  # VPE no usa la fórmula de cálculo
                 df_temp = calcular_misiones(df_temp)
             total_misiones = df_temp["total"].sum() if "total" in df_temp.columns else 0
             dpp_misiones = DPP_VALORES[unidad]["misiones"]
@@ -463,7 +465,6 @@ def editar_tabla_section(
             with c3:
                 value_box("Diferencia", f"{diferencia:,.2f}", color_dif)
         else:
-            # Caso normal
             diferencia = dpp_value - sum_total
             color_dif = "#fb8500" if diferencia != 0 else "green"
             c1, c2, c3 = st.columns(3)
@@ -579,13 +580,12 @@ def get_allowed_sections(area_user: str):
 
 
 ########################################
-# 7) Función para resaltar filas específicas
+# 7) Función para resaltar filas específicas (Consolidado)
 ########################################
 def highlight_custom_rows(styler, rows_to_highlight: list):
     """
     Dado un Styler, aplica color de celda (#a4161a) y texto blanco
     en las filas indicadas por 'rows_to_highlight' (índices 0-based).
-    (Quitamos la anotación : pd.io.formats.style.Styler para evitar AttributeError)
     """
     def highlight_row(row):
         if row.name in rows_to_highlight:
@@ -596,7 +596,131 @@ def highlight_custom_rows(styler, rows_to_highlight: list):
 
 
 ########################################
-# 8) FUNCIÓN PRINCIPAL
+# 8) Página de Instrucciones
+########################################
+def pagina_instrucciones():
+    st.title("Guía de Uso y Creación de Usuarios")
+
+    st.markdown(
+    """
+    <style>
+    .instrucciones-container {
+        background-color: #F8F9FA;
+        border-radius: 5px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    h2, h3, h4 {
+        color: #343a40;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown(
+        """
+        <div class="instrucciones-container">
+
+        ### 1. ¿Qué es esta aplicación?
+        Esta herramienta te permite gestionar y editar información presupuestaria por áreas (VPD, VPO, VPF, VPE, PRE, etc.).  
+        - Registra y compara datos (misiones, consultorías, gastos) contra el Monto DPP 2025.  
+        - Controla los accesos con roles (admin, editor, viewer) y define qué secciones ve cada usuario mediante áreas.
+
+        ---
+
+        ### 2. Creación de Usuarios
+
+        **2.1 ¿Quién puede crear usuarios?**  
+        - Solo el administrador o usuario con permisos especiales ve la opción “Crear Usuario” en el menú lateral.  
+        - Si tu rol no lo permite, no podrás registrar nuevos usuarios.
+
+        **2.2 Pasos para crear un usuario**  
+        1. Inicia sesión con un usuario que tenga permisos de administrador.  
+        2. Selecciona “Crear Usuario” en el menú lateral.  
+        3. Completa el formulario:  
+            - **Nombre de Usuario**: único y representativo.  
+            - **Nombre y Apellido**: identificación personal.  
+            - **Email (opcional)**: información de contacto.  
+            - **Rol** (admin, editor, viewer).  
+            - **Área** (VPD, VPO, VPF, VPE, PRE).  
+            - **Contraseña** y **Repetir Contraseña**: deben coincidir.  
+        4. Haz clic en “Registrar Usuario”.  
+            - Si todo está correcto, verás un mensaje de éxito.  
+            - Si hay errores (usuario duplicado, contraseñas distintas), la app lo indicará.  
+
+        **2.3 ¿Dónde se guardan los usuarios?**  
+        - Se almacenan en el archivo `config.yaml`, que registra credenciales y roles.  
+        - El nuevo usuario puede iniciar sesión inmediatamente después de crearse.
+
+        ---
+
+        ### 3. Uso General de la Aplicación
+
+        **3.1 Inicio de Sesión**  
+        1. En la página principal, selecciona “Login” en el menú lateral.  
+        2. Ingresa tu nombre de usuario y contraseña.  
+        3. Si son correctos, verás las secciones habilitadas según tu Área y Rol.
+
+        **3.2 Navegación de Secciones**  
+        - El menú lateral muestra solamente las secciones a las que tu área tiene acceso.  
+        - Ejemplos:  
+          - VPD, VPO, VPF, VPE, PRE con sub-secciones de “Misiones” y “Consultorías”.  
+          - “Actualización” (totales recalculados), “Consolidado” (cuadros finales), etc.
+
+        **3.3 Edición de Datos (roles admin/editor)**  
+        - Entra a la sub-sección “DPP 2025” (p.ej., “VPD > Misiones > DPP 2025”).  
+        - Haz clic en una celda y edítala. Después presiona **Enter** o haz clic fuera para confirmar.  
+        - Botón “Guardar Cambios” o “Cancelar / Descartar Cambios”.  
+        - También puedes **subir un Excel** propio (mismo formato) para reemplazar la tabla.
+
+        **3.4 Visualización (rol viewer)**  
+        - Solo lectura: no se puede modificar la tabla ni guardar cambios.
+
+        **3.5 Sección “Actualización”**  
+        - Muestra diferencias entre el Requerimiento del Área y el Monto DPP 2025 (en verde si es 0, naranja si no).
+
+        **3.6 Sección “Consolidado”**  
+        - Cuadros globales (Cuadro 9, 10, 11, etc.) y el “DPP 2025 – Consolidado” final.
+
+        **3.7 Cierre de Sesión**  
+        - Haz clic en “Logout” (botón en el menú lateral) para cerrar sesión.
+
+        ---
+
+        ### 4. Preguntas Frecuentes (FAQ)
+
+        1. **¿Por qué no veo todas las secciones?**  
+           - Tu área puede ser solo VPO, por ejemplo, y verás solo “VPO” y “Consolidado”.  
+
+        2. **¿Por qué no puedo editar?**  
+           - Requieres rol “editor” o “admin”. Con “viewer” solo ves datos.  
+
+        3. **¿Dónde se guardan los datos?**  
+           - En `main_bdd.xlsx`, cada hoja corresponde a una sección.  
+           - Los usuarios en `config.yaml`.  
+
+        4. **¿Puedo exportar la información?**  
+           - Sí, hay un botón para descargar la tabla como Excel en cada sección.  
+
+        5. **¿Qué pasa si subo un Excel con columnas distintas?**  
+           - Pueden surgir errores o datos incompletos. Respeta el formato original.
+
+        ---
+
+        ### 5. Recomendaciones de Seguridad
+        - No compartas tu contraseña.  
+        - Cierra sesión (Logout) después de usar la app.  
+        - Si sospechas un uso indebido, solicita cambiar tu contraseña o contacta al administrador.
+
+        ---
+        **¡Listo!** Con esta guía tendrás una referencia clara para crear usuarios y usar la aplicación.
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+########################################
+# 9) FUNCIÓN PRINCIPAL
 ########################################
 def main():
     # Configuración de la página
@@ -604,8 +728,15 @@ def main():
 
     st.title("Planificación presupuestaria")
 
-    # Menú lateral: "Login" o "Crear Usuario"
-    menu_lateral = st.sidebar.radio("Selecciona una Opción:", ["Login", "Crear Usuario"])
+    # Menú lateral: "Instrucciones", "Login" o "Crear Usuario"
+    menu_lateral = st.sidebar.radio(
+        "Selecciona una Opción:",
+        ["Instrucciones", "Login", "Crear Usuario"]
+    )
+
+    if menu_lateral == "Instrucciones":
+        pagina_instrucciones()
+        return
 
     if menu_lateral == "Crear Usuario":
         formulario_crear_usuario()
@@ -633,14 +764,12 @@ def main():
         st.sidebar.success(f"Sesión iniciada por: {st.session_state['name']}")
         username_log = st.session_state["username"]
 
-        # Obtener rol
+        # Obtener rol y área
         rol_user = config["credentials"]["usernames"][username_log].get("role", "viewer")
         st.session_state["user_role"] = rol_user
-
-        # Obtener área
         area_user = config["credentials"]["usernames"][username_log].get("area", "PRE")
 
-        st.write(f"Bienvenido *{st.session_state['name']}*. Rol: **{rol_user}**, Área: **{area_user}**")
+        st.write(f"Bienvenido(a) *{st.session_state['name']}*. Rol: **{rol_user}**, Área: **{area_user}**")
 
         # Botón Logout
         authenticator.logout()
@@ -711,26 +840,30 @@ def main():
         st.sidebar.title("Navegación principal")
         eleccion_principal = st.sidebar.selectbox("Selecciona una sección:", allowed_sections)
 
-        # PAGINA PRINCIPAL
+        # ---------------------------
+        # SECCIÓN: PÁGINA PRINCIPAL
+        # ---------------------------
         if eleccion_principal == "Página Principal":
             st.title("Página Principal")
             st.markdown("""
-            **Instrucciones de Uso:**
+            **Instrucciones de Uso Rápido:**
             1. **Menú lateral:**  
                - Usa el menú para navegar entre secciones, según tu *Área* (PRE, VPD, etc.).
             2. **Edición de datos (rol admin/editor):**  
-               - En secciones "DPP 2025", puedes editar celdas o subir Excel para reemplazar la tabla.
+               - En secciones "DPP 2025", puedes editar celdas o subir Excel.
             3. **Actualización y Consolidado:**  
-               - "Actualización": totales comparados con Monto DPP 2025.
-               - "Consolidado": cuadros finales (9,10,11) y consolidado.
+               - "Actualización": totales vs. Monto DPP 2025.
+               - "Consolidado": cuadros finales (9,10,11) y tabla final.
             4. **Crear usuario (opcional):**  
-               - Puedes registrar un nuevo usuario en el menú "Crear Usuario".
+               - En el menú “Crear Usuario” (si tienes rol admin).
             5. **Cerrar Sesión:**  
-               - Usa el botón "Logout" en la barra lateral.
+               - Usa "Logout" en la barra lateral.
             """)
-            st.write("¡Bienvenido! Usa estas instrucciones para navegar y editar tu presupuesto.")
+            st.write("¡Bienvenido(a)!")
 
-        # VPD
+        # ---------------------------------------------------------
+        # SECCIÓN VPD
+        # ---------------------------------------------------------
         elif eleccion_principal == "VPD":
             st.title("Sección VPD")
             sub_vpd = ["Misiones", "Consultorías"]
@@ -780,7 +913,9 @@ def main():
                         subir_archivo_label="Reemplazar la tabla de VPD Consultorías"
                     )
 
-        # VPO
+        # ---------------------------------------------------------
+        # SECCIÓN VPO
+        # ---------------------------------------------------------
         elif eleccion_principal == "VPO":
             st.title("Sección VPO")
             sub_vpo = ["Misiones", "Consultorías"]
@@ -830,7 +965,9 @@ def main():
                         subir_archivo_label="Reemplazar la tabla de VPO Consultorías"
                     )
 
-        # VPF
+        # ---------------------------------------------------------
+        # SECCIÓN VPF
+        # ---------------------------------------------------------
         elif eleccion_principal == "VPF":
             st.title("Sección VPF")
             sub_vpf = ["Misiones", "Consultorías"]
@@ -880,7 +1017,9 @@ def main():
                         subir_archivo_label="Reemplazar la tabla de VPF Consultorías"
                     )
 
-        # VPE
+        # ---------------------------------------------------------
+        # SECCIÓN VPE
+        # ---------------------------------------------------------
         elif eleccion_principal == "VPE":
             st.title("Sección VPE")
             sub_vpe = ["Misiones","Consultorías"]
@@ -930,10 +1069,11 @@ def main():
                         subir_archivo_label="Reemplazar tabla de VPE Consultorías"
                     )
 
-        # PRE
+        # ---------------------------------------------------------
+        # SECCIÓN PRE
+        # ---------------------------------------------------------
         elif eleccion_principal == "PRE":
             st.title("Sección PRE")
-
             menu_pre = ["Misiones Personal","Misiones Consultores","Consultorías","Comunicaciones","Gastos Centralizados"]
             eleccion_pre_ = st.sidebar.selectbox("Sub-sección de PRE:", menu_pre)
 
@@ -1006,7 +1146,7 @@ def main():
                         calculo_fn=calcular_consultores,
                         mostrar_sum_misiones=False,
                         mostrar_valuebox_area=True,
-                        dpp_value=338372,
+                        dpp_value=338372,  # 307528 + extras, ajusta si fuera necesario
                         subir_archivo_label="Reemplazar tabla de PRE Consultorías"
                     )
 
@@ -1017,7 +1157,6 @@ def main():
                 st.info("Tabla de Comunicaciones (COM) mostrada aquí.")
 
             else:
-                # Gastos Centralizados
                 st.subheader("PRE > Gastos Centralizados (Referencias)")
                 st.write("### Copia: Misiones Personal (cálculo DPP)")
                 df_mp = calcular_misiones(st.session_state["pre_misiones_personal"].copy())
@@ -1031,10 +1170,12 @@ def main():
                 df_c = calcular_consultores(st.session_state["pre_consultores"].copy())
                 st.dataframe(df_c)
 
-        # Actualización
+        # ---------------------------------------------------------
+        # SECCIÓN ACTUALIZACIÓN
+        # ---------------------------------------------------------
         elif eleccion_principal == "Actualización":
             st.title("Actualización")
-            st.write("Estas tablas se sincronizan automáticamente al iniciar la app o recargar.")
+            st.write("Estas tablas se sincronizan automáticamente al iniciar la app o al guardar cambios.")
             st.write("### Tabla de Misiones")
             df_misiones = st.session_state["actualizacion_misiones"]
             st.dataframe(
@@ -1052,15 +1193,15 @@ def main():
             )
             st.info("Se recalculan en cada carga de la app y cuando guardas datos en las secciones DPP 2025.")
 
-        # Consolidado
+        # ---------------------------------------------------------
+        # SECCIÓN CONSOLIDADO
+        # ---------------------------------------------------------
         elif eleccion_principal == "Consolidado":
             st.title("Consolidado")
 
-            # Índices 0-based de las filas a resaltar
-            filas_destacadas_10 = [0,7,14,24,27]  # Análisis de Cambios (filas 1,8,15,25,28 en 1-based)
-            filas_destacadas_11 = [28]           # Gastos Operativos (fila 29 en 1-based)
+            filas_destacadas_10 = [0,7,14,24,27]  
+            filas_destacadas_11 = [28]           
             filas_destacadas_consolidado = [0,5,6,7,15,16,22,23,30,31,32,40,41,42,46,47,48]
-            # DPP 2025 - Consolidado: filas 1,6,7,8,16,17,23,24,31,32,33,41,42,43,47,48,49
 
             # CUADRO 9
             st.write("#### Gasto en personal 2024 Vs 2025 (Cuadro 9)")
@@ -1068,7 +1209,6 @@ def main():
             df_9_styled = two_decimals_only_numeric(df_9)
             st.table(df_9_styled)
             st.caption("Cuadro 9 - DPP 2025")
-
             st.write("---")
 
             # CUADRO 10
@@ -1078,7 +1218,6 @@ def main():
             df_10_styled = highlight_custom_rows(df_10_styled, filas_destacadas_10)
             st.table(df_10_styled)
             st.caption("Cuadro 10 - DPP 2025")
-
             st.write("---")
 
             # CUADRO 11
@@ -1088,7 +1227,6 @@ def main():
             df_11_styled = highlight_custom_rows(df_11_styled, filas_destacadas_11)
             st.table(df_11_styled)
             st.caption("Cuadro 11 - DPP 2025")
-
             st.write("---")
 
             # CONSOLIDADO
