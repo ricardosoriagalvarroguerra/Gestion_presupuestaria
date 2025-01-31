@@ -668,7 +668,7 @@ def pagina_instrucciones():
 
         **3.3 Edición de Datos (roles admin/editor)**  
         - Entra a la sub-sección “DPP 2025” (p.ej., “VPD > Misiones > DPP 2025”).  
-        - Haz clic en una celda y edítala. Después presiona **Enter** o haz clic fuera para confirmar.  
+        - Haz clic en una celda y edítala. Después presiona **Enter** o haz clic fuera para confirmar. (Se debe de tomar en cuenta que se debe actualizar tres veces la tabla para actualizar los montos con todas las tablas relacionadas)
         - Botón “Guardar Cambios” o “Cancelar / Descartar Cambios”.  
         - También puedes **subir un Excel** propio (mismo formato) para reemplazar la tabla.
 
