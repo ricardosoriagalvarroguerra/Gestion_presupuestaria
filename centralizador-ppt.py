@@ -38,12 +38,14 @@ def registrar_nuevo_usuario(
     email,
     password_plano,
     role_asignado="viewer",
+    area_asignada="PRE",  # NUEVO: área
     ruta_yaml="config.yaml"
 ):
     """
     Crea un nuevo usuario en config.yaml:
      - Hashea la contraseña con bcrypt
      - Usa el rol 'role_asignado' (admin,editor,viewer)
+     - Usa el área 'area_asignada' (VPD, VPO, VPF, VPE, PRE)
     Retorna (exito: bool, mensaje: str).
     """
     config = cargar_config_desde_yaml(ruta_yaml)
@@ -62,16 +64,18 @@ def registrar_nuevo_usuario(
         "last_name":  last_name,
         "email":      email,
         "password":   hashed_pass,
-        "role":       role_asignado
+        "role":       role_asignado,
+        "area":       area_asignada  # Se guarda área
     }
 
     guardar_config_a_yaml(config, ruta_yaml)
-    return True, f"Usuario '{username}' creado exitosamente con rol '{role_asignado}'."
+    return True, f"Usuario '{username}' creado exitosamente con rol '{role_asignado}' y área '{area_asignada}'."
 
 
 def formulario_crear_usuario():
     """
     Muestra un formulario para crear un usuario (admin, editor o viewer).
+    Incluye nueva opción para escoger Área.
     """
     st.subheader("Crear Nuevo Usuario")
 
@@ -81,6 +85,8 @@ def formulario_crear_usuario():
         nuevo_first    = st.text_input("Nombre")
         # Selector de rol
         rol_elegido    = st.selectbox("Rol del usuario", ["admin","editor","viewer"])
+        # NUEVO: Selector de área
+        area_elegida   = st.selectbox("Área del usuario", ["PRE","VPD","VPO","VPF","VPE"])
     with col2:
         nuevo_last     = st.text_input("Apellido")
         nuevo_email    = st.text_input("Email (opcional)")
@@ -102,7 +108,8 @@ def formulario_crear_usuario():
             last_name=nuevo_last.strip(),
             email=nuevo_email.strip(),
             password_plano=pass1,
-            role_asignado=rol_elegido
+            role_asignado=rol_elegido,
+            area_asignada=area_elegida  # NUEVO
         )
         if exito:
             st.success(msg)
@@ -390,15 +397,7 @@ def editar_tabla_section(
 
     # Value boxes: Suma del total / Monto DPP / Diferencia
     if dpp_value is not None:
-        if ("area_imputacion" in df_calc.columns
-            and "PRE" in df_calc["area_imputacion"].unique()
-            and titulo.startswith("PRE")
-        ):
-            pre_area_total = df_calc.loc[df_calc["area_imputacion"]=="PRE","total"].sum()
-            diferencia = dpp_value - pre_area_total
-        else:
-            diferencia = dpp_value - sum_total
-
+        diferencia = dpp_value - sum_total
         color_dif = "#fb8500" if diferencia != 0 else "green"
         c1, c2, c3 = st.columns(3)
         with c1:
@@ -427,7 +426,7 @@ def editar_tabla_section(
                 st.session_state[session_key] = df_subido
                 guardar_en_excel(df_subido, sheet_name)
                 st.success(f"¡Tabla en '{sheet_name}' reemplazada con éxito!")
-                st.rerun()
+                st.experimental_rerun()
         else:
             st.warning("No tienes permiso para reemplazar la tabla.")
 
@@ -480,14 +479,40 @@ def editar_tabla_section(
         with col_cancelar:
             if st.button("Cancelar / Descartar Cambios"):
                 st.info("Descartando cambios y recargando la tabla original...")
-                st.rerun()
+                st.experimental_rerun()
 
     st.write("### Descargar la tabla en Excel (versión actual en pantalla)")
     descargar_excel(df_editado, file_name=f"{sheet_name}_modificada.xlsx")
 
 
 ########################################
-# 6) FUNCIÓN PRINCIPAL
+# 6) Lógica de secciones permitidas según Área
+########################################
+def get_allowed_sections(area_user: str):
+    """
+    Retorna la lista de secciones que puede ver el usuario según su área.
+    - PRE y VPD -> pueden ver todo
+    - VPO -> solo VPO (más Página Principal y Consolidado)
+    - VPF -> solo VPF (más Página Principal y Consolidado)
+    - VPE -> solo VPE (más Página Principal y Consolidado)
+    """
+    all_sections = ["Página Principal", "VPD", "VPO", "VPF", "VPE", "PRE", "Actualización", "Consolidado"]
+    if area_user in ["VPD", "PRE"]:
+        # Puede ver todo
+        return all_sections
+    elif area_user == "VPO":
+        return ["Página Principal", "VPO", "Consolidado"]
+    elif area_user == "VPF":
+        return ["Página Principal", "VPF", "Consolidado"]
+    elif area_user == "VPE":
+        return ["Página Principal", "VPE", "Consolidado"]
+    else:
+        # Si por alguna razón no coincide, solo ver Principal y Consolidado
+        return ["Página Principal", "Consolidado"]
+
+
+########################################
+# 7) FUNCIÓN PRINCIPAL
 ########################################
 def main():
     # Configuración de la página
@@ -523,10 +548,15 @@ def main():
         # Usuario logueado
         st.sidebar.success(f"Sesión iniciada por: {st.session_state['name']}")
         username_log = st.session_state["username"]
+
         # Obtener rol
         rol_user = config["credentials"]["usernames"][username_log].get("role", "viewer")
         st.session_state["user_role"] = rol_user
-        st.write(f"Bienvenido *{st.session_state['name']}*. Tu rol es: '{rol_user}'")
+
+        # Obtener área
+        area_user = config["credentials"]["usernames"][username_log].get("area", "PRE")
+
+        st.write(f"Bienvenido *{st.session_state['name']}*. Rol: **{rol_user}**, Área: **{area_user}**")
 
         # Logout
         authenticator.logout()
@@ -577,35 +607,32 @@ def main():
         if "cuadro_9" not in st.session_state:
             st.session_state["cuadro_9"] = pd.read_excel(excel_file, sheet_name="cuadro_9")
         if "cuadro_10" not in st.session_state:
-            st.session_state["cuadro_10"] = pd.read_excel(excel_file, sheet_name="vpo_consultores")
+            # Dato: en el original se leía "vpo_consultores", parece un posible error.
+            st.session_state["cuadro_10"] = pd.read_excel(excel_file, sheet_name="cuadro_10")
         if "cuadro_11" not in st.session_state:
             st.session_state["cuadro_11"] = pd.read_excel(excel_file, sheet_name="cuadro_11")
         if "consolidado_df" not in st.session_state:
             st.session_state["consolidado_df"] = pd.read_excel(excel_file, sheet_name="consolidado")
 
         if "gastos_centralizados" not in st.session_state:
-            st.session_state["gastos_centralizados"] = pd.read_excel(excel_file, sheet_name="gastos_centralizados")
+            try:
+                st.session_state["gastos_centralizados"] = pd.read_excel(excel_file, sheet_name="gastos_centralizados")
+            except:
+                st.session_state["gastos_centralizados"] = pd.DataFrame()
 
         # (B) Sincroniza
         sincronizar_actualizacion_al_iniciar()
 
-        # (C) Menú principal
+        # (C) Menú principal filtrado por área
+        allowed_sections = get_allowed_sections(area_user)
+
         st.sidebar.title("Navegación principal")
-        secciones = [
-            "Página Principal",
-            "VPD",
-            "VPO",
-            "VPF",
-            "VPE",
-            "PRE",
-            "Actualización",
-            "Consolidado"
-        ]
-        eleccion_principal = st.sidebar.selectbox("Selecciona una sección:", secciones)
+        eleccion_principal = st.sidebar.selectbox("Selecciona una sección:", allowed_sections)
 
         # 1) Página Principal
         if eleccion_principal=="Página Principal":
             st.title("Página Principal")
+            st.write("Bienvenido a la sección principal.")
 
         # 2) VPD
         elif eleccion_principal=="VPD":
