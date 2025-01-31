@@ -155,6 +155,9 @@ def calcular_consultores(df: pd.DataFrame) -> pd.DataFrame:
     return df_calc
 
 def two_decimals_only_numeric(df: pd.DataFrame):
+    """
+    Formatea columnas numéricas con 2 decimales y valores nulos en blanco (na_rep="").
+    """
     numeric_cols = df.select_dtypes(include=["float","int"]).columns
     return df.style.format("{:,.2f}", na_rep="", subset=numeric_cols)
 
@@ -395,19 +398,15 @@ def editar_tabla_section(
         st.write("#### Suma de columnas (Misiones)")
         st.dataframe(pd.DataFrame([sum_dict]))
 
-    ############################################################
     # Value boxes: Suma del total / Monto DPP / Diferencia
-    ############################################################
     if dpp_value is not None:
-        # CASO ESPECIAL: "pre_misiones_personal"
+        # Caso especial para "pre_misiones_personal" (filtrar solo area_imputacion = "PRE")
         if sheet_name == "pre_misiones_personal":
-            # Tomamos sólo el total de filas con area_imputacion = "PRE"
             if "area_imputacion" in df_calc.columns:
                 total_pre = df_calc.loc[df_calc["area_imputacion"]=="PRE","total"].sum()
             else:
                 total_pre = 0
             diferencia = dpp_value - total_pre
-
             c1, c2, c3 = st.columns(3)
             with c1:
                 value_box("PRE", f"{total_pre:,.2f}")
@@ -416,9 +415,8 @@ def editar_tabla_section(
             color_dif = "#fb8500" if diferencia != 0 else "green"
             with c3:
                 value_box("Diferencia", f"{diferencia:,.2f}", color_dif)
-
         else:
-            # Lógica normal (suma del total)
+            # Lógica normal
             diferencia = dpp_value - sum_total
             color_dif = "#fb8500" if diferencia != 0 else "green"
             c1, c2, c3 = st.columns(3)
@@ -429,7 +427,6 @@ def editar_tabla_section(
             with c3:
                 value_box("Diferencia", f"{diferencia:,.2f}", color_dif)
     else:
-        # Sin dpp_value
         value_box("Suma del total", f"{sum_total:,.2f}")
 
     # Ver rol del usuario (admin/editor -> can_edit)
@@ -535,7 +532,22 @@ def get_allowed_sections(area_user: str):
 
 
 ########################################
-# 7) FUNCIÓN PRINCIPAL
+# 7) Función para resaltar filas específicas
+########################################
+def highlight_custom_rows(styler: pd.io.formats.style.Styler, rows_to_highlight: list):
+    """
+    Dado un Styler, aplica color de celda (#a4161a) y texto blanco
+    en las filas indicadas por 'rows_to_highlight' (índices 0-based).
+    """
+    def highlight_row(row):
+        if row.name in rows_to_highlight:
+            return ['background-color: #a4161a; color: white']*len(row)
+        else:
+            return ['']*len(row)
+    return styler.apply(highlight_row, axis=1)
+
+########################################
+# 8) FUNCIÓN PRINCIPAL
 ########################################
 def main():
     # Configuración de la página
@@ -653,23 +665,26 @@ def main():
         # 1) Página Principal
         if eleccion_principal=="Página Principal":
             st.title("Página Principal")
-            # ==== Instrucciones de uso de la app ====
             st.markdown("""
             **Instrucciones de Uso:**
             1. **Menú lateral:**  
-               - Usa el menú lateral para navegar entre secciones. Las secciones que veas dependen de tu *Área* asignada (por ejemplo, PRE, VPD, etc.).
+               - Usa el menú lateral para navegar entre secciones (VPD, VPO, VPF, VPE, PRE, etc.). 
+               - Las secciones que veas dependen de tu *Área* asignada.
             2. **Editar datos (solo usuarios con rol admin/editor):**  
-               - Al ingresar a una sección "DPP 2025" (por ejemplo, VPD > Misiones > DPP 2025), podrás editar directamente las celdas y guardar cambios.
-               - También puedes subir un archivo Excel para reemplazar una tabla completa, si tu rol lo permite.
+               - Al ingresar a una sección "DPP 2025" (p. ej. VPD > Misiones > DPP 2025), podrás editar las celdas y guardar cambios.
+               - También puedes subir un archivo Excel para reemplazar toda la tabla, si tu rol lo permite.
             3. **Requerimiento del Área vs. DPP 2025:**  
-               - Cada sub-sección tiene la vista "Requerimiento del Área" (solo lectura) y la vista "DPP 2025" (editable según tu rol).
+               - Cada sub-sección tiene la vista "Requerimiento del Área" (solo lectura) y la vista "DPP 2025" (editable).
             4. **Actualización y Consolidado:**  
-               - La sección "Actualización" muestra los montos totales recalculados y comparados con el Monto DPP 2025.
-               - La sección "Consolidado" incluye tablas resumen (Cuadro 9, 10, 11) y un consolidado final.
-            5. **Cerrar Sesión:**  
-               - En la barra lateral, al final, verás un botón "Logout" para cerrar tu sesión cuando termines.
+               - "Actualización" muestra los montos totales recalculados y comparados con el Monto DPP 2025.
+               - "Consolidado" incluye tablas resumen (Cuadro 9, 10, 11) y un consolidado final.
+            5. **Crear usuario (solo con permiso):**  
+               - Desde el menú lateral, elige "Crear Usuario" para registrar un nuevo usuario, indicando *Rol* y *Área*.
+            6. **Cerrar Sesión:**  
+               - En la barra lateral, al final, presiona "Logout" para cerrar la sesión.
             """)
-            st.write("Bienvenido a la sección principal.")
+
+            st.write("¡Utiliza estas instrucciones como guía para explorar y editar tu presupuesto!")
 
         # 2) VPD
         elif eleccion_principal=="VPD":
@@ -996,32 +1011,50 @@ def main():
         # 8) Consolidado
         elif eleccion_principal=="Consolidado":
             st.title("Consolidado")
-            # Si prefieres, usa two_decimals_only_numeric u otra función para evitar <NA>
+
+            # Diccionarios de filas a resaltar en 0-based
+            filas_destacadas_10 = [0,7,14,24,27]  # "Análisis de Cambios..." -> filas 1,8,15,25,28
+            filas_destacadas_11 = [28]            # "Gastos Operativos..." -> fila 29
+            filas_destacadas_consolidado = [0,5,6,7,15,16,22,23,30,31,32,40,41,42,46,47,48]
+            # => "DPP 2025 - Consolidado" -> filas 1,6,7,8,16,17,23,24,31,32,33,41,42,43,47,48,49
+
+            st.write("#### Gasto en personal 2024 Vs 2025 (Cuadro 9)")
             df_9 = st.session_state["cuadro_9"]
-            st.table(two_decimals_only_numeric(df_9))
+            df_9_styled = two_decimals_only_numeric(df_9)
+            st.table(df_9_styled)
             st.caption("Cuadro 9 - DPP 2025")
 
             st.write("---")
-            st.write("#### Análisis de Cambios en Gastos de Personal 2025 vs. 2024")
+            st.write("#### Análisis de Cambios en Gastos de Personal 2025 vs. 2024 (Cuadro 10)")
             df_10 = st.session_state["cuadro_10"]
-            st.table(two_decimals_only_numeric(df_10))
+            df_10_styled = two_decimals_only_numeric(df_10)
+            # Resalta filas 1, 8, 15, 25, 28 => indices 0,7,14,24,27
+            df_10_styled = highlight_custom_rows(df_10_styled, filas_destacadas_10)
+            st.table(df_10_styled)
             st.caption("Cuadro 10 - DPP 2025")
 
             st.write("---")
-            st.write("#### Gastos Operativos propuestos para 2025 vs. montos aprobados para 2024")
+            st.write("#### Gastos Operativos propuestos para 2025 vs. montos aprobados para 2024 (Cuadro 11)")
             df_11 = st.session_state["cuadro_11"]
-            st.table(two_decimals_only_numeric(df_11))
+            df_11_styled = two_decimals_only_numeric(df_11)
+            # Resalta la fila 29 => index 28
+            df_11_styled = highlight_custom_rows(df_11_styled, filas_destacadas_11)
+            st.table(df_11_styled)
             st.caption("Cuadro 11 - DPP 2025")
 
             st.write("---")
             st.write("#### DPP 2025 - Consolidado")
             df_cons2 = st.session_state["consolidado_df"]
-            st.table(two_decimals_only_numeric(df_cons2))
+            df_cons2_styled = two_decimals_only_numeric(df_cons2)
+            # Resaltar filas 1, 6, 7, 8, 16, 17, 23, 24, 31, 32, 33, 41, 42, 43, 47, 48, 49 => [0,5,6,7,15,16,22,23,30,31,32,40,41,42,46,47,48]
+            df_cons2_styled = highlight_custom_rows(df_cons2_styled, filas_destacadas_consolidado)
+            st.table(df_cons2_styled)
 
     elif st.session_state["authentication_status"] is False:
         st.error("Usuario/Contraseña incorrectos.")
     else:
         st.warning("Por favor ingresa tu usuario y contraseña.")
+
 
 if __name__=="__main__":
     main()
