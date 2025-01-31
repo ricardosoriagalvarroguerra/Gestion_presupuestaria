@@ -38,7 +38,7 @@ def registrar_nuevo_usuario(
     email,
     password_plano,
     role_asignado="viewer",
-    area_asignada="PRE",
+    area_asignada="PRE",  # Área adicional
     ruta_yaml="config.yaml"
 ):
     """
@@ -65,7 +65,7 @@ def registrar_nuevo_usuario(
         "email":      email,
         "password":   hashed_pass,
         "role":       role_asignado,
-        "area":       area_asignada
+        "area":       area_asignada  # Se guarda área
     }
 
     guardar_config_a_yaml(config, ruta_yaml)
@@ -83,7 +83,9 @@ def formulario_crear_usuario():
     with col1:
         nuevo_username = st.text_input("Nombre de Usuario")
         nuevo_first    = st.text_input("Nombre")
+        # Selector de rol
         rol_elegido    = st.selectbox("Rol del usuario", ["admin","editor","viewer"])
+        # Selector de área
         area_elegida   = st.selectbox("Área del usuario", ["PRE","VPD","VPO","VPF","VPE"])
     with col2:
         nuevo_last     = st.text_input("Apellido")
@@ -153,33 +155,8 @@ def calcular_consultores(df: pd.DataFrame) -> pd.DataFrame:
     return df_calc
 
 def two_decimals_only_numeric(df: pd.DataFrame):
-    """
-    Función previa para formatear con 2 decimales y dejar celdas nulas vacías.
-    Si quieres un approach diferente, usa 'show_table_no_na' más abajo.
-    """
     numeric_cols = df.select_dtypes(include=["float","int"]).columns
     return df.style.format("{:,.2f}", na_rep="", subset=numeric_cols)
-
-
-#################### NUEVA FUNCIÓN DE STYLER ####################
-def show_table_no_na(df: pd.DataFrame):
-    """
-    Crea un Styler que muestra:
-      - Columnas numéricas con {:,.2f} y celdas nulas en blanco.
-      - Columnas no numéricas con {} y celdas nulas en blanco.
-    Luego se puede llamar con st.dataframe(show_table_no_na(df)).
-    """
-    numeric_cols = df.select_dtypes(include=["float","int","number"]).columns
-    all_cols = df.columns
-    non_numeric_cols = list(set(all_cols) - set(numeric_cols))
-
-    styler = df.style
-    # Formatear columnas numéricas
-    styler = styler.format("{:,.2f}", na_rep="", subset=numeric_cols)
-    # Formatear columnas no numéricas
-    styler = styler.format("{}", na_rep="", subset=non_numeric_cols)
-    return styler
-################################################################
 
 def color_diferencia(val):
     return "background-color: #fb8500; color:white" if val != 0 else "background-color: green; color:white"
@@ -418,18 +395,41 @@ def editar_tabla_section(
         st.write("#### Suma de columnas (Misiones)")
         st.dataframe(pd.DataFrame([sum_dict]))
 
+    ############################################################
     # Value boxes: Suma del total / Monto DPP / Diferencia
+    ############################################################
     if dpp_value is not None:
-        diferencia = dpp_value - sum_total
-        color_dif = "#fb8500" if diferencia != 0 else "green"
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            value_box("Suma del total", f"{sum_total:,.2f}")
-        with c2:
-            value_box("Monto DPP 2025", f"{dpp_value:,.2f}")
-        with c3:
-            value_box("Diferencia", f"{diferencia:,.2f}", color_dif)
+        # CASO ESPECIAL: "pre_misiones_personal"
+        if sheet_name == "pre_misiones_personal":
+            # Tomamos sólo el total de filas con area_imputacion = "PRE"
+            if "area_imputacion" in df_calc.columns:
+                total_pre = df_calc.loc[df_calc["area_imputacion"]=="PRE","total"].sum()
+            else:
+                total_pre = 0
+            diferencia = dpp_value - total_pre
+
+            c1, c2, c3 = st.columns(3)
+            with c1:
+                value_box("PRE", f"{total_pre:,.2f}")
+            with c2:
+                value_box("Monto DPP 2025", f"{dpp_value:,.2f}")
+            color_dif = "#fb8500" if diferencia != 0 else "green"
+            with c3:
+                value_box("Diferencia", f"{diferencia:,.2f}", color_dif)
+
+        else:
+            # Lógica normal (suma del total)
+            diferencia = dpp_value - sum_total
+            color_dif = "#fb8500" if diferencia != 0 else "green"
+            c1, c2, c3 = st.columns(3)
+            with c1:
+                value_box("Suma del total", f"{sum_total:,.2f}")
+            with c2:
+                value_box("Monto DPP 2025", f"{dpp_value:,.2f}")
+            with c3:
+                value_box("Diferencia", f"{diferencia:,.2f}", color_dif)
     else:
+        # Sin dpp_value
         value_box("Suma del total", f"{sum_total:,.2f}")
 
     # Ver rol del usuario (admin/editor -> can_edit)
@@ -980,32 +980,27 @@ def main():
         # 8) Consolidado
         elif eleccion_principal=="Consolidado":
             st.title("Consolidado")
-
-            st.write("#### Gasto en personal 2024 Vs 2025")
+            # Si prefieres, usa two_decimals_only_numeric u otra función para evitar <NA>
             df_9 = st.session_state["cuadro_9"]
-            # <--- cambio principal: usamos 'show_table_no_na' en lugar de 'two_decimals_only_numeric'
-            st.dataframe(show_table_no_na(df_9))
-
+            st.table(two_decimals_only_numeric(df_9))
             st.caption("Cuadro 9 - DPP 2025")
 
             st.write("---")
             st.write("#### Análisis de Cambios en Gastos de Personal 2025 vs. 2024")
             df_10 = st.session_state["cuadro_10"]
-            # igual
-            st.dataframe(show_table_no_na(df_10))
+            st.table(two_decimals_only_numeric(df_10))
             st.caption("Cuadro 10 - DPP 2025")
 
             st.write("---")
             st.write("#### Gastos Operativos propuestos para 2025 vs. montos aprobados para 2024")
             df_11 = st.session_state["cuadro_11"]
-            st.dataframe(show_table_no_na(df_11))
+            st.table(two_decimals_only_numeric(df_11))
             st.caption("Cuadro 11 - DPP 2025")
 
             st.write("---")
             st.write("#### DPP 2025 - Consolidado")
             df_cons2 = st.session_state["consolidado_df"]
-            st.dataframe(show_table_no_na(df_cons2))  # <--- de nuevo
-            st.caption("Consolidado Final")
+            st.table(two_decimals_only_numeric(df_cons2))
 
     elif st.session_state["authentication_status"] is False:
         st.error("Usuario/Contraseña incorrectos.")
