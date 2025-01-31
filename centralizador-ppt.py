@@ -38,7 +38,7 @@ def registrar_nuevo_usuario(
     email,
     password_plano,
     role_asignado="viewer",
-    area_asignada="PRE",  # Área adicional
+    area_asignada="PRE",
     ruta_yaml="config.yaml"
 ):
     """
@@ -65,7 +65,7 @@ def registrar_nuevo_usuario(
         "email":      email,
         "password":   hashed_pass,
         "role":       role_asignado,
-        "area":       area_asignada  # Se guarda área
+        "area":       area_asignada
     }
 
     guardar_config_a_yaml(config, ruta_yaml)
@@ -83,9 +83,7 @@ def formulario_crear_usuario():
     with col1:
         nuevo_username = st.text_input("Nombre de Usuario")
         nuevo_first    = st.text_input("Nombre")
-        # Selector de rol
         rol_elegido    = st.selectbox("Rol del usuario", ["admin","editor","viewer"])
-        # Selector de área
         area_elegida   = st.selectbox("Área del usuario", ["PRE","VPD","VPO","VPF","VPE"])
     with col2:
         nuevo_last     = st.text_input("Apellido")
@@ -156,11 +154,32 @@ def calcular_consultores(df: pd.DataFrame) -> pd.DataFrame:
 
 def two_decimals_only_numeric(df: pd.DataFrame):
     """
-    Formatea las columnas numéricas con 2 decimales 
-    y deja las celdas nulas en blanco (na_rep="").
+    Función previa para formatear con 2 decimales y dejar celdas nulas vacías.
+    Si quieres un approach diferente, usa 'show_table_no_na' más abajo.
     """
     numeric_cols = df.select_dtypes(include=["float","int"]).columns
     return df.style.format("{:,.2f}", na_rep="", subset=numeric_cols)
+
+
+#################### NUEVA FUNCIÓN DE STYLER ####################
+def show_table_no_na(df: pd.DataFrame):
+    """
+    Crea un Styler que muestra:
+      - Columnas numéricas con {:,.2f} y celdas nulas en blanco.
+      - Columnas no numéricas con {} y celdas nulas en blanco.
+    Luego se puede llamar con st.dataframe(show_table_no_na(df)).
+    """
+    numeric_cols = df.select_dtypes(include=["float","int","number"]).columns
+    all_cols = df.columns
+    non_numeric_cols = list(set(all_cols) - set(numeric_cols))
+
+    styler = df.style
+    # Formatear columnas numéricas
+    styler = styler.format("{:,.2f}", na_rep="", subset=numeric_cols)
+    # Formatear columnas no numéricas
+    styler = styler.format("{}", na_rep="", subset=non_numeric_cols)
+    return styler
+################################################################
 
 def color_diferencia(val):
     return "background-color: #fb8500; color:white" if val != 0 else "background-color: green; color:white"
@@ -611,7 +630,6 @@ def main():
         if "cuadro_9" not in st.session_state:
             st.session_state["cuadro_9"] = pd.read_excel(excel_file, sheet_name="cuadro_9")
         if "cuadro_10" not in st.session_state:
-            # Ajuste: antes se repetía "vpo_consultores", lo corregimos a "cuadro_10"
             st.session_state["cuadro_10"] = pd.read_excel(excel_file, sheet_name="cuadro_10")
         if "cuadro_11" not in st.session_state:
             st.session_state["cuadro_11"] = pd.read_excel(excel_file, sheet_name="cuadro_11")
@@ -629,7 +647,6 @@ def main():
 
         # (C) Menú principal filtrado por área
         allowed_sections = get_allowed_sections(area_user)
-
         st.sidebar.title("Navegación principal")
         eleccion_principal = st.sidebar.selectbox("Selecciona una sección:", allowed_sections)
 
@@ -691,7 +708,6 @@ def main():
         # 3) VPO
         elif eleccion_principal=="VPO":
             st.title("Sección VPO")
-
             sub_vpo = ["Misiones","Consultorías"]
             eleccion_vpo_ = st.sidebar.selectbox("Sub-sección de VPO:", sub_vpo)
 
@@ -742,7 +758,6 @@ def main():
         # 4) VPF
         elif eleccion_principal=="VPF":
             st.title("Sección VPF")
-
             sub_vpf = ["Misiones","Consultorías"]
             eleccion_vpf_ = st.sidebar.selectbox("Sub-sección de VPF:", sub_vpf)
 
@@ -793,7 +808,6 @@ def main():
         # 5) VPE
         elif eleccion_principal=="VPE":
             st.title("Sección VPE")
-
             sub_vpe = ["Misiones","Consultorías"]
             eleccion_vpe_ = st.sidebar.selectbox("Sub-sección de VPE:", sub_vpe)
 
@@ -966,27 +980,32 @@ def main():
         # 8) Consolidado
         elif eleccion_principal=="Consolidado":
             st.title("Consolidado")
+
             st.write("#### Gasto en personal 2024 Vs 2025")
             df_9 = st.session_state["cuadro_9"]
-            st.table(two_decimals_only_numeric(df_9))
+            # <--- cambio principal: usamos 'show_table_no_na' en lugar de 'two_decimals_only_numeric'
+            st.dataframe(show_table_no_na(df_9))
+
             st.caption("Cuadro 9 - DPP 2025")
 
             st.write("---")
             st.write("#### Análisis de Cambios en Gastos de Personal 2025 vs. 2024")
             df_10 = st.session_state["cuadro_10"]
-            st.table(two_decimals_only_numeric(df_10))
+            # igual
+            st.dataframe(show_table_no_na(df_10))
             st.caption("Cuadro 10 - DPP 2025")
 
             st.write("---")
             st.write("#### Gastos Operativos propuestos para 2025 vs. montos aprobados para 2024")
             df_11 = st.session_state["cuadro_11"]
-            st.table(two_decimals_only_numeric(df_11))
+            st.dataframe(show_table_no_na(df_11))
             st.caption("Cuadro 11 - DPP 2025")
 
             st.write("---")
             st.write("#### DPP 2025 - Consolidado")
             df_cons2 = st.session_state["consolidado_df"]
-            st.table(two_decimals_only_numeric(df_cons2))
+            st.dataframe(show_table_no_na(df_cons2))  # <--- de nuevo
+            st.caption("Consolidado Final")
 
     elif st.session_state["authentication_status"] is False:
         st.error("Usuario/Contraseña incorrectos.")
