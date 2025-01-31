@@ -1,36 +1,40 @@
 credentials:
   usernames:
-    # Usuario con rol "admin"
+    # Usuario con rol "admin" y área "PRE"
     mcalvino:
       first_name: "M"
       last_name: "Calvino"
       email: "[email protected]"
-      password: "$2b$12$XXXXXXXXXXXX"
+      password: "$2b$12$XXXXXXXXXXXXX"
       role: "admin"
+      area: "PRE"
 
-    # Usuario con rol "editor"
+    # Usuario con rol "editor" y área "VPO"
     ajustinianon:
       first_name: "A"
       last_name: "Justinianon"
       email: "[email protected]"
-      password: "$2b$12$YYYYYYYYYYYY"
+      password: "$2b$12$YYYYYYYYYYYYY"
       role: "editor"
+      area: "VPO"
 
-    # Otro con rol "viewer"
+    # Usuario con rol "viewer" y área "VPF"
     vgonzales:
       first_name: "V"
       last_name: "Gonzales"
       email: "[email protected]"
-      password: "$2b$12$ZZZZZZZZZZZZ"
+      password: "$2b$12$ZZZZZZZZZZZZZ"
       role: "viewer"
+      area: "VPF"
 
-    # Otro editor
+    # Otro editor, área "VPE"
     vmoreira:
       first_name: "V"
       last_name: "Moreira"
       email: "[email protected]"
-      password: "$2b$12$WWWWWWWWWWWW"
+      password: "$2b$12$WWWWWWWWWWWWW"
       role: "editor"
+      area: "VPE"
 
 cookie:
   name: "mi_cookie_auth"
