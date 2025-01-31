@@ -38,7 +38,7 @@ def registrar_nuevo_usuario(
     email,
     password_plano,
     role_asignado="viewer",
-    area_asignada="PRE",  # NUEVO: área
+    area_asignada="PRE",  # Área adicional
     ruta_yaml="config.yaml"
 ):
     """
@@ -85,7 +85,7 @@ def formulario_crear_usuario():
         nuevo_first    = st.text_input("Nombre")
         # Selector de rol
         rol_elegido    = st.selectbox("Rol del usuario", ["admin","editor","viewer"])
-        # NUEVO: Selector de área
+        # Selector de área
         area_elegida   = st.selectbox("Área del usuario", ["PRE","VPD","VPO","VPF","VPE"])
     with col2:
         nuevo_last     = st.text_input("Apellido")
@@ -109,7 +109,7 @@ def formulario_crear_usuario():
             email=nuevo_email.strip(),
             password_plano=pass1,
             role_asignado=rol_elegido,
-            area_asignada=area_elegida  # NUEVO
+            area_asignada=area_elegida
         )
         if exito:
             st.success(msg)
@@ -155,8 +155,12 @@ def calcular_consultores(df: pd.DataFrame) -> pd.DataFrame:
     return df_calc
 
 def two_decimals_only_numeric(df: pd.DataFrame):
+    """
+    Formatea las columnas numéricas con 2 decimales 
+    y deja las celdas nulas en blanco (na_rep="").
+    """
     numeric_cols = df.select_dtypes(include=["float","int"]).columns
-    return df.style.format("{:,.2f}", subset=numeric_cols, na_rep="")
+    return df.style.format("{:,.2f}", na_rep="", subset=numeric_cols)
 
 def color_diferencia(val):
     return "background-color: #fb8500; color:white" if val != 0 else "background-color: green; color:white"
@@ -463,7 +467,7 @@ def editar_tabla_section(
             column_config=disabled_cols
         )
 
-    # Mostrar botones "Guardar Cambios" / "Cancelar" solo si can_edit
+    # Botones "Guardar Cambios" / "Cancelar" solo si can_edit
     if can_edit:
         col_guardar, col_cancelar = st.columns(2)
         with col_guardar:
@@ -507,7 +511,7 @@ def get_allowed_sections(area_user: str):
     elif area_user == "VPE":
         return ["Página Principal", "VPE", "Consolidado"]
     else:
-        # Si por alguna razón no coincide, solo ver Principal y Consolidado
+        # Si no coincide, solo ver Principal y Consolidado
         return ["Página Principal", "Consolidado"]
 
 
@@ -607,7 +611,7 @@ def main():
         if "cuadro_9" not in st.session_state:
             st.session_state["cuadro_9"] = pd.read_excel(excel_file, sheet_name="cuadro_9")
         if "cuadro_10" not in st.session_state:
-            # Dato: en el original se leía "vpo_consultores", parece un posible error.
+            # Ajuste: antes se repetía "vpo_consultores", lo corregimos a "cuadro_10"
             st.session_state["cuadro_10"] = pd.read_excel(excel_file, sheet_name="cuadro_10")
         if "cuadro_11" not in st.session_state:
             st.session_state["cuadro_11"] = pd.read_excel(excel_file, sheet_name="cuadro_11")
@@ -946,7 +950,7 @@ def main():
             df_misiones = st.session_state["actualizacion_misiones"]
             st.dataframe(
                 df_misiones.style
-                .format("{:,.2f}", subset=["Requerimiento del Área","Monto DPP 2025","Diferencia"])
+                .format("{:,.2f}", subset=["Requerimiento del Área","Monto DPP 2025","Diferencia"], na_rep="")
                 .applymap(color_diferencia, subset=["Diferencia"])
             )
 
@@ -954,7 +958,7 @@ def main():
             df_cons = st.session_state["actualizacion_consultorias"]
             st.dataframe(
                 df_cons.style
-                .format("{:,.2f}", subset=["Requerimiento del Área","Monto DPP 2025","Diferencia"])
+                .format("{:,.2f}", subset=["Requerimiento del Área","Monto DPP 2025","Diferencia"], na_rep="")
                 .applymap(color_diferencia, subset=["Diferencia"])
             )
             st.info("Se recalculan en cada carga de la app y cuando guardas datos en las secciones DPP 2025.")
