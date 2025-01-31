@@ -653,6 +653,22 @@ def main():
         # 1) Página Principal
         if eleccion_principal=="Página Principal":
             st.title("Página Principal")
+            # ==== Instrucciones de uso de la app ====
+            st.markdown("""
+            **Instrucciones de Uso:**
+            1. **Menú lateral:**  
+               - Usa el menú lateral para navegar entre secciones. Las secciones que veas dependen de tu *Área* asignada (por ejemplo, PRE, VPD, etc.).
+            2. **Editar datos (solo usuarios con rol admin/editor):**  
+               - Al ingresar a una sección "DPP 2025" (por ejemplo, VPD > Misiones > DPP 2025), podrás editar directamente las celdas y guardar cambios.
+               - También puedes subir un archivo Excel para reemplazar una tabla completa, si tu rol lo permite.
+            3. **Requerimiento del Área vs. DPP 2025:**  
+               - Cada sub-sección tiene la vista "Requerimiento del Área" (solo lectura) y la vista "DPP 2025" (editable según tu rol).
+            4. **Actualización y Consolidado:**  
+               - La sección "Actualización" muestra los montos totales recalculados y comparados con el Monto DPP 2025.
+               - La sección "Consolidado" incluye tablas resumen (Cuadro 9, 10, 11) y un consolidado final.
+            5. **Cerrar Sesión:**  
+               - En la barra lateral, al final, verás un botón "Logout" para cerrar tu sesión cuando termines.
+            """)
             st.write("Bienvenido a la sección principal.")
 
         # 2) VPD
