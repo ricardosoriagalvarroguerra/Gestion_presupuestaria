@@ -537,13 +537,17 @@ def editar_tabla_section(
         col_guardar, col_cancelar = st.columns(2)
         with col_guardar:
             if st.button("Guardar Cambios"):
+                # Se aplica el cálculo si corresponde
                 if calculo_fn:
                     df_final = calculo_fn(df_editado)
                 else:
                     df_final = df_editado
                 st.session_state[session_key] = df_final
                 guardar_en_excel(df_final, sheet_name)
-                st.success(f"¡Datos guardados en '{sheet_name}'!")
+                # Aquí se centraliza la actualización integral:
+                sincronizar_actualizacion_al_iniciar()
+                st.success(f"¡Datos guardados en '{sheet_name}' y sincronizados!")
+                st.experimental_rerun()
 
         with col_cancelar:
             if st.button("Cancelar / Descartar Cambios"):
@@ -832,7 +836,7 @@ def main():
             except:
                 st.session_state["gastos_centralizados"] = pd.DataFrame()
 
-        # Sincroniza
+        # Sincroniza (esto se ejecuta también al guardar cambios en cada sección)
         sincronizar_actualizacion_al_iniciar()
 
         # Menú principal filtrado por área
@@ -869,8 +873,8 @@ def main():
             sub_vpd = ["Misiones", "Consultorías"]
             eleccion_vpd = st.sidebar.selectbox("Sub-sección de VPD:", sub_vpd)
 
-            sub_sub_opciones = ["Requerimiento del Área", "DPP 2025"]
-            eleccion_sub_sub = st.sidebar.selectbox("Tema:", sub_sub_opciones)
+            sub_vpd_opciones = ["Requerimiento del Área", "DPP 2025"]
+            eleccion_sub_sub = st.sidebar.selectbox("Tema:", sub_vpd_opciones)
 
             if eleccion_vpd == "Misiones":
                 if eleccion_sub_sub == "Requerimiento del Área":
@@ -921,8 +925,8 @@ def main():
             sub_vpo = ["Misiones", "Consultorías"]
             eleccion_vpo_ = st.sidebar.selectbox("Sub-sección de VPO:", sub_vpo)
 
-            sub_sub_opciones = ["Requerimiento del Área", "DPP 2025"]
-            eleccion_sub_sub = st.sidebar.selectbox("Tema:", sub_sub_opciones)
+            sub_vpo_opciones = ["Requerimiento del Área", "DPP 2025"]
+            eleccion_sub_sub = st.sidebar.selectbox("Tema:", sub_vpo_opciones)
 
             if eleccion_vpo_ == "Misiones":
                 if eleccion_sub_sub == "Requerimiento del Área":
@@ -973,8 +977,8 @@ def main():
             sub_vpf = ["Misiones", "Consultorías"]
             eleccion_vpf_ = st.sidebar.selectbox("Sub-sección de VPF:", sub_vpf)
 
-            sub_sub_opciones = ["Requerimiento del Área", "DPP 2025"]
-            eleccion_sub_sub = st.sidebar.selectbox("Tema:", sub_sub_opciones)
+            sub_vpf_opciones = ["Requerimiento del Área", "DPP 2025"]
+            eleccion_sub_sub = st.sidebar.selectbox("Tema:", sub_vpf_opciones)
 
             if eleccion_vpf_ == "Misiones":
                 if eleccion_sub_sub == "Requerimiento del Área":
@@ -1025,8 +1029,8 @@ def main():
             sub_vpe = ["Misiones","Consultorías"]
             eleccion_vpe_ = st.sidebar.selectbox("Sub-sección de VPE:", sub_vpe)
 
-            sub_sub_vpe = ["Requerimiento del Área","DPP 2025"]
-            eleccion_sub_sub_vpe = st.sidebar.selectbox("Tema:", sub_sub_vpe)
+            sub_vpe_opciones = ["Requerimiento del Área","DPP 2025"]
+            eleccion_sub_sub_vpe = st.sidebar.selectbox("Tema:", sub_vpe_opciones)
 
             if eleccion_vpe_ == "Misiones":
                 if eleccion_sub_sub_vpe == "Requerimiento del Área":
@@ -1078,8 +1082,8 @@ def main():
             eleccion_pre_ = st.sidebar.selectbox("Sub-sección de PRE:", menu_pre)
 
             if eleccion_pre_ == "Misiones Personal":
-                sub_sub = ["Requerimiento del Área","DPP 2025"]
-                eleccion_sub_sub = st.sidebar.selectbox("Tema (Misiones Personal):", sub_sub)
+                sub_pre = ["Requerimiento del Área","DPP 2025"]
+                eleccion_sub_sub = st.sidebar.selectbox("Tema (Misiones Personal):", sub_pre)
                 if eleccion_sub_sub == "Requerimiento del Área":
                     st.subheader("PRE > Misiones Personal > Requerimiento del Área (Solo lectura)")
                     df_pre = st.session_state["pre_misiones_personal"]
@@ -1102,8 +1106,8 @@ def main():
                     )
 
             elif eleccion_pre_ == "Misiones Consultores":
-                sub_sub = ["Requerimiento del Área","DPP 2025"]
-                eleccion_sub_sub = st.sidebar.selectbox("Tema (Misiones Consultores):", sub_sub)
+                sub_pre = ["Requerimiento del Área","DPP 2025"]
+                eleccion_sub_sub = st.sidebar.selectbox("Tema (Misiones Consultores):", sub_pre)
                 if eleccion_sub_sub == "Requerimiento del Área":
                     st.subheader("PRE > Misiones Consultores > Requerimiento del Área (Solo lectura)")
                     df_pre = st.session_state["pre_misiones_consultores"]
@@ -1126,8 +1130,8 @@ def main():
                     )
 
             elif eleccion_pre_ == "Consultorías":
-                sub_sub = ["Requerimiento del Área","DPP 2025"]
-                eleccion_sub_sub = st.sidebar.selectbox("Tema (Consultorías):", sub_sub)
+                sub_pre = ["Requerimiento del Área","DPP 2025"]
+                eleccion_sub_sub = st.sidebar.selectbox("Tema (Consultorías):", sub_pre)
                 if eleccion_sub_sub == "Requerimiento del Área":
                     st.subheader("PRE > Consultorías > Requerimiento del Área (Solo lectura)")
                     df_pre = st.session_state["pre_consultores"]
