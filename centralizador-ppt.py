@@ -495,7 +495,7 @@ def editar_tabla_section(
                 st.session_state[session_key] = df_subido
                 guardar_en_excel(df_subido, sheet_name)
                 st.success(f"¡Tabla en '{sheet_name}' reemplazada con éxito!")
-                st.experimental_rerun()
+                st.rerun()
         else:
             st.warning("No tienes permiso para reemplazar la tabla.")
 
@@ -544,15 +544,15 @@ def editar_tabla_section(
                     df_final = df_editado
                 st.session_state[session_key] = df_final
                 guardar_en_excel(df_final, sheet_name)
-                # Aquí se centraliza la actualización integral:
+                # Actualiza integralmente todas las tablas y value boxes
                 sincronizar_actualizacion_al_iniciar()
                 st.success(f"¡Datos guardados en '{sheet_name}' y sincronizados!")
-                st.experimental_rerun()
+                st.rerun()
 
         with col_cancelar:
             if st.button("Cancelar / Descartar Cambios"):
                 st.info("Descartando cambios y recargando la tabla original...")
-                st.experimental_rerun()
+                st.rerun()
 
     # 11) Descargar
     st.write("### Descargar la tabla en Excel (versión actual en pantalla)")
